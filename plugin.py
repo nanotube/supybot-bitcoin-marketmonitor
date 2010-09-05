@@ -1,5 +1,6 @@
 ###
 # Copyright (c) 2010, mizerydearia
+# Copyright (c) 2010, Daniel Folkinshteyn <nanotube@users.sourceforge.net>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,10 +29,12 @@
 
 ###
 
+import locale
 import socket
 import telnetlib
 import threading
 import time
+import tokenize
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -50,8 +53,91 @@ class MarketMonitor(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.telnetBCM = telnetlib.Telnet()
         self.e = threading.Event()
-        
+
+    def _reconnect(self, repeat=True):
+        while not self.e.isSet():
+            try:
+                self.telnetBCM.close()
+                self.telnetBCM.open('bitcoinmarket.com', 27007)
+                return True
+            except Exception, e:
+                # this may get verbose, but let's leave this in for now.
+                self.log.error('MarketMonitor: reconnect error: %s: %s' % \
+                            (e.__class__.__name__, str(e)))
+                if not repeat:
+                    return False
+                time.sleep(5)
+
+    def _monitorBCM(self, irc):
+        while not self.e.isSet():
+            try:
+                linedata = self.telnetBCM.read_until('\n', 1)
+            except Exception, e:
+                self.log.error('Error in MarketMonitor: %s: %s' % \
+                            (e.__class__.__name__, str(e)))
+                self._reconnect()
+                continue
+            if linedata:
+                self._parseBCM(irc, linedata)
+
+        self.telnetBCM.close()
+
+    # http://code.activestate.com/recipes/473872-number-format-function-a-la-php/#c3
+    def _number_format(self, num, places=0):
+        locale.setlocale(locale.LC_NUMERIC, '')
+        return locale.format("%.*f", (places, num), True)
+
+    def _parseBCM(self, irc, msg):
+        data = msg[0:-1]
+        if data.find("WELCOME TO BITCOIN MARKET STREAMING QUOTES") > -1:
+            return
+        # New-Bid: ID:2478 Currency:PayPalUSD Price:0.0100 Quantity:1000
+        # Cancelled-Bid: ID:2468 Currency:PayPalUSD Price:0.0010 Quantity:100
+        # New-Trade: ID:692 Currency:PecunixGAU Price:0.001560 Quantity:1500
+        # Confirmed-Trade: ID:695 Currency:PecunixGAU Price:0.001700 Quantity:4000
+        elif data.find("New-Ask: ") > -1 or data.find("Cancelled-Ask: ") > -1 or data.find("New-Bid: ") > -1 or data.find("Cancelled-Bid: ") > -1 or data.find("New-Trade: ") > -1 or data.find("Confirmed-Trade: ") > -1:
+            list = data.split()
+
+            out = 'BCM::'
+
+            currencydict = {'LibertyReserveUSD':'LRUSD',
+                            'MoneyBookersUSD':'MBUSD',
+                            'PayPalUSD':'PPUSD',
+                            'PecunixGAU':'PXGAU'}
+            currency = list[2].split(':')[1]
+            out = out + currencydict.get(currency, currency)
+            
+            if data.find("New-Ask: ") > -1:
+                out = out+'::ASK   '
+            elif data.find("Cancelled-Ask: ") > -1:
+                out = out+'::UNASK '
+            elif data.find("New-Bid: ") > -1:
+                out = out+'::BID   '
+            elif data.find("Cancelled-Bid: ") > -1:
+                out = out+'::UNBID '
+            elif data.find("New-Trade: ") > -1:
+                out = out+'::NTRADE'
+            elif data.find("Confirmed-Trade: ") > -1:
+                out = out+'::CTRADE'
+
+            quantity = list[4].split(':')
+            quantityf = self._number_format(float(quantity[1]))
+            out = out+(' ' * (18 - len(quantityf))) + quantityf+' @ '
+            
+            currency_symboldict = {'LibertyReserveUSD':'$',
+                                'MoneyBookersUSD':'$',
+                                'PayPalUSD':'$',
+                                'PecunixGAU':'GAU'}
+            out = out + currency_symboldict.get(currency, currency)
+            price = list[3].split(':')
+            out = out+price[1]
+
+            irc.reply(out, prefixNick=False)
+        else:
+            self.log.error('MarketMonitor: Unrecognized data: %s' % data)
+
     def die(self):
+        self.e.set()
         self.telnetBCM.close()
         self.__parent.die()
 
@@ -60,40 +146,19 @@ class MarketMonitor(callbacks.Plugin):
         self.start(self, irc, msg, args)
     restart = wrap(restart)
 
-    def _monitor(self, irc):
-        while not self.e.isSet():
-            try:
-                irc.reply('event status: %s' % self.e.isSet(), prefixNick=False)
-                irc.reply('trying for 5 seconds', prefixNick=False)
-                linedata = self.telnetBCM.read_until('\n', 5)
-            except EOFError, e:
-                irc.error(str(e))
-                break
-            except Exception, e:
-                irc.reply(str(e))
-                break
-
-            if linedata:
-                irc.reply(linedata.lower(), prefixNick=False)
-
-        irc.reply('After while loop', prefixNick=False)
-        self.telnetBCM.close()
-
     def start(self, irc, msg, args):
         """takes no arguments
 
         Starts monitoring market data
         """
-        irc.reply('starting', prefixNick=False)
         self.e.clear()
-        
-        try:
-            self.telnetBCM.open('bitcoinmarket.com', 27007)
-        except socket.error, e:
-            irc.error(str(e))
-            return
-        t = threading.Thread(target=self._monitor, kwargs={'irc':irc})
-        t.start()
+        success = self._reconnect(repeat=False)
+        if success:
+            t = threading.Thread(target=self._monitorBCM, kwargs={'irc':irc})
+            t.start()
+            irc.reply("Connection successful. Now monitoring for activity.")
+        else:
+            irc.error("Error connecting to server. See log for details.")
     start = wrap(start)
 
     def stop(self, irc, msg, args):
@@ -101,10 +166,7 @@ class MarketMonitor(callbacks.Plugin):
 
         Stops monitoring market data
         """
-        print "in stop function!"
-        irc.reply('stopping', prefixNick=False)
         self.e.set()
-        #self.telnetBCM.close()
     stop = wrap(stop)
 
 Class = MarketMonitor
