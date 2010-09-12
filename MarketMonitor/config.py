@@ -1,5 +1,7 @@
 import supybot.conf as conf
 import supybot.registry as registry
+from supybot import ircutils
+import re
 
 def configure(advanced):
     # This will be called by supybot to configure this module.  advanced is
@@ -9,9 +11,34 @@ def configure(advanced):
     from supybot.questions import expect, anything, something, yn
     conf.registerPlugin('MarketMonitor', True)
 
+class Channel(registry.String):
+    def setValue(self, v):
+        if not ircutils.isChannel(v):
+            self.error()
+        else:
+            super(Channel, self).setValue(v)
 
-PublicModeration = conf.registerPlugin('MarketMonitor')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(PublicModeration, 'someConfigVariableName',
-#     registry.Boolean(False, """Help for someConfigVariableName."""))
+class CommaSeparatedListOfChannels(registry.SeparatedListOf):
+    Value = Channel
+    def splitter(self, s):
+        return re.split(r'\s*,\s*', s)
+    joiner = ', '.join
+
+MarketMonitor = conf.registerPlugin('MarketMonitor')
+
+conf.registerGlobalValue(MarketMonitor, 'channels',
+    CommaSeparatedListOfChannels("", """List of channels that should
+    receive monitoring output."""))
+conf.registerGlobalValue(MarketMonitor, 'server',
+    registry.String("bitcoinmarket.com", """Server to connect to."""))
+conf.registerGlobalValue(MarketMonitor, 'port',
+    registry.PositiveInteger(27007, """Port to connect to."""))
+
+class Formats(registry.OnlySomeStrings):
+    validStrings = ('raw', 'pretty')
+
+conf.registerGlobalValue(MarketMonitor, 'format',
+    Formats('raw', """Format of the output. Choose between 'raw', to
+    output messages as-is, and 'pretty', for prettified and aligned output."""))
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

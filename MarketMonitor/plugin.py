@@ -34,7 +34,7 @@ import socket
 import telnetlib
 import threading
 import time
-import tokenize
+import re
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -42,6 +42,8 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 import supybot.world as world
+from supybot import schedule
+from supybot import ircmsgs
 
 class MarketMonitor(callbacks.Plugin):
     """Add the help for "@plugin help MarketMonitor" here
@@ -53,12 +55,18 @@ class MarketMonitor(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.telnetBCM = telnetlib.Telnet()
         self.e = threading.Event()
+#        channels = self.registryValue('channels')
+#        if channels:
+#            def f():
+#                self._autostart(irc)
+#            schedule.addEvent(
 
     def _reconnect(self, repeat=True):
         while not self.e.isSet():
             try:
                 self.telnetBCM.close()
-                self.telnetBCM.open('bitcoinmarket.com', 27007)
+                self.telnetBCM.open(self.registryValue('server'),
+                                    self.registryValue('port'))
                 return True
             except Exception, e:
                 # this may get verbose, but let's leave this in for now.
@@ -78,7 +86,10 @@ class MarketMonitor(callbacks.Plugin):
                 self._reconnect()
                 continue
             if linedata:
-                self._parseBCM(irc, linedata)
+                output = self._parseBCM(irc, linedata)
+                if output:
+                    for chan in self.registryValue('channels'):
+                        irc.queueMsg(ircmsgs.privmsg(chan, output))
 
         self.telnetBCM.close()
 
@@ -89,52 +100,63 @@ class MarketMonitor(callbacks.Plugin):
 
     def _parseBCM(self, irc, msg):
         data = msg[0:-1]
-        if data.find("WELCOME TO BITCOIN MARKET STREAMING QUOTES") > -1:
-            return
+
         # New-Bid: ID:2478 Currency:PayPalUSD Price:0.0100 Quantity:1000
         # Cancelled-Bid: ID:2468 Currency:PayPalUSD Price:0.0010 Quantity:100
         # New-Trade: ID:692 Currency:PecunixGAU Price:0.001560 Quantity:1500
         # Confirmed-Trade: ID:695 Currency:PecunixGAU Price:0.001700 Quantity:4000
-        elif data.find("New-Ask: ") > -1 or data.find("Cancelled-Ask: ") > -1 or data.find("New-Bid: ") > -1 or data.find("Cancelled-Bid: ") > -1 or data.find("New-Trade: ") > -1 or data.find("Confirmed-Trade: ") > -1:
-            list = data.split()
+        # New-Bid, New-Ask, Cancelled-Bid, Cancelled-Ask, New-Trade, Cancelled-Trade, Confirmed-Trade
 
-            out = 'BCM::'
+        if self.registryValue('format') == 'raw':
+            return data
 
-            currencydict = {'LibertyReserveUSD':'LRUSD',
-                            'MoneyBookersUSD':'MBUSD',
-                            'PayPalUSD':'PPUSD',
-                            'PecunixGAU':'PXGAU'}
-            currency = list[2].split(':')[1]
-            out = out + currencydict.get(currency, currency)
-            
-            if data.find("New-Ask: ") > -1:
-                out = out+'::ASK   '
-            elif data.find("Cancelled-Ask: ") > -1:
-                out = out+'::UNASK '
-            elif data.find("New-Bid: ") > -1:
-                out = out+'::BID   '
-            elif data.find("Cancelled-Bid: ") > -1:
-                out = out+'::UNBID '
-            elif data.find("New-Trade: ") > -1:
-                out = out+'::NTRADE'
-            elif data.find("Confirmed-Trade: ") > -1:
-                out = out+'::CTRADE'
+        if data.find("WELCOME TO BITCOIN MARKET STREAMING QUOTES") > -1:
+            return
 
-            quantity = list[4].split(':')
-            quantityf = self._number_format(float(quantity[1]))
-            out = out+(' ' * (18 - len(quantityf))) + quantityf+' @ '
-            
-            currency_symboldict = {'LibertyReserveUSD':'$',
-                                'MoneyBookersUSD':'$',
-                                'PayPalUSD':'$',
-                                'PecunixGAU':'GAU'}
-            out = out + currency_symboldict.get(currency, currency)
-            price = list[3].split(':')
-            out = out+price[1]
+        trans_type_dict = {'New-Bid':'NEW BID',
+                           'New-Ask':'NEW ASK',
+                           'Cancelled-Bid':'UNBID',
+                           'Cancelled-Ask':'UNASK',
+                           'New-Trade':'NEW TRD',
+                           'Cancelled-Trade':'UNTRD',
+                           'Confirmed-Trade':'CONF TRD'}
 
-            irc.reply(out, prefixNick=False)
-        else:
+        currency_name_dict = {'LibertyReserveUSD':'LRUSD',
+                              'MoneyBookersUSD':'MBUSD',
+                              'PayPalUSD':'PPUSD',
+                              'PecunixGAU':'PXGAU'}
+
+        currency_sym_dict = {'LibertyReserveUSD':'$',
+                              'MoneyBookersUSD':'$',
+                              'PayPalUSD':'$',
+                              'PecunixGAU':'GAU'}
+
+        try:
+            m_type = re.search(r'(' + '|'.join(trans_type_dict.keys()) + ')', data)
+            trans_type = m.group(1)
+
+            m_curr = re.search(r'(' + '|'.join(currency_name_dict.keys()) + ')', data)
+            trans_curr = m_curr.group(1)
+
+            m_quant = re.search(r'Quantity:([\d\.]+)', data)
+            trans_quant = m.group(1)
+
+            m_price = re.search(r'Price:([\d\.]+)', data)
+            trans_price = m.group(1)
+
+            m_id = re.search(r'ID:(\d+)', data)
+            trans_id = m_id.group(1)
+
+            out = "BCM::%10s::%s%20s @ %s%s" % (trans_type,
+                                            currency_name_dict[trans_curr],
+                                            self._number_format(float(trans_quant)),
+                                            currency_sym_dict[trans_curr],
+                                            trans_price,)
+                                            
+            return out
+        except IndexError:
             self.log.error('MarketMonitor: Unrecognized data: %s' % data)
+            return data
 
     def die(self):
         self.e.set()
@@ -145,6 +167,13 @@ class MarketMonitor(callbacks.Plugin):
         self.stop(self, irc, msg, args)
         self.start(self, irc, msg, args)
     restart = wrap(restart)
+
+    def _autostart(self, irc):
+        self.e.clear()
+        success = self._reconnect(repeat=False)
+        if success:
+            t = threading.Thread(target=self._monitorBCM, kwargs={'irc':irc})
+            t.start()
 
     def start(self, irc, msg, args):
         """takes no arguments
