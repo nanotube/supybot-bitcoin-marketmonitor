@@ -55,6 +55,7 @@ class MarketMonitor(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.telnetBCM = telnetlib.Telnet()
         self.e = threading.Event()
+        self.data = ""
 #        channels = self.registryValue('channels')
 #        if channels:
 #            def f():
@@ -99,7 +100,12 @@ class MarketMonitor(callbacks.Plugin):
         return locale.format("%.*f", (places, num), True)
 
     def _parseBCM(self, irc, msg):
-        data = msg[0:-1]
+        if not msg[-1] == '\n':
+            self.data = self.data + msg
+            return
+        self.data = self.data + msg
+
+        data = self.data
 
         # New-Bid: ID:2478 Currency:PayPalUSD Price:0.0100 Quantity:1000
         # Cancelled-Bid: ID:2468 Currency:PayPalUSD Price:0.0010 Quantity:100
@@ -108,9 +114,11 @@ class MarketMonitor(callbacks.Plugin):
         # New-Bid, New-Ask, Cancelled-Bid, Cancelled-Ask, New-Trade, Cancelled-Trade, Confirmed-Trade
 
         if self.registryValue('format') == 'raw':
+            self.data = ""
             return data
 
         if data.find("WELCOME TO BITCOIN MARKET STREAMING QUOTES") > -1:
+            self.data = ""
             return
 
         trans_type_dict = {'New-Bid':'NEW BID',
@@ -133,29 +141,32 @@ class MarketMonitor(callbacks.Plugin):
 
         try:
             m_type = re.search(r'(' + '|'.join(trans_type_dict.keys()) + ')', data)
-            trans_type = m.group(1)
+            trans_type = m_type.group(1)
 
             m_curr = re.search(r'(' + '|'.join(currency_name_dict.keys()) + ')', data)
             trans_curr = m_curr.group(1)
 
             m_quant = re.search(r'Quantity:([\d\.]+)', data)
-            trans_quant = m.group(1)
+            trans_quant = m_quant.group(1)
 
             m_price = re.search(r'Price:([\d\.]+)', data)
-            trans_price = m.group(1)
+            trans_price = m_price.group(1)
 
             m_id = re.search(r'ID:(\d+)', data)
             trans_id = m_id.group(1)
 
-            out = "BCM::%10s::%s%20s @ %s%s" % (trans_type,
+            out = "BCM::%10s::%s%20s @ %s%s" % (trans_type_dict[trans_type],
                                             currency_name_dict[trans_curr],
                                             self._number_format(float(trans_quant)),
                                             currency_sym_dict[trans_curr],
                                             trans_price,)
-                                            
+
+            self.data = ""
             return out
-        except IndexError:
+        except:
+            # we really want to keep going no matter what data we get
             self.log.error('MarketMonitor: Unrecognized data: %s' % data)
+            self.data = ""
             return data
 
     def die(self):
