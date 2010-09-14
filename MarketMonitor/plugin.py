@@ -55,6 +55,7 @@ class MarketMonitor(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.telnetBCM = telnetlib.Telnet()
         self.e = threading.Event()
+        self.started = threading.Event()
         self.data = ""
 #        channels = self.registryValue('channels')
 #        if channels:
@@ -91,7 +92,7 @@ class MarketMonitor(callbacks.Plugin):
                 if output:
                     for chan in self.registryValue('channels'):
                         irc.queueMsg(ircmsgs.privmsg(chan, output))
-
+        self.started.clear()
         self.telnetBCM.close()
 
     # http://code.activestate.com/recipes/473872-number-format-function-a-la-php/#c3
@@ -192,14 +193,18 @@ class MarketMonitor(callbacks.Plugin):
 
         Starts monitoring market data
         """
-        self.e.clear()
-        success = self._reconnect(repeat=False)
-        if success:
-            t = threading.Thread(target=self._monitorBCM, kwargs={'irc':irc})
-            t.start()
-            irc.reply("Connection successful. Now monitoring for activity.")
+        if not self.started.isSet():
+            self.e.clear()
+            self.started.set()
+            success = self._reconnect(repeat=False)
+            if success:
+                t = threading.Thread(target=self._monitorBCM, kwargs={'irc':irc})
+                t.start()
+                irc.reply("Connection successful. Now monitoring for activity.")
+            else:
+                irc.error("Error connecting to server. See log for details.")
         else:
-            irc.error("Error connecting to server. See log for details.")
+            irc.error("Monitoring already started.")
     start = wrap(start)
 
     def stop(self, irc, msg, args):
@@ -207,6 +212,7 @@ class MarketMonitor(callbacks.Plugin):
 
         Stops monitoring market data
         """
+        irc.reply("Stopping BCM monitoring.")
         self.e.set()
     stop = wrap(stop)
 
