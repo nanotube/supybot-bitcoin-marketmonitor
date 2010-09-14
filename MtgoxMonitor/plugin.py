@@ -70,7 +70,7 @@ class MtgoxMonitor(callbacks.Plugin):
                            trade['amount'],
                            '$' + trade['price'],
                            time.strftime("%b %d %Y %H:%M:%S GMT",
-                                         time.gmtime(trade['date'])))
+                                         time.gmtime(float(trade['date']))))
                     for chan in self.registryValue('channels'):
                         irc.queueMsg(ircmsgs.privmsg(chan, out))
             self.last_checked = checked
