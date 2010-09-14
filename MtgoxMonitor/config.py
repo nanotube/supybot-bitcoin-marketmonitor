@@ -30,6 +30,8 @@
 
 import supybot.conf as conf
 import supybot.registry as registry
+from supybot import ircutils
+import re
 
 def configure(advanced):
     # This will be called by supybot to configure this module.  advanced is
@@ -39,11 +41,25 @@ def configure(advanced):
     from supybot.questions import expect, anything, something, yn
     conf.registerPlugin('MtgoxMonitor', True)
 
+class Channel(registry.String):
+    def setValue(self, v):
+        if not ircutils.isChannel(v):
+            self.error()
+        else:
+            super(Channel, self).setValue(v)
+
+class CommaSeparatedListOfChannels(registry.SeparatedListOf):
+    Value = Channel
+    def splitter(self, s):
+        return re.split(r'\s*,\s*', s)
+    joiner = ', '.join
 
 MtgoxMonitor = conf.registerPlugin('MtgoxMonitor')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(MtgoxMonitor, 'someConfigVariableName',
-#     registry.Boolean(False, """Help for someConfigVariableName."""))
 
+conf.registerGlobalValue(MtgoxMonitor, 'channels',
+    CommaSeparatedListOfChannels("", """List of channels that should
+    receive monitoring output."""))
+conf.registerGlobalValue(MtgoxMonitor, 'pollinterval',
+    registry.PositiveInteger(10, """Seconds between mtgox site polls."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
