@@ -64,13 +64,12 @@ class MtgoxMonitor(callbacks.Plugin):
             #new_depth = utils.web.getUrl('http://mtgox.com/code/getDepth.php')
             #new_depth = json.loads(new_depth, parse_float=str, parse_int=str)
             for trade in new_trades:
-                if float(trade['date']) > self.last_checked:
-                    out = "MTG|%10s|%27s @ %-10s %24s" % \
+                if float(trade['date']) > self.last_checked - 3: # some leeway
+                    out = "MTG|%10s|%27s @ %s" % \
                           ('TRADE',
                            trade['amount'],
-                           '$' + trade['price'],
-                           time.strftime("%b %d %Y %H:%M:%S GMT",
-                                         time.gmtime(float(trade['date']))))
+                           '$' + trade['price'])
+                    out = ircutils.bold(out)
                     for chan in self.registryValue('channels'):
                         irc.queueMsg(ircmsgs.privmsg(chan, out))
             self.last_checked = checked

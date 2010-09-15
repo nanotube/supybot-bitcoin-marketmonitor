@@ -156,12 +156,13 @@ class MarketMonitor(callbacks.Plugin):
             m_id = re.search(r'ID:(\d+)', data)
             trans_id = m_id.group(1)
 
-            out = "BCM|%10s|%5s %21s @ %-10s %s" % \
+            out = "BCM|%10s|%5s %21s @ %s" % \
                   (trans_type_dict[trans_type],
                    currency_name_dict[trans_curr],
                    self._number_format(float(trans_quant)),
-                   currency_sym_dict[trans_curr] + trans_price,
-                   time.strftime("%b %d %Y %H:%M:%S GMT", time.gmtime()))
+                   currency_sym_dict[trans_curr] + trans_price)
+            if trans_type == 'Confirmed-Trade':
+                out = ircutils.bold(out)
 
             self.data = ""
             return out
