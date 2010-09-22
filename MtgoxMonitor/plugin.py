@@ -63,6 +63,7 @@ class MtgoxMonitor(callbacks.Plugin):
             new_trades = json.loads(new_trades, parse_float=str, parse_int=str)
             #new_depth = utils.web.getUrl('http://mtgox.com/code/getDepth.php')
             #new_depth = json.loads(new_depth, parse_float=str, parse_int=str)
+            # ticker: https://mtgox.com/code/ticker.php
             for trade in new_trades:
                 if float(trade['date']) > self.last_checked - 3: # some leeway
                     out = "MTG|%10s|%27s @ %s" % \
