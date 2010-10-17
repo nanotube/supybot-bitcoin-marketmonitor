@@ -30,8 +30,95 @@
 
 from supybot.test import *
 
+import sqlite3
+
 class OTCOrderBookTestCase(PluginTestCase):
     plugins = ('OTCOrderBook',)
 
+    def testBuy(self):
+        # no cloak
+        self.assertError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+        try:
+            world.testing = False
+            origuser = self.prefix
+            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+            self.assertNotError('buy 2000 bitcoins @ 0.06 LRUSD')
+            self.assertNotError('buy 3000 bitcoin at 0.07 PPUSD really nice offer!')
+            self.assertNotError('buy 4000 btc at 10 LRUSD some text')
+            self.assertNotError('view')
+            self.assertError('buy 5000 btc at 0.06 LRUSD mooo') # max orders
+            self.assertRegexp('view', '1000.*2000')
+        finally:
+            world.testing = True
+            self.prefix = origuser
+
+    def testSell(self):
+        # no cloak
+        self.assertError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+        try:
+            world.testing = False
+            origuser = self.prefix
+            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.assertNotError('sell 1000 btc at 0.06 LRUSD really nice offer!')
+            self.assertNotError('sell 2000 bitcoins @ 0.06 LRUSD')
+            self.assertNotError('sell 3000 bitcoin at 0.07 PPUSD really nice offer!')
+            self.assertNotError('sell 4000 btc at 10 LRUSD some text')
+            self.assertNotError('view')
+            self.assertError('sell 5000 btc at 0.06 LRUSD mooo') # max orders
+            self.assertRegexp('view', '1000.*2000')
+        finally:
+            world.testing = True
+            self.prefix = origuser
+
+    def testRefresh(self):
+        try:
+            world.testing = False
+            origuser = self.prefix
+            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+            self.assertNotError('refresh')
+            self.assertNotError('refresh 1')
+            self.assertRegexp('view', '1000')
+        finally:
+            world.testing = True
+            self.prefix = origuser
+
+    def testRemove(self):
+        try:
+            world.testing = False
+            origuser = self.prefix
+            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+            self.assertNotError('sell 2000 btc at 0.06 LRUSD really nice offer!')
+            self.assertRegexp('view', '1000.*2000')
+            self.assertNotError('remove 1')
+            self.assertNotRegexp('view', '1000.*2000')
+            self.assertRegexp('view', '2000')
+            self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+            self.assertNotError('remove')
+            self.assertError('view')
+        finally:
+            world.testing = True
+            self.prefix = origuser
+
+    def testBook(self):
+        try:
+            world.testing = False
+            origuser = self.prefix
+            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
+            self.assertNotError('sell 2000 btc at 0.07 LRUSD really nice offer!')
+            self.assertNotError('buy 3000 btc at 0.06 PPUSD really nice offer!')
+            self.assertNotError('sell 4000 btc at 0.06 PPUSD really nice offer!')
+            self.assertRegexp('view', '1000.*2000.*3000.*4000')
+            self.assertNotRegexp('book LRUSD', '1000.*2000.*3000.*4000')
+            self.assertRegexp('book LRUSD', '1000.*2000')
+            self.assertNotError('remove 4')
+            self.assertNotError('buy 5000 btc at 0.05 LRUSD')
+            self.assertRegexp('book LRUSD', '5000.*1000.*2000')
+        finally:
+            world.testing = True
+            self.prefix = origuser
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

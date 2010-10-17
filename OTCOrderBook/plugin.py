@@ -22,9 +22,11 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+from supybot import conf
 
 import sqlite3
 import time
+import os.path
 
 class OTCOrderDB(object):
     def __init__(self, filename):
@@ -33,15 +35,15 @@ class OTCOrderDB(object):
 
     def open(self):
         if os.path.exists(self.filename):
-            db = sqlite3.connect(self.filename)
+            db = sqlite3.connect(self.filename, check_same_thread = False)
             db.text_factory = str
             self.db = db
-            return db
+            return
         
-        db = sqlite3.connect(self.filename)
+        db = sqlite3.connect(self.filename, check_same_thread = False)
         db.text_factory = str
         self.db = db
-        cursor = db.cursor()
+        cursor = self.db.cursor()
         cursor.execute("""CREATE TABLE orders (
                           id INTEGER PRIMARY KEY,
                           created_at INTEGER,
@@ -54,8 +56,8 @@ class OTCOrderDB(object):
                           othercurrency TEXT,
                           notes TEXT)
                           """)
-        db.commit()
-        return db
+        self.db.commit()
+        return
 
     def close(self):
         self.db.close()
@@ -72,11 +74,16 @@ class OTCOrderDB(object):
     def deleteExpired(self, expiry):
         cursor = self.db.cursor()
         timestamp = time.time()
-        #cursor.execute("""SELECT id from orders WHERE refreshed_at + ? > ?""",
-        #               (expiry, timestamp))
-        cursor.execute("""DELETE FROM orders WHERE refreshed_at + ? > ?""",
+        cursor.execute("""DELETE FROM orders WHERE refreshed_at + ? < ?""",
                        (expiry, timestamp))
-        db.commit()
+        self.db.commit()
+
+    def getCurrencyBook(self, currency):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM orders WHERE othercurrency = ?
+                       ORDER BY price""",
+                       (currency,))
+        return cursor.fetchall()
 
     def buy(self, nick, host, btcamount, price, othercurrency, notes):
         cursor = self.db.cursor()
@@ -150,7 +157,7 @@ class OTCOrderBook(callbacks.Plugin):
     threaded = True
 
     def __init__(self, irc):
-        self.__parent = super(Later, self)
+        self.__parent = super(OTCOrderBook, self)
         self.__parent.__init__(irc)
         self.filename = conf.supybot.directories.data.dirize('OTCOrderBook.db')
         self.db = OTCOrderDB(self.filename)
@@ -175,7 +182,7 @@ class OTCOrderBook(callbacks.Plugin):
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host):
-            irc.error("For identification purposes, you must have a cloak"
+            irc.error("For identification purposes, you must have a cloak "
                       "in order to use the order system.")
             return
         results = self.db.get(msg.host)
@@ -185,7 +192,7 @@ class OTCOrderBook(callbacks.Plugin):
             return
 
         self.db.buy(msg.nick, msg.host, btcamount, price, othercurrency, notes)
-        irc.reply("Order entry successful. Use 'view' command to view your"
+        irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
     buy = wrap(buy, ['positiveFloat','btc','at','positiveFloat','something',
                      optional('text')])
@@ -199,7 +206,7 @@ class OTCOrderBook(callbacks.Plugin):
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host):
-            irc.error("For identification purposes, you must have a cloak"
+            irc.error("For identification purposes, you must have a cloak "
                       "in order to use the order system.")
             return
         results = self.db.get(msg.host)
@@ -209,7 +216,7 @@ class OTCOrderBook(callbacks.Plugin):
             return
 
         self.db.sell(msg.nick, msg.host, btcamount, price, othercurrency, notes)
-        irc.reply("Order entry successful. Use 'view' command to view your"
+        irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
     sell = wrap(sell, ['positiveFloat','btc','at','positiveFloat','something',
                      optional('text')])
@@ -255,7 +262,7 @@ class OTCOrderBook(callbacks.Plugin):
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return
-        L = ["%s %s %s %s BTC @ %s %s (%s)" % (time.ctime(created_at),
+        L = ["%s %s %s %s BTC @ %s %s (%s)" % (time.ctime(refreshed_at),
                                           host,
                                           buysell,
                                           btcamount,
@@ -276,8 +283,36 @@ class OTCOrderBook(callbacks.Plugin):
         irc.replies(L, joiner=" || ")
     view = wrap(view, [optional('int')])
     
-        
+    def book(self, irc, msg, args, currency):
+        """<currency>
 
+        Get a list of open orders in <currency>.
+        """
+        self.db.deleteExpired(self.registryValue('orderExpiry'))
+        results = self.db.getCurrencyBook(currency)
+        if len(results) == 0:
+            irc.error("No orders for this currency present in database.")
+            return
+        L = ["%s %s@%s %s %s BTC @ %s %s (%s)" % (time.ctime(refreshed_at),
+                                                  nick,
+                                                  host,
+                                                  buysell,
+                                                  btcamount,
+                                                  price,
+                                                  othercurrency,
+                                                  notes) \
+             for (id,
+                  created_at,
+                  refreshed_at,
+                  buysell,
+                  nick,
+                  host,
+                  btcamount,
+                  price,
+                  othercurrency,
+                  notes) in results]
+        irc.replies(L, joiner=" || ")
+    book = wrap(book, ['something'])
 
 Class = OTCOrderBook
 
