@@ -57,15 +57,17 @@ class MtgoxMonitor(callbacks.Plugin):
         while not self.e.isSet():
             try:
                 new_trades = utils.web.getUrl('http://mtgox.com/code/data/getTrades.php')
+                new_trades = json.loads(new_trades, parse_float=str, parse_int=str)
             except:
                 continue # let's just try again.
-            checked = time.time()
-            new_trades = json.loads(new_trades, parse_float=str, parse_int=str)
+            checked = self.last_checked
             #new_depth = utils.web.getUrl('http://mtgox.com/code/getDepth.php')
             #new_depth = json.loads(new_depth, parse_float=str, parse_int=str)
             # ticker: https://mtgox.com/code/ticker.php
             for trade in new_trades:
-                if float(trade['date']) > self.last_checked - 3: # some leeway
+                if float(trade['date']) > checked:
+                    checked = float(trade['date'])
+                if float(trade['date']) > self.last_checked:
                     out = "MTG|%10s|%27s @ %s" % \
                           ('TRADE',
                            trade['amount'],
