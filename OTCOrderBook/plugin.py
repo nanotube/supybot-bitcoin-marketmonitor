@@ -293,6 +293,11 @@ class OTCOrderBook(callbacks.Plugin):
         if len(results) == 0:
             irc.error("No orders for this currency present in database.")
             return
+        if len(results) > self.registryValue('maxOrdersInBookList'):
+            irc.error("Too many orders to list on channel. Visit the website "
+                      "at http://bitcoin-otc.com/ to see the complete order "
+                      "book in a nice table.")
+            return
         L = ["%s %s@%s %s %s BTC @ %s %s (%s)" % (time.ctime(refreshed_at),
                                                   nick,
                                                   host,

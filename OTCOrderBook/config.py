@@ -61,4 +61,9 @@ conf.registerGlobalValue(OTCOrderBook, 'maxUserOpenOrders',
     It's a good idea to have this on, to avoid order flooding from a rogue
     user."""))
 
+conf.registerGlobalValue(OTCOrderBook, 'maxOrdersInBookList',
+    registry.NonNegativeInteger(8, """Only allow this many orders in a currency
+    order book to be spit out to channel. If more than that exist, suggest to
+    visit the nice website."""))
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
