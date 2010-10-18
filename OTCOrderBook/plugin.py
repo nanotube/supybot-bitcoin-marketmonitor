@@ -82,7 +82,7 @@ class OTCOrderDB(object):
         cursor = self.db.cursor()
         cursor.execute("""SELECT * FROM orders WHERE othercurrency = ?
                        ORDER BY price""",
-                       (currency,))
+                       (currency.upper(),))
         return cursor.fetchall()
 
     def buy(self, nick, host, btcamount, price, othercurrency, notes):
