@@ -89,8 +89,8 @@ if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
             }
             $color = $color + 1;
             echo '  <td>' . $entry['id'] . '</td>' . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s|e', $entry['created_at']) . </td> . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s|e', $entry['refreshed_at']) . </td> . "\n";
+            echo '  <td>' . gmdate('Y-m-d|H:i:s|e', $entry['created_at']) . '</td>' . "\n";
+            echo '  <td>' . gmdate('Y-m-d|H:i:s|e', $entry['refreshed_at']) . '</td>' . "\n";
             echo '  <td>' . $entry['buysell'] . '</td>' . "\n";
             echo '  <td>' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['nick'])) . '</td>' . "\n";
             echo '  <td>' . $entry['host'] . '</td>' . "\n";
