@@ -50,16 +50,16 @@ $sortorders = array('id' => 'ASC', 'created_at' => 'ASC', 'refreshed_at' => 'ASC
 if ($sortorder == 'ASC') {
   $sortorders[$sortby] = 'DESC';
 }
-echo '  <th><a href="vieworderbook.php?db=&sortby=id&sortorder=' . $sortorders['multikey'] . '">id</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=refreshed_at&sortorder=' . $sortorders['refreshed_at'] . '">refreshed at</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=buysell&sortorder=' . $sortorders['buysell'] . '">type</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=nick&sortorder=' . $sortorders['nick'] . '">nick</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=host&sortorder=' . $sortorders['host'] . '">host</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=btcamount&sortorder=' . $sortorders['btcamount'] . '">BTC amount</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=price&sortorder=' . $sortorders['price'] . '">price</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=othercurrency&sortorder=' . $sortorders['othercurrency'] . '">currency</a></th>';
-echo '  <th><a href="vieworderbook.php?db=&sortby=notes&sortorder=' . $sortorders['notes'] . '">notes</a></th>';
+echo '  <th><a href="vieworderbook.php?db=&sortby=id&sortorder=' . $sortorders['multikey'] . '">id</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=refreshed_at&sortorder=' . $sortorders['refreshed_at'] . '">refreshed at</a><br>(UTC)</th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=buysell&sortorder=' . $sortorders['buysell'] . '">type</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=nick&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=host&sortorder=' . $sortorders['host'] . '">host</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=btcamount&sortorder=' . $sortorders['btcamount'] . '">BTC amount</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=price&sortorder=' . $sortorders['price'] . '">price</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?db=&sortby=othercurrency&sortorder=' . $sortorders['othercurrency'] . '">currency</a></th>' . "\n";
+echo '  <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="vieworderbook.php?db=&sortby=notes&sortorder=' . $sortorders['notes'] . '">notes</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>' . "\n";
 ?>
 </tr>
 
@@ -88,8 +88,8 @@ if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
             }
             $color = $color + 1;
             echo '  <td>' . $entry['id'] . '</td>' . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s|e', $entry['created_at']) . '</td>' . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s|e', $entry['refreshed_at']) . '</td>' . "\n";
+            echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['created_at']) . '</td>' . "\n";
+            echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['refreshed_at']) . '</td>' . "\n";
             echo '  <td>' . $entry['buysell'] . '</td>' . "\n";
             echo '  <td>' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['nick'])) . '</td>' . "\n";
             echo '  <td>' . $entry['host'] . '</td>' . "\n";
