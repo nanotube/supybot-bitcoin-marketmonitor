@@ -174,7 +174,7 @@ class OTCOrderBook(callbacks.Plugin):
         return True
 
     def buy(self, irc, msg, args, btcamount, price, othercurrency, notes):
-        """<btcamount> [at|@] <priceperbtc> <othercurrency> [<notes>]
+        """<btcamount> [btc|bitcoin|bitcoins] [at|@] <priceperbtc> <othercurrency> [<notes>]
 
         Logs a buy order for <btcamount> BTC, at a price of <priceperbtc>
         per BTC, in units of <othercurrency>. Use the optional <notes> field to
@@ -191,14 +191,14 @@ class OTCOrderBook(callbacks.Plugin):
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        self.db.buy(msg.nick, msg.host, btcamount, price, othercurrency, notes)
+        self.db.buy(msg.nick, msg.host, btcamount, price, othercurrency.upper(), notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
     buy = wrap(buy, ['positiveFloat','btc','at','positiveFloat','something',
                      optional('text')])
 
     def sell(self, irc, msg, args, btcamount, price, othercurrency, notes):
-        """<btcamount> [at|@] <priceperbtc> <othercurrency> [<notes>]
+        """<btcamount> [btc|bitcoin|bitcoins] [at|@] <priceperbtc> <othercurrency> [<notes>]
 
         Logs a sell order for <btcamount> BTC, at a price of <priceperbtc>
         per BTC, in units of <othercurrency>. Use the optional <notes> field to
@@ -215,7 +215,7 @@ class OTCOrderBook(callbacks.Plugin):
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        self.db.sell(msg.nick, msg.host, btcamount, price, othercurrency, notes)
+        self.db.sell(msg.nick, msg.host, btcamount, price, othercurrency.upper(), notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
     sell = wrap(sell, ['positiveFloat','btc','at','positiveFloat','something',
