@@ -15,9 +15,30 @@
 </ul>
 </p>
 
-<h3>Currency-specific notes</h3>
+<h3>Notes on chargebacks</h3>
 
-<p>TODO</p>
+<p>When trading BTC for reversible methods (such as paypal or credit card transactions), beware of chargeback risk. It is strongly recommended to avoid PayPal or credit card transactions with persons of unknown reputation, since even with escrow, your counterparty may chargeback the PayPal funds after receiving the BTC. One possible way to avoid these issues with PayPal is to use "personal gift" transactions which come out of PayPal or bank balance (rather than credit card). These transactions are not chargeback-able, and as a bonus, incur no fees.</p>
+
+<h2>#bitcoin-otc user guide</h2>
+
+<h3>Order entry</h3>
+<ul>
+<li>To enter orders, you must be <a href="http://freenode.net/faq.shtml#nicksetup">registered</a> with freenode, and have a <a href="http://freenode.net/faq.shtml#cloaks">cloak</a>. 
+<li>To enter buy or sell orders, use the 'buy' and 'sell' commands with the bot. Bot's command string is ';;', so to enter a buy order, you might, for example, enter:
+<pre>;;buy 1000 btc at 0.08 LRUSD</pre>
+<li>To view your open orders (maximum 4 open orders per user) use the 'view' command
+<li>To remove your open orders, use the 'remove' command. You may specify a particular open order to remove by providing an order ID.
+<li>Open orders expire after a week, to avoid database cruft. To renew your outstanding orders, use the 'refresh' command to reset expiration date.
+<li>To view the order book for a particular currency, use the 'book' command. E.g., you might run the following to see outstanding orders for LRUSD (LibertyReserve USD):
+<pre>;;book lrusd</pre>
+<li>If you have a web browser, best way to view the open order book is to visit <a href="vieworderbook.php">the online order book</a>.
+</ul>
+
+<h3>Trading</h3>
+
+<p>There are no automatic systems set up to match buyers and sellers. The entire system is OTC, if you see a bid/ask you like, enter a matching order, and contact the counterparty directly on channel or in private message to set up the transaction. Issues to discuss may be: who bears the transaction fees? Who pays first? What escrow agent do we use that is mutually trusted? Remember, this is a direct negotiated transaction - so every detail is negotiable.</p>
+
+<p>Once your trade is complete, don't forget to remove or update your outstanding open orders.</p>
 
 </body>
 </html>
