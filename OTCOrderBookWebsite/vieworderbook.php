@@ -43,7 +43,6 @@ echo "#bitcoin-otc order book";
 
 <table class="orderbookdisplay">
 <tr>
-<th>#</th>
 
 <?php
 //$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes');
