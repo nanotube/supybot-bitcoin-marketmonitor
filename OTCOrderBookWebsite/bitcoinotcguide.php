@@ -17,7 +17,9 @@
 
 <h3>Notes on chargebacks</h3>
 
-<p>When trading BTC for reversible methods (such as paypal or credit card transactions), beware of chargeback risk. It is strongly recommended to avoid PayPal or credit card transactions with persons of unknown reputation, since even with escrow, your counterparty may chargeback the PayPal funds after receiving the BTC. One possible way to avoid these issues with PayPal is to use "personal gift" transactions which come out of PayPal or bank balance (rather than credit card). These transactions are not chargeback-able, and as a bonus, incur no fees.</p>
+<p>When trading BTC for reversible methods (such as paypal or credit card transactions), beware of chargeback risk. It is strongly recommended to avoid PayPal or credit card transactions with persons of unknown reputation, since even with escrow, your counterparty may chargeback the PayPal funds after receiving the BTC.</p>
+
+<p>One possible way to avoid these issues with PayPal is to use "personal gift" transactions which come out of PayPal or bank balance (rather than credit card). These transactions are not chargeback-able, and as a bonus, incur no fees. However, note that if your counterparty is using a stolen PayPal account, even these transactions may be reversed by PayPal once the real owner of the account files a complaint. So it's best to avoid PayPal when dealing with counterparties with no reputation.</p>
 
 <h2>#bitcoin-otc user guide</h2>
 
