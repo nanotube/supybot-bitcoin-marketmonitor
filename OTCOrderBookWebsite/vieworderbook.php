@@ -47,7 +47,7 @@ echo "#bitcoin-otc order book";
 
 <?php
 //$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes');
-$sortorders = array('id' => 'ASC', 'created_at' => 'ASC', 'refreshed_at' => 'ASC', 'buysell' => 'ASC', 'nick' => 'ASC', 'host' => 'ASC, 'btcamount' => 'ASC', 'price' => 'ASC', 'notes' => 'ASC');
+$sortorders = array('id' => 'ASC', 'created_at' => 'ASC', 'refreshed_at' => 'ASC', 'buysell' => 'ASC', 'nick' => 'ASC', 'host' => 'ASC', 'btcamount' => 'ASC', 'price' => 'ASC', 'notes' => 'ASC');
 if ($sortorder == 'ASC') {
   $sortorders[$sortby] = 'DESC';
 }
