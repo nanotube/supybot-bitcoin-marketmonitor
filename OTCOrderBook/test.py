@@ -33,7 +33,7 @@ from supybot.test import *
 import sqlite3
 
 class OTCOrderBookTestCase(PluginTestCase):
-    plugins = ('OTCOrderBook',)
+    plugins = ('OTCOrderBook','User')
 
     def testBuy(self):
         # no cloak
@@ -49,6 +49,10 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('view')
             self.assertError('buy 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
+            self.prefix = 'stuff!stuff@stuff'
+            self.assertError('buy 1000 btc at 0.06 lrusd bla') # no cloak
+            self.assertNotError('register nottester stuff')
+            self.assertNotError('buy 1000 btc at 0.06 lrusd bla') # registered user
         finally:
             world.testing = True
             self.prefix = origuser
@@ -67,6 +71,10 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('view')
             self.assertError('sell 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
+            self.prefix = 'stuff!stuff@stuff'
+            self.assertError('sell 1000 btc at 0.06 lrusd bla') # no cloak
+            self.assertNotError('register nottester stuff')
+            self.assertNotError('sell 1000 btc at 0.06 lrusd bla') # registered user
         finally:
             world.testing = True
             self.prefix = origuser

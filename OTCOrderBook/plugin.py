@@ -23,6 +23,7 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import conf
+from supybot import ircdb
 
 import sqlite3
 import time
@@ -173,6 +174,13 @@ class OTCOrderBook(callbacks.Plugin):
                 return False
         return True
 
+    def _checkRegisteredUser(self, prefix):
+        try:
+            _ = ircdb.users.getUser(prefix)
+            return True
+        except KeyError:
+            return False
+
     def buy(self, irc, msg, args, btcamount, price, othercurrency, notes):
         """<btcamount> [btc|bitcoin|bitcoins] [at|@] <priceperbtc> <othercurrency> [<notes>]
 
@@ -181,7 +189,7 @@ class OTCOrderBook(callbacks.Plugin):
         put in any special notes.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        if not self._checkHost(msg.host):
+        if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
             irc.error("For identification purposes, you must have a cloak "
                       "in order to use the order system.")
             return
@@ -205,7 +213,7 @@ class OTCOrderBook(callbacks.Plugin):
         put in any special notes.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        if not self._checkHost(msg.host):
+        if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
             irc.error("For identification purposes, you must have a cloak "
                       "in order to use the order system.")
             return
