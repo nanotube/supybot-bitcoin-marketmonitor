@@ -270,13 +270,14 @@ class OTCOrderBook(callbacks.Plugin):
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return
-        L = ["%s %s %s %s BTC @ %s %s (%s)" % (time.ctime(refreshed_at),
-                                          host,
-                                          buysell,
-                                          btcamount,
-                                          price,
-                                          othercurrency,
-                                          notes) \
+        L = ["#%s %s %s %s %s BTC @ %s %s (%s)" % (id,
+                                                   time.ctime(refreshed_at),
+                                                   host,
+                                                   buysell,
+                                                   btcamount,
+                                                   price,
+                                                   othercurrency,
+                                                   notes) \
              for (id,
                   created_at,
                   refreshed_at,
@@ -306,14 +307,15 @@ class OTCOrderBook(callbacks.Plugin):
                       "at http://bitcoin-otc.com/ to see the complete order "
                       "book in a nice table.")
             return
-        L = ["%s %s@%s %s %s BTC @ %s %s (%s)" % (time.ctime(refreshed_at),
-                                                  nick,
-                                                  host,
-                                                  buysell,
-                                                  btcamount,
-                                                  price,
-                                                  othercurrency,
-                                                  notes) \
+        L = ["#%s %s %s@%s %s %s BTC @ %s %s (%s)" % (id,
+                                                      time.ctime(refreshed_at),
+                                                      nick,
+                                                      host,
+                                                      buysell,
+                                                      btcamount,
+                                                      price,
+                                                      othercurrency,
+                                                      notes) \
              for (id,
                   created_at,
                   refreshed_at,
