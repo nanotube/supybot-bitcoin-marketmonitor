@@ -20,6 +20,10 @@
 
 <p>#bitcoin-otc is merely an aggregator of outstanding supply and demand. All transactions that may occur are conducted directly between counterparties, without any participation or intermediation from #bitcoin-otc. As such, it is each individual's responsibility to conduct due diligence on their counterparties, and otherwise act in a prudent way to avoid falling prey to fraudulent users. It is strongly recommended that all users review the <a href="bitcoinotcguide.php">guide to using #bitcoin-otc</a>, which contains a non-exhaustive list of suggestions for safe conduct on #bitcoin-otc.</p>
 
+<h2>Code</h2>
+
+The code for the order book IRC bot plugin as well as this website is open. Feel free to grab it from <a href="http://github.com/nanotube/supybot-bitcoin-marketmonitor">this github git repository</a>. Improvements and contributions are welcome. If you would like to post questions or bug reports, please use the issues tracker on github for this repository.
+
 <h2>Contact</h2>
 
 <p>To contact the owner of this site, use this <a href="http://sourceforge.net/sendmessage.php?touser=1173666">web form</a>, or look up user 'nanotube' on freenode IRC.</p>
