@@ -25,7 +25,7 @@
 
 <h3>Order entry</h3>
 <ul>
-<li>To enter orders, you must be <a href="http://freenode.net/faq.shtml#nicksetup">registered</a> with freenode, and have a <a href="http://freenode.net/faq.shtml#cloaks">cloak</a>. 
+<li>To enter orders, you must be <a href="http://freenode.net/faq.shtml#nicksetup">registered</a> with freenode, and have a <a href="http://freenode.net/faq.shtml#cloaks">cloak</a>. This is to prevent drive-by spam attacks on the order database, and to increase the trust level among the users. 
 <li>To enter buy or sell orders, use the 'buy' and 'sell' commands with the bot. Bot's command string is ';;', so to enter a buy order, you might, for example, enter:
 <pre>;;buy 1000 btc at 0.08 LRUSD</pre>
 <li>To view your open orders (maximum 4 open orders per user) use the 'view' command
