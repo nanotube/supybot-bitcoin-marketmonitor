@@ -190,8 +190,9 @@ class OTCOrderBook(callbacks.Plugin):
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
-            irc.error("For identification purposes, you must have a cloak "
-                      "in order to use the order system.")
+            irc.error("For identification purposes, you must have a freenode cloak "
+                      "to use the order system. "
+                      "See http://bitcoin-otc.com/bitcoinotcguide.php for details.")
             return
         results = self.db.get(msg.host)
         if len(results) >= self.registryValue('maxUserOpenOrders'):
@@ -214,8 +215,9 @@ class OTCOrderBook(callbacks.Plugin):
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
-            irc.error("For identification purposes, you must have a cloak "
-                      "in order to use the order system.")
+            irc.error("For identification purposes, you must have a freenode cloak "
+                      "to use the order system. "
+                      "See http://bitcoin-otc.com/bitcoinotcguide.php for details.")
             return
         results = self.db.get(msg.host)
         if len(results) >= self.registryValue('maxUserOpenOrders'):
