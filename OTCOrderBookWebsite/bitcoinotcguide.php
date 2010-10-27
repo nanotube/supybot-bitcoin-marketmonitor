@@ -3,6 +3,8 @@
 
 <body>
 
+<div style="float: right; padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">Visit our sponsor:<br><a href="http://www.dragons.tl"><img src="./dragonstale.jpg" style="border-style: none;"></a></div>
+
 <h2>Guide to safely using #bitcoin-otc</h2>
 
 <p>#bitcoin-otc is merely an aggregator of outstanding supply and demand. All transactions that may occur are conducted directly between counterparties, without any participation or intermediation from #bitcoin-otc. As such, it is each individual's responsibility to conduct due diligence on their counterparties, and otherwise act in a prudent way to avoid falling prey to fraudulent users. Below are some guidelines that you should consider when engaging in OTC transactions.</p>
@@ -26,14 +28,18 @@
 <h3>Order entry</h3>
 <ul>
 <li>To enter orders, you must be <a href="http://freenode.net/faq.shtml#nicksetup">registered</a> with freenode, and have a <a href="http://freenode.net/faq.shtml#cloaks">cloak</a>. This is to prevent drive-by spam attacks on the order database, and to increase the trust level among the users. 
-<li>To enter buy or sell orders, use the 'buy' and 'sell' commands with the bot. Bot's command string is ';;', so to enter a buy order, you might, for example, enter:
-<pre>;;buy 1000 btc at 0.08 LRUSD</pre>
+<li>To enter buy or sell orders, use the 'buy' and 'sell' commands with the bot. Bot's command string is ';;', so to enter an order, you might, for example, try the following:
+<pre>;;buy 1000 btc at 0.08 LRUSD optional notes go here</pre>
+<pre>;;sell 450 btc at 1 "1g gold bar" price includes shipping, one bar per 450btc.</pre>
+Note how you can provide a multi-word currency name by including it in quotes. You can specify any additional details in the notes.
 <li>To view your open orders (maximum 4 open orders per user) use the 'view' command
 <li>To remove your open orders, use the 'remove' command. You may specify a particular open order to remove by providing an order ID.
 <li>Open orders expire after a week, to avoid database cruft. To renew your outstanding orders, use the 'refresh' command to reset expiration date.
 <li>To view the order book for a particular currency, use the 'book' command. E.g., you might run the following to see outstanding orders for LRUSD (LibertyReserve USD):
 <pre>;;book lrusd</pre>
 <li>If you have a web browser, best way to view the open order book is to visit <a href="vieworderbook.php">the online order book</a>.
+<li>You can get help on bot commands using the help command. e.g. to get help on using the buy command:
+<pre>;;help buy</pre>
 </ul>
 
 <h3>Trading</h3>
