@@ -170,7 +170,7 @@ class OTCOrderBook(callbacks.Plugin):
 
     def _checkHost(self, host):
         if self.registryValue('requireCloak'):
-            if not "/" in host:
+            if "/" not in host or host.startswith('gateway/web/freenode'):
                 return False
         return True
 
