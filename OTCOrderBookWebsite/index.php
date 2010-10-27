@@ -3,6 +3,8 @@
 
 <body>
 
+<div style="float: right; padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">Visit our sponsor:<br><a href="http://www.dragons.tl"><img src="./dragonstale.jpg" style="border-style: none;"></a></div>
+
 <h2>Welcome to #bitcoin-otc!</h2>
 
 <p>#bitcoin-otc is an informal place for people to conduct <a href="http://en.wikipedia.org/wiki/Over-the-counter_(finance)">over-the-counter</a> trading in <a href="http://bitcoin.org">bitcoin</a> currency. The marketplace is located in #bitcoin-otc channel on the <a href="http://freenode.net">freenode</a> IRC network.</p>
