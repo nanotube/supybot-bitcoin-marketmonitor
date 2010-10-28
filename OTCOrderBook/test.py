@@ -75,6 +75,7 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertError('sell 1000 btc at 0.06 lrusd bla') # no cloak
             self.assertNotError('register nottester stuff')
             self.assertNotError('sell 1000 btc at 0.06 lrusd bla') # registered user
+            self.assertNotError('sell 1000 btc at 0 usd loan for 1 month at 1% monthly interest')
         finally:
             world.testing = True
             self.prefix = origuser

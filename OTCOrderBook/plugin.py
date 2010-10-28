@@ -145,8 +145,19 @@ def getPositiveFloat(irc, msg, args, state, type='positive floating point number
     except ValueError:
         state.errorInvalid(type, args[0])
 
+def getNonNegativeFloat(irc, msg, args, state, type=' floating point number'):
+    try:
+        v = float(args[0])
+        if v < 0:
+            raise ValueError, "only non-negative numbers allowed."
+        state.args.append(v)
+        del args[0]
+    except ValueError:
+        state.errorInvalid(type, args[0])
+
 addConverter('at', getAt)
 addConverter('positiveFloat', getPositiveFloat)
+addConverter('nonNegativeFloat', getNonNegativeFloat)
 addConverter('btc', getBTC)
 
 class OTCOrderBook(callbacks.Plugin):
@@ -203,7 +214,7 @@ class OTCOrderBook(callbacks.Plugin):
         self.db.buy(msg.nick, msg.host, btcamount, price, othercurrency.upper(), notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
-    buy = wrap(buy, ['positiveFloat','btc','at','positiveFloat','something',
+    buy = wrap(buy, ['positiveFloat','btc','at','nonNegativeFloat','something',
                      optional('text')])
 
     def sell(self, irc, msg, args, btcamount, price, othercurrency, notes):
@@ -228,7 +239,7 @@ class OTCOrderBook(callbacks.Plugin):
         self.db.sell(msg.nick, msg.host, btcamount, price, othercurrency.upper(), notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
-    sell = wrap(sell, ['positiveFloat','btc','at','positiveFloat','something',
+    sell = wrap(sell, ['positiveFloat','btc','at','nonNegativeFloat','something',
                      optional('text')])
 
     def refresh(self, irc, msg, args, orderid):
