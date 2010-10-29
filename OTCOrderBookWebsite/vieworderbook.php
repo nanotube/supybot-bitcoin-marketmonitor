@@ -41,6 +41,40 @@ echo "#bitcoin-otc order book";
 
 <p>[<a href="/">home</a>]</p>
 
+<h3>Summary statistics on outstanding orders</h3>
+
+<ul>
+<?php
+if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
+   $query = $db->Query('SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders');
+    if ($query == false) {
+        echo "<li>No outstanding orders found</li>" . "\n";
+    }
+    $entry = $query->fetch(PDO::FETCH_BOTH);
+    echo "<li>" . $entry['ordercount'] . " outstanding orders, for a total of " . $entry['ordersum'] . " BTC.</li>\n";
+
+    $query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='BUY'");
+    if ($query == false) {
+        echo "<li>No outstanding BUY orders found</li>" . "\n";
+    }
+    $entry = $query->fetch(PDO::FETCH_BOTH);
+    echo "<li>" . $entry['ordercount'] . " outstanding BUY orders, for a total of " . $entry['ordersum'] . " BTC.</li>\n";
+
+    $query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='SELL'");
+    if ($query == false) {
+        echo "<li>No outstanding SELL orders found</li>" . "\n";
+    }
+    $entry = $query->fetch(PDO::FETCH_BOTH);
+    echo "<li>" . $entry['ordercount'] . " outstanding SELL orders, for a total of " . $entry['ordersum'] . " BTC.</li>\n";
+}
+//$totaltxfile = fopen("txcount.txt", "r");
+//$txcount = fread($totaltxfile, 4096);
+//echo "<li>" . $txcount . "transactions are known to have occurred on #bitcoin-otc.</li>\n";
+?>
+</ul>
+
+<h3>List of outstanding orders</h3>
+
 <table class="orderbookdisplay">
 <tr>
 
@@ -64,11 +98,6 @@ echo '  <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&n
 </tr>
 
 <?php
-
-
-// factoids db format: 
-// table keys: id=int, key=text, locked=bool
-// table factoids: id=int, key_id=int, added_by=text, added_at=timestamp, fact=text
 
 if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
    $query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, btcamount, price, othercurrency, notes FROM orders ORDER BY othercurrency, ' . $sortby . ' ' . $sortorder );
