@@ -3,7 +3,7 @@
 
 <body>
 
-<div style="float: right; padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">Visit our sponsor:<br><a href="http://www.dragons.tl"><img src="./dragonstale.jpg" style="border-style: none;"></a></div>
+<div style="float: right; padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">Visit our sponsor:<br><a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="./dragonstale.jpg" style="border-style: none;"></a></div>
 
 <h2>Guide to safely using #bitcoin-otc</h2>
 
