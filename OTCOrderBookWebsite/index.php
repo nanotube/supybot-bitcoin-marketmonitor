@@ -16,6 +16,7 @@
 <ul>
 <li><a href="vieworderbook.php">Web view of the open order book</a>.
 <li><a href="bitcoinotcguide.php">A guide to using #bitcoin-otc</a>. A must-read for all users: how to use the order book, and how to stay safe while conducting OTC transactions.
+<li><a href="http://wiki.bitcoin-otc.com/">The #bitcoin-otc wiki</a>.
 </ul>
 
 <h2>Disclaimers</h2>
