@@ -4,7 +4,7 @@
 <?php
 
 $var="sortby";
-$sortby = isset($_GET[$var]) ? $_GET[$var] : "keys.key";
+$sortby = isset($_GET[$var]) ? $_GET[$var] : "total_rating";
 $validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
 if (! in_array($sortby, $validkeys)){
     $sortby = "total_rating";
