@@ -80,14 +80,14 @@ $sortorders = array('id' => 'ASC', 'nick' => 'ASC', 'created_at' => 'ASC', 'tota
 if ($sortorder == 'ASC') {
   $sortorders[$sortby] = 'DESC';
 }
-echo '  <th><a href="vieworderbook.php?sortby=id&sortorder=' . $sortorders['id'] . '">id</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=created_at&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=refreshed_at&sortorder=' . $sortorders['total_rating'] . '">total rating</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=buysell&sortorder=' . $sortorders['pos_rating_recv_count'] . '">number of positive ratings received</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=nick&sortorder=' . $sortorders['neg_rating_recv_count'] . '">number of negative ratings received</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=host&sortorder=' . $sortorders['pos_rating_sent_count'] . '">number of positive ratings sent</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=btcamount&sortorder=' . $sortorders['neg_rating_sent_count'] . '">number of negative ratings sent</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=id&sortorder=' . $sortorders['id'] . '">id</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=created_at&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=refreshed_at&sortorder=' . $sortorders['total_rating'] . '">total rating</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=buysell&sortorder=' . $sortorders['pos_rating_recv_count'] . '">number of positive ratings received</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=nick&sortorder=' . $sortorders['neg_rating_recv_count'] . '">number of negative ratings received</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=host&sortorder=' . $sortorders['pos_rating_sent_count'] . '">number of positive ratings sent</a></th>' . "\n";
+echo '  <th><a href="viewratings.php?sortby=btcamount&sortorder=' . $sortorders['neg_rating_sent_count'] . '">number of negative ratings sent</a></th>' . "\n";
 ?>
 </tr>
 
