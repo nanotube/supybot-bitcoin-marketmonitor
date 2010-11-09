@@ -76,7 +76,6 @@ if ($db = new PDO('sqlite:./otc/RatingSystem.db')) {
 <tr>
 
 <?php
-//$validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
 $sortorders = array('id' => 'ASC', 'nick' => 'ASC', 'created_at' => 'ASC', 'total_rating' => 'ASC', 'pos_rating_recv_count' => 'ASC', 'neg_rating_recv_count' => 'ASC', 'pos_rating_sent_count' => 'ASC', 'neg_rating_sent_count' => 'ASC');
 if ($sortorder == 'ASC') {
   $sortorders[$sortby] = 'DESC';
@@ -94,10 +93,10 @@ echo '  <th><a href="vieworderbook.php?sortby=btcamount&sortorder=' . $sortorder
 
 <?php
 
-if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
+if ($db = new PDO('sqlite:./otc/RatingSystem.db')) {
    $query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' ' . $sortorder );
     if ($query == false) {
-        echo "<tr><td>No outstanding orders found</td></tr>" . "\n";
+        echo "<tr><td>No users found</td></tr>" . "\n";
     } 
     else {
         $color = 1;
