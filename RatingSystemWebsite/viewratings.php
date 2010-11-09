@@ -14,7 +14,12 @@ $var="sortorder";
 $sortorder = isset($_GET[$var]) ? $_GET[$var] : "ASC";
 $validorders = array("ASC","DESC");
 if (! in_array($sortorder, $validorders)){
-    $sortorder = "ASC";
+   if ( $sortby != "total_rating" ){
+      $sortorder = "ASC";
+   }
+   else {
+      $sortorder = "DESC";
+   }
 }
 
 echo "OTC web of trust summary";
