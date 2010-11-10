@@ -75,6 +75,9 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertRegexp('getrating nanotube', 'and 1 negative ratings to others')
             self.assertNotError('unrate poorguy')
             self.assertRegexp('getrating nanotube', 'and 0 negative ratings to others')
+            self.assertNotError('rate SomeDude 5')
+            self.assertNotError('rate somedude 6')
+            self.assertRegexp('getrating SomeDude', 'cumulative rating of 6')
         finally:
             #world.testing = True
             self.prefix = origuser
@@ -93,7 +96,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('unrate someguy') #haven't rated him before
             self.assertNotError('rate someguy 4')
             self.assertRegexp('getrating someguy', 'cumulative rating of 4')
-            self.assertNotError('unrate someguy')
+            self.assertNotError('unrate somEguy')
             self.assertError('getrating someguy') # guy should be gone, having no connections.
         finally:
             self.prefix = origuser

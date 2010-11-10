@@ -71,18 +71,18 @@ class RatingSystemDB(object):
 
     def get(self, nick):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM users WHERE nick=?""", (nick,))
+        cursor.execute("""SELECT * FROM users WHERE nick LIKE ?""", (nick,))
         return cursor.fetchall()
 
     def getReceivedRatings(self, nick, sign=None):
         # sign can be "> 0" or "< 0", None means all
         cursor = self.db.cursor()
         if sign is None:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick = ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
                               AND ratings.rated_user_id = users.id""",
                            (nick,))
         else:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick = ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
                               AND ratings.rated_user_id = users.id AND
                               ratings.rating %s""" % sign,
                            (nick,))
@@ -92,11 +92,11 @@ class RatingSystemDB(object):
         # sign can be "> 0" or "< 0", None means all
         cursor = self.db.cursor()
         if sign is None:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick = ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
                               AND ratings.rater_user_id = users.id""",
                            (nick,))
         else:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick = ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
                               AND ratings.rater_user_id = users.id AND
                               ratings.rating %s""" % sign,
                            (nick,))
@@ -113,7 +113,7 @@ class RatingSystemDB(object):
     def getConnections(self, nick):
         cursor = self.db.cursor()
         cursor.execute("""SELECT * FROM users, ratings
-                          WHERE users.nick = ? AND
+                          WHERE users.nick LIKE ? AND
                           (ratings.rater_user_id = users.id OR
                           ratings.rated_user_id = users.id)""",
                        (nick,))
@@ -162,7 +162,7 @@ class RatingSystemDB(object):
                            (rating, timestamp, 0, 0, 0, 0, targetnick))
             self.db.commit()
             cursor.execute("""SELECT id FROM users
-                              WHERE nick = ?""", (targetnick,))
+                              WHERE nick LIKE ?""", (targetnick,))
             targetid = cursor.fetchall()[0][0]
         if not replacementflag:
             cursor.execute("""INSERT INTO ratings VALUES
@@ -186,7 +186,7 @@ class RatingSystemDB(object):
         connections = self.getConnections(targetnick)
         if len(connections) == 0:
             cursor.execute("""DELETE FROM users
-                              WHERE nick = ?""", (targetnick,))
+                              WHERE nick LIKE ?""", (targetnick,))
             self.db.commit()
         self.update_counts(sourcenick, sourceid, targetnick, targetid)
         
@@ -317,7 +317,7 @@ class RatingSystem(callbacks.Plugin):
                   "Of these, %s are positive and %s are negative. "
                   "This user has also sent %s positive ratings, and %s "
                   "negative ratings to others." % \
-                  (nick,
+                  (data[7],
                    time.ctime(data[2]),
                    data[1],
                    int(data[3]) + int(data[4]),
