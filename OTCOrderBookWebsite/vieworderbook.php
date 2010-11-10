@@ -5,7 +5,7 @@
 
 $var="sortby";
 $sortby = isset($_GET[$var]) ? $_GET[$var] : "keys.key";
-$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes');
+$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes', 'othercurrency');
 if (! in_array($sortby, $validkeys)){
     $sortby = "price";
 }
@@ -80,19 +80,19 @@ if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
 
 <?php
 //$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes');
-$sortorders = array('id' => 'ASC', 'created_at' => 'ASC', 'refreshed_at' => 'ASC', 'buysell' => 'ASC', 'nick' => 'ASC', 'host' => 'ASC', 'btcamount' => 'ASC', 'price' => 'ASC', 'notes' => 'ASC');
+$sortorders = array('id' => 'ASC', 'created_at' => 'ASC', 'refreshed_at' => 'ASC', 'buysell' => 'ASC', 'nick' => 'ASC', 'host' => 'ASC', 'btcamount' => 'ASC', 'price' => 'ASC', 'notes' => 'ASC', 'othercurrency' => 'ASC');
 if ($sortorder == 'ASC') {
   $sortorders[$sortby] = 'DESC';
 }
-echo '  <th><a href="vieworderbook.php?db=&sortby=id&sortorder=' . $sortorders['multikey'] . '">id</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=refreshed_at&sortorder=' . $sortorders['refreshed_at'] . '">refreshed at</a><br>(UTC)</th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=buysell&sortorder=' . $sortorders['buysell'] . '">type</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=nick&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=host&sortorder=' . $sortorders['host'] . '">host</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=btcamount&sortorder=' . $sortorders['btcamount'] . '">BTC amount</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=price&sortorder=' . $sortorders['price'] . '">price</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?db=&sortby=othercurrency&sortorder=' . $sortorders['othercurrency'] . '">currency</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=id&sortorder=' . $sortorders['id'] . '">id</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=refreshed_at&sortorder=' . $sortorders['refreshed_at'] . '">refreshed at</a><br>(UTC)</th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=buysell&sortorder=' . $sortorders['buysell'] . '">type</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=nick&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=host&sortorder=' . $sortorders['host'] . '">host</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=btcamount&sortorder=' . $sortorders['btcamount'] . '">BTC amount</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=price&sortorder=' . $sortorders['price'] . '">price</a></th>' . "\n";
+echo '  <th><a href="vieworderbook.php?sortby=othercurrency&sortorder=' . $sortorders['othercurrency'] . '">currency</a></th>' . "\n";
 echo '  <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="vieworderbook.php?db=&sortby=notes&sortorder=' . $sortorders['notes'] . '">notes</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>' . "\n";
 ?>
 </tr>
@@ -100,7 +100,7 @@ echo '  <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&n
 <?php
 
 if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
-   $query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, btcamount, price, othercurrency, notes FROM orders ORDER BY othercurrency, ' . $sortby . ' ' . $sortorder );
+   $query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, btcamount, price, othercurrency, notes FROM orders ORDER BY ' . $sortby . ' ' . $sortorder );
     if ($query == false) {
         echo "<tr><td>No outstanding orders found</td></tr>" . "\n";
     } 
