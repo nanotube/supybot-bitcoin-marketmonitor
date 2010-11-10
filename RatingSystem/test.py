@@ -71,6 +71,10 @@ class RatingSystemTestCase(PluginTestCase):
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('unrate someguy2')
             self.assertRegexp('getrating someguy2', 'cumulative rating of 9')
+            self.assertNotError('rate poorguy -5')
+            self.assertRegexp('getrating nanotube', 'and 1 negative ratings to others')
+            self.assertNotError('unrate poorguy')
+            self.assertRegexp('getrating nanotube', 'and 0 negative ratings to others')
         finally:
             #world.testing = True
             self.prefix = origuser

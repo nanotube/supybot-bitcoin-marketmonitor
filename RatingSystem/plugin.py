@@ -188,8 +188,7 @@ class RatingSystemDB(object):
             cursor.execute("""DELETE FROM users
                               WHERE nick = ?""", (targetnick,))
             self.db.commit()
-        else:
-            self.update_counts(sourcenick, sourceid, targetnick, targetid)
+        self.update_counts(sourcenick, sourceid, targetnick, targetid)
         
 
 class RatingSystem(callbacks.Plugin):
