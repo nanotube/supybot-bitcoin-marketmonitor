@@ -120,7 +120,7 @@ if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
             echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['created_at']) . '</td>' . "\n";
             echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['refreshed_at']) . '</td>' . "\n";
             echo '  <td>' . $entry['buysell'] . '</td>' . "\n";
-            echo '  <td>' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['nick'])) . '</td>' . "\n";
+            echo '  <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=' . $entry['nick'] . '">' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['nick'])) . '</a></td>' . "\n";
             echo '  <td>' . $entry['host'] . '</td>' . "\n";
             echo '  <td>' . $entry['btcamount'] . '</td>' . "\n";
             echo '  <td>' . $entry['price'] . '</td>' . "\n";
