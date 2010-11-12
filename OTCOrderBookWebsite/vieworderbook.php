@@ -1,142 +1,125 @@
-<html>
-
-<head><title>
 <?php
+	//error_reporting(-1); ini_set('display_errors', 1);
+	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
+	$validkeys = array('id', 'created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'othercurrency', 'notes');
+	if (!in_array($sortby, $validkeys)) $sortby = "price";
+	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
+	$validorders = array("ASC","DESC");
+	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+?><html>
+ <head>
+  <script src="jquery-1.4.3.min.js" type="text/javascript"></script>
+  <script src="jquery.ba-bbq.min.js" type="text/javascript"></script>
+  <script src="filter.orderbook.js" type="text/javascript"></script>
+  <style><!--
+	body {
+		background-color: #FFFFFF;
+		color: #000000;
+	}
+	h2 {
+		text-align: center;
+	}
+	table.orderbookdisplay {
+		border: 1px solid gray;
+		border-collapse: collapse;
+		width: 100%;
+	}
+	table.orderbookdisplay td {
+		border: 1px solid gray;
+		padding: 0px;
+		padding-left: 2px;
+		padding-right: 2px;
+	}
+	table.orderbookdisplay td.nowrap {
+		white-space: nowrap;
+	}
+	table.orderbookdisplay th {
+		background-color: #d3d7cf;
+		border: 1px solid gray;
+		padding: 10px;
+		vertical-align: top;
+	}
+	tr.even {
+		background-color: #dbdfff;
+	}
+  --></style>
+  <title>#bitcoin-otc order book</title>
+ </head>
+ <body>
+  <h2>#bitcoin-otc order book</h2>
+  <p>[<a href="/">home</a>]</p>
+  <h3>Summary statistics on outstanding orders</h3>
+  <ul><?php
+	try { $db = new PDO('sqlite:./otc/OTCOrderBook.db'); }
+	catch (PDOException $e) { die($e->getMessage()); }
 
-$var="sortby";
-$sortby = isset($_GET[$var]) ? $_GET[$var] : "keys.key";
-$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes', 'othercurrency');
-if (! in_array($sortby, $validkeys)){
-    $sortby = "price";
-}
+	if (!$query = $db->Query('SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders'))
+		echo "   <li>No outstanding orders found</li>";
+	else {
+		$entry = $query->fetch(PDO::FETCH_BOTH);
+		echo "   <li>" . number_format($entry['ordercount']) . " outstanding orders, for a total of " . number_format($entry['ordersum'], 1) . " BTC.</li>\n";
+	}
 
-$var="sortorder";
-$sortorder = isset($_GET[$var]) ? $_GET[$var] : "ASC";
-$validorders = array("ASC","DESC");
-if (! in_array($sortorder, $validorders)){
-    $sortorder = "ASC";
-}
+	if (!$query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='BUY'"))
+		echo "   <li>No outstanding BUY orders found</li>\n";
+	else {
+		$entry = $query->fetch(PDO::FETCH_BOTH);
+		echo "   <li>" . number_format($entry['ordercount']) . " outstanding BUY orders, for a total of " . number_format($entry['ordersum'], 1) . " BTC.</li>\n";
+	}
 
-echo "#bitcoin-otc order book";
+	if (!$query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='SELL'"))
+		echo "   <li>No outstanding SELL orders found</li>\n";
+	else {
+		$entry = $query->fetch(PDO::FETCH_BOTH);
+		echo "   <li>" . number_format($entry['ordercount']) . " outstanding SELL orders, for a total of " . number_format($entry['ordersum'], 1) . " BTC.</li>\n";
+	}
 
-?>
-</title>
-
-<style>
-<!--
-  table.orderbookdisplay { border: 1px solid gray; border-collapse: collapse; 
-    margin-left: 50px; margin-right: 50px; }
-  .orderbookdisplay td { border: 1px solid gray; padding: 10px; }
-  .orderbookdisplay th { border: 1px solid gray; padding: 10px; background-color: #d3d7cf; }
-  tr.even { background-color: #dbdfff; }
-  h2 { text-align: center; }
--->
-</style>
-
-</head>
-
-<body>
-
-<h2>#bitcoin-otc order book</h2>
-
-<p>[<a href="/">home</a>]</p>
-
-<h3>Summary statistics on outstanding orders</h3>
-
-<ul>
+	//$totaltxfile = fopen("txcount.txt", "r");
+	//$txcount = fread($totaltxfile, 4096);
+	//echo "<li>" . $txcount . "transactions are known to have occurred on #bitcoin-otc.</li>\n";
+?>  </ul>
+  <h3>List of outstanding orders</h3>
+  <table class="orderbookdisplay">
+   <tr>
 <?php
-if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
-   $query = $db->Query('SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders');
-    if ($query == false) {
-        echo "<li>No outstanding orders found</li>" . "\n";
-    }
-    $entry = $query->fetch(PDO::FETCH_BOTH);
-    echo "<li>" . $entry['ordercount'] . " outstanding orders, for a total of " . $entry['ordersum'] . " BTC.</li>\n";
-
-    $query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='BUY'");
-    if ($query == false) {
-        echo "<li>No outstanding BUY orders found</li>" . "\n";
-    }
-    $entry = $query->fetch(PDO::FETCH_BOTH);
-    echo "<li>" . $entry['ordercount'] . " outstanding BUY orders, for a total of " . $entry['ordersum'] . " BTC.</li>\n";
-
-    $query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='SELL'");
-    if ($query == false) {
-        echo "<li>No outstanding SELL orders found</li>" . "\n";
-    }
-    $entry = $query->fetch(PDO::FETCH_BOTH);
-    echo "<li>" . $entry['ordercount'] . " outstanding SELL orders, for a total of " . $entry['ordersum'] . " BTC.</li>\n";
-}
-//$totaltxfile = fopen("txcount.txt", "r");
-//$txcount = fread($totaltxfile, 4096);
-//echo "<li>" . $txcount . "transactions are known to have occurred on #bitcoin-otc.</li>\n";
-?>
-</ul>
-
-<h3>List of outstanding orders</h3>
-
-<table class="orderbookdisplay">
-<tr>
-
+	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
+	if ($sortorder == "ASC") $sortorders[$sortby]["order"] = 'DESC';
+	$sortorders["created_at"]["othertext"] = "(UTC)";
+	$sortorders["refreshed_at"]["othertext"] = "(UTC)";
+	$sortorders["buysell"]["linktext"] = "type";
+	$sortorders["btcamount"]["linktext"] = "BTC amount";
+	$sortorders["othercurrency"]["linktext"] = "currency";
+	foreach ($sortorders as $by => $order) {
+		//if ($by == $sortby) $order["order"] = "DESC";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+	}
+?>   </tr>
 <?php
-//$validkeys = array('id','created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'notes');
-$sortorders = array('id' => 'ASC', 'created_at' => 'ASC', 'refreshed_at' => 'ASC', 'buysell' => 'ASC', 'nick' => 'ASC', 'host' => 'ASC', 'btcamount' => 'ASC', 'price' => 'ASC', 'notes' => 'ASC', 'othercurrency' => 'ASC');
-if ($sortorder == 'ASC') {
-  $sortorders[$sortby] = 'DESC';
-}
-echo '  <th><a href="vieworderbook.php?sortby=id&sortorder=' . $sortorders['id'] . '">id</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=refreshed_at&sortorder=' . $sortorders['refreshed_at'] . '">refreshed at</a><br>(UTC)</th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=buysell&sortorder=' . $sortorders['buysell'] . '">type</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=nick&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=host&sortorder=' . $sortorders['host'] . '">host</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=btcamount&sortorder=' . $sortorders['btcamount'] . '">BTC amount</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=price&sortorder=' . $sortorders['price'] . '">price</a></th>' . "\n";
-echo '  <th><a href="vieworderbook.php?sortby=othercurrency&sortorder=' . $sortorders['othercurrency'] . '">currency</a></th>' . "\n";
-echo '  <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="vieworderbook.php?db=&sortby=notes&sortorder=' . $sortorders['notes'] . '">notes</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>' . "\n";
+	if (!$query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, btcamount, price, othercurrency, notes FROM orders ORDER BY ' . $sortby . ' ' . $sortorder ))
+		echo "   <tr><td>No outstanding orders found</td></tr>\n";
+	else {
+		//$resultrow = 0;
+		//$results = $query->fetchAll(PDO::FETCH_BOTH);
+		$color = 0;
+		while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+			if ($color++ % 2) $class="even"; else $class="odd";
 ?>
-</tr>
-
-<?php
-
-if ($db = new PDO('sqlite:./otc/OTCOrderBook.db')) {
-   $query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, btcamount, price, othercurrency, notes FROM orders ORDER BY ' . $sortby . ' ' . $sortorder );
-    if ($query == false) {
-        echo "<tr><td>No outstanding orders found</td></tr>" . "\n";
-    } 
-    else {
-        $color = 1;
-        //$resultrow = 0;
-        //$results = $query->fetchAll(PDO::FETCH_BOTH);
-        while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-            if ($color % 2 == 1){
-                echo '<tr class="odd">' . "\n"; 
-            }
-            else {
-                echo '<tr class="even">' . "\n";
-            }
-            $color = $color + 1;
-            echo '  <td>' . $entry['id'] . '</td>' . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['created_at']) . '</td>' . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['refreshed_at']) . '</td>' . "\n";
-            echo '  <td>' . $entry['buysell'] . '</td>' . "\n";
-            echo '  <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=' . $entry['nick'] . '">' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['nick'])) . '</a></td>' . "\n";
-            echo '  <td>' . $entry['host'] . '</td>' . "\n";
-            echo '  <td>' . $entry['btcamount'] . '</td>' . "\n";
-            echo '  <td>' . $entry['price'] . '</td>' . "\n";
-            echo '  <td>' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['othercurrency'])) . '</td>' . "\n";
-            echo '  <td>' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['notes'])) . '</td>' . "\n";
-            echo '</tr>' . "\n";
-        }
-    }
-} else {
-    die($err);
-}
-
-?>
-</table>
-
-<p>[<a href="/">home</a>]</p>
-
-</body>
+   <tr class="<?php echo $class; ?>"> 
+    <td><?php echo $entry["id"]; ?></td>
+    <td class="nowrap"><?php echo gmdate("Y-m-d H:i:s", $entry["created_at"]); ?></td>
+    <td class="nowrap"><?php echo gmdate("Y-m-d H:i:s", $entry["refreshed_at"]); ?></td>
+    <td class="type"><?php echo $entry["buysell"]; ?></td>
+    <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
+    <td class="nowrap"><?php echo $entry["host"]; ?></td>
+    <td><?php echo $entry["btcamount"]; ?></td>
+    <td class="price"><?php echo $entry["price"]; ?></td>
+    <td class="currency"><?php echo htmlspecialchars($entry["othercurrency"]); ?></td>
+    <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
+   </tr>
+<?
+		}
+	}
+?>  </table>
+  <p>[<a href="/">home</a>]</p>
+ </body>
 </html>

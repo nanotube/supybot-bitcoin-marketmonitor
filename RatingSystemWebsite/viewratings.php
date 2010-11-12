@@ -1,137 +1,116 @@
-<html>
-
-<head><title>
 <?php
+	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "total_rating";
+	$validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
+	if (!in_array($sortby, $validkeys)) $sortby = "total_rating";
 
-$var="sortby";
-$sortby = isset($_GET[$var]) ? $_GET[$var] : "total_rating";
-$validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
-if (! in_array($sortby, $validkeys)){
-    $sortby = "total_rating";
-}
+	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "DESC";
+	$validorders = array("ASC","DESC");
+	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+?><html>
+ <head>
+  <title>OTC web of trust summary</title>
+  <style><!--
+	body {
+		background-color: #FFFFFF;
+		color: #000000;
+	}
+	h2 {
+		text-align: center;
+	}
+	table.ratingdisplay {
+		border: 1px solid gray;
+		border-collapse: collapse; 
+		margin-left: 50px;
+		margin-right: 50px;
+	}
+	table.ratingdisplay td {
+		border: 1px solid gray;
+		padding: 10px;
+	}
+	table.ratingdisplay td.nowrap {
+		white-space: nowrap;
+	}
+	table.ratingdisplay th {
+		background-color: #d3d7cf;
+		border: 1px solid gray;
+		padding: 10px;
+	}
+	tr.even {
+		background-color: #dbdfff;
+	}
+  --></style>
+ </head>
+ <body>
+  <h2>OTC web of trust</h2>
+  <p>[<a href="/">home</a>]</p>
+  <h3>Summary statistics on web of trust</h3>
+  <ul><?php
+	try { $db = new PDO('sqlite:./otc/RatingSystem.db'); }
+	catch (PDOException $e) { die($e->getMessage()); }
+	if (!$query = $db->Query('SELECT count(*) as usercount, sum(total_rating) as ratingsum FROM users'))
+		echo "<li>No outstanding orders found</li>\n";
+	else {
+		$entry = $query->fetch(PDO::FETCH_BOTH);
+		echo "<li>" . $entry['usercount'] . " users in database, with a total of " . $entry['ratingsum'] . " net rating points.</li>\n";
+	}
 
-$var="sortorder";
-$sortorder = isset($_GET[$var]) ? $_GET[$var] : "ASC";
-if (! isset($_GET[$var]) && $sortby == "total_rating" ){
-   $sortorder = "DESC";
-}
-$validorders = array("ASC","DESC");
-if (! in_array($sortorder, $validorders)){
-   $sortorder = "ASC";
-}
+	if (!$query = $db->Query("SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM ratings WHERE rating > 0"))
+		echo "<li>No positive ratings found</li>\n";
+	else {
+		$entry = $query->fetch(PDO::FETCH_BOTH);
+		echo "<li>" . $entry['ratingcount'] . " positive ratings sent, for a total of " . $entry['ratingsum'] . " points.</li>\n";
+	}
 
-echo "OTC web of trust summary";
-
+	if (!$query = $db->Query("SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM ratings WHERE rating < 0"))
+		echo "<li>No negative ratings found</li>\n";
+	else {
+		$entry = $query->fetch(PDO::FETCH_BOTH);
+		echo "<li>" . $entry['ratingcount'] . " negative ratings sent, for a total of " . $entry['ratingsum'] . " points.</li>\n";
+	}
 ?>
-</title>
-
-<style>
-<!--
-  table.ratingdisplay { border: 1px solid gray; border-collapse: collapse; 
-    margin-left: 50px; margin-right: 50px; }
-  .ratingdisplay td { border: 1px solid gray; padding: 10px; }
-  .ratingdisplay th { border: 1px solid gray; padding: 10px; background-color: #d3d7cf; }
-  tr.even { background-color: #dbdfff; }
-  h2 { text-align: center; }
--->
-</style>
-
-</head>
-
-<body>
-
-<h2>OTC web of trust</h2>
-
-<p>[<a href="/">home</a>]</p>
-
-<h3>Summary statistics on web of trust</h3>
-
-<ul>
+  </ul>
+  <h3>List of users and ratings</h3>
+  <table class="ratingdisplay">
+   <tr>
 <?php
-if ($db = new PDO('sqlite:./otc/RatingSystem.db')) {
-   $query = $db->Query('SELECT count(*) as usercount, sum(total_rating) as ratingsum FROM users');
-    if ($query == false) {
-        echo "<li>No outstanding orders found</li>" . "\n";
-    }
-    $entry = $query->fetch(PDO::FETCH_BOTH);
-    echo "<li>" . $entry['usercount'] . " users in database, with a total of " . $entry['ratingsum'] . " net rating points.</li>\n";
-
-    $query = $db->Query("SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM ratings WHERE rating > 0");
-    if ($query == false) {
-        echo "<li>No positive ratings found</li>" . "\n";
-    }
-    $entry = $query->fetch(PDO::FETCH_BOTH);
-    echo "<li>" . $entry['ratingcount'] . " positive ratings sent, for a total of " . $entry['ratingsum'] . " points.</li>\n";
-
-    $query = $db->Query("SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM ratings WHERE rating < 0");
-    if ($query == false) {
-        echo "<li>No negative ratings found</li>" . "\n";
-    }
-    $entry = $query->fetch(PDO::FETCH_BOTH);
-    echo "<li>" . $entry['ratingcount'] . " negative ratings sent, for a total of " . $entry['ratingsum'] . " points.</li>\n";
-}
+	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
+	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
+	$sortorders["created_at"]["othertext"] = "(UTC)";
+	$sortorders["pos_rating_recv_count"]["linktext"] = "number of positive ratings received";
+	$sortorders["neg_rating_recv_count"]["linktext"] = "number of negative ratings received";
+	$sortorders["pos_rating_sent_count"]["linktext"] = "number of positive ratings sent";
+	$sortorders["neg_rating_sent_count"]["linktext"] = "number of negative ratings sent";
+	foreach ($sortorders as $by => $order) {
+		//if ($by == $sortby) $order["order"] = "DESC";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratings.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+	}
 ?>
-</ul>
-
-<h3>List of users and ratings</h3>
-
-<table class="ratingdisplay">
-<tr>
-
+   </tr>
 <?php
-$sortorders = array('id' => 'ASC', 'nick' => 'ASC', 'created_at' => 'ASC', 'total_rating' => 'ASC', 'pos_rating_recv_count' => 'ASC', 'neg_rating_recv_count' => 'ASC', 'pos_rating_sent_count' => 'ASC', 'neg_rating_sent_count' => 'ASC');
-if ($sortorder == 'ASC') {
-  $sortorders[$sortby] = 'DESC';
-}
-echo '  <th><a href="viewratings.php?sortby=id&sortorder=' . $sortorders['id'] . '">id</a></th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=nick&sortorder=' . $sortorders['nick'] . '">nick</a></th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=created_at&sortorder=' . $sortorders['created_at'] . '">created at</a><br>(UTC)</th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=total_rating&sortorder=' . $sortorders['total_rating'] . '">total rating</a></th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=pos_rating_recv_count&sortorder=' . $sortorders['pos_rating_recv_count'] . '">number of positive ratings received</a></th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=neg_rating_recv_count&sortorder=' . $sortorders['neg_rating_recv_count'] . '">number of negative ratings received</a></th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=pos_rating_sent_count&sortorder=' . $sortorders['pos_rating_sent_count'] . '">number of positive ratings sent</a></th>' . "\n";
-echo '  <th><a href="viewratings.php?sortby=neg_rating_sent_count&sortorder=' . $sortorders['neg_rating_sent_count'] . '">number of negative ratings sent</a></th>' . "\n";
+	if (!$query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' ' . $sortorder))
+		echo "<tr><td>No users found</td></tr>\n";
+	else {
+		//$resultrow = 0;
+		//$results = $query->fetchAll(PDO::FETCH_BOTH);
+		$color = 0;
+		while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+			if ($color++ % 2) $class="even"; else $class="odd";
 ?>
-</tr>
-
-<?php
-
-if ($db = new PDO('sqlite:./otc/RatingSystem.db')) {
-   $query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' ' . $sortorder );
-    if ($query == false) {
-        echo "<tr><td>No users found</td></tr>" . "\n";
-    } 
-    else {
-        $color = 1;
-        //$resultrow = 0;
-        //$results = $query->fetchAll(PDO::FETCH_BOTH);
-        while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-            if ($color % 2 == 1){
-                echo '<tr class="odd">' . "\n"; 
-            }
-            else {
-                echo '<tr class="even">' . "\n";
-            }
-            $color = $color + 1;
-            echo '  <td>' . $entry['id'] . '</td>' . "\n";
-            echo '  <td><a href="viewratingdetail.php?nick=' . $entry['nick'] . '&sign=ANY&type=RECV">' . preg_replace('/>/', '&gt;', preg_replace('/</', '&lt;', $entry['nick'])) . '</a></td>' . "\n";
-            echo '  <td>' . gmdate('Y-m-d|H:i:s', $entry['created_at']) . '</td>' . "\n";
-            echo '  <td>' . $entry['total_rating'] . '</td>' . "\n";
-            echo '  <td><a href="viewratingdetail.php?nick=' . $entry['nick'] . '&sign=POS&type=RECV">' . $entry['pos_rating_recv_count'] . '</a></td>' . "\n";
-            echo '  <td><a href="viewratingdetail.php?nick=' . $entry['nick'] . '&sign=NEG&type=RECV">' . $entry['neg_rating_recv_count'] . '</a></td>' . "\n";
-            echo '  <td><a href="viewratingdetail.php?nick=' . $entry['nick'] . '&sign=POS&type=SENT">' . $entry['pos_rating_sent_count'] . '</a></td>' . "\n";
-            echo '  <td><a href="viewratingdetail.php?nick=' . $entry['nick'] . '&sign=NEG&type=SENT">' . $entry['neg_rating_sent_count'] . '</a></td>' . "\n";
-            echo '</tr>' . "\n";
-        }
-    }
-} else {
-    die($err);
-}
-
+   <tr class="<?php echo $class; ?>">
+    <td><?php echo $entry['id']; ?></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
+    <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
+    <td><?php echo $entry['total_rating']; ?></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=RECV"><?php echo $entry['pos_rating_recv_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=RECV"><?php echo $entry['neg_rating_recv_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=SENT"><?php echo $entry['pos_rating_sent_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=SENT"><?php echo $entry['neg_rating_sent_count']; ?></a></td>
+   </tr>
+<?
+		}
+	}
 ?>
-</table>
-
-<p>[<a href="/">home</a>]</p>
-
-</body>
+  </table>
+  <p>[<a href="/">home</a>]</p>
+ </body>
 </html>
