@@ -26,9 +26,7 @@
 	}
 	table.orderbookdisplay td {
 		border: 1px solid gray;
-		padding: 0px;
-		padding-left: 2px;
-		padding-right: 2px;
+		padding: 4px;
 	}
 	table.orderbookdisplay td.nowrap {
 		white-space: nowrap;
