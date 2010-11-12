@@ -3,10 +3,12 @@
 	$validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
 	if (!in_array($sortby, $validkeys)) $sortby = "total_rating";
 
-	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "DESC";
+	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
+	if (! isset($_GET[$var]) && $sortby == "total_rating" ) $sortorder = "DESC";
 	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
-?><html>
+?>
+<html>
  <head>
   <title>OTC web of trust summary</title>
   <style><!--
