@@ -1,19 +1,40 @@
 <?php
 	//error_reporting(-1); ini_set('display_errors', 1);
+	$validkeys = array(
+		'id',
+		'rater_nick',
+		'rated_nick',
+		'created_at',
+		'rating',
+		'notes'
+	);
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "rating";
-	$validkeys = array('id', 'rater_nick', 'rated_nick', 'created_at', 'rating', 'notes');
 	if (!in_array($sortby, $validkeys)) $sortby = "rating";
+
+	$validorders = array(
+		"ASC",
+		"DESC"
+	);
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+
+	$validvalues = array(
+		"ANY",
+		"POS",
+		"NEG"
+	);
 	$sign = isset($_GET["sign"]) ? $_GET["sign"] : "ANY";
-	$validvalues = array("ANY","POS","NEG");
 	if (!in_array($sign, $validvalues)) $sign = "ANY";
+
+	$validvalues = array(
+		"RECV",
+		"SENT"
+	);
 	$type = isset($_GET["type"]) ? $_GET["type"] : "RECV";
-	$validvalues = array("RECV","SENT");
 	if (!in_array($type, $validvalues)) $type = "RECV";
-?><html>
+?><!DOCTYPE html><html>
  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
   <title>Rating details for user <?php $nick = isset($_GET["nick"]) ? $_GET["nick"] : ""; echo $nick; ?></title>
   <style><!--
 	body {
@@ -55,13 +76,13 @@
 ?>
   <p>You are currently viewing <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> by user <?php echo $nick; ?>.</p>
   <p>
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&sign=<?php echo $sign; ?>&type=RECV">view received</a>] ||
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&sign=<?php echo $sign; ?>&type=SENT">view sent</a>]
+   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&amp;sign=<?php echo $sign; ?>&amp;type=RECV">view received</a>] ||
+   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&amp;sign=<?php echo $sign; ?>&amp;type=SENT">view sent</a>]
   </p>
   <p>
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=POS">view positive</a>] ||
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=NEG">view negative</a>] ||
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=ANY">view all</a>]
+   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&amp;type=<?php echo $type; ?>&amp;sign=POS">view positive</a>] ||
+   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&amp;type=<?php echo $type; ?>&amp;sign=NEG">view negative</a>] ||
+   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&amp;type=<?php echo $type; ?>&amp;sign=ANY">view all</a>]
   </p>
   <h3>Summary statistics</h3>
   <ul>
@@ -89,7 +110,7 @@
 	$sortorders["created_at"]["othertext"] = "(UTC)";
 	foreach ($sortorders as $by => $order) {
 		//if ($by == $sortby) $order["order"] = "DESC";
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratingdetail.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratingdetail.php?sortby=$by&amp;sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
@@ -109,8 +130,8 @@
 ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['rater_nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['rater_nick']); ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['rated_nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['rated_nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['rater_nick']; ?>&amp;sign=ANY&amp;type=RECV"><?php echo htmlspecialchars($entry['rater_nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['rated_nick']; ?>&amp;sign=ANY&amp;type=RECV"><?php echo htmlspecialchars($entry['rated_nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
     <td><?php echo $entry['rating']; ?></td>
     <td><?php echo $entry['notes']; ?></td>

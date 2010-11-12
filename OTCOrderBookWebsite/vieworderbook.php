@@ -1,13 +1,28 @@
 <?php
 	//error_reporting(-1); ini_set('display_errors', 1);
+	$validkeys = array('id',
+		'created_at',
+		'refreshed_at',
+		'buysell',
+		'nick',
+		'host',
+		'btcamount',
+		'price',
+		'othercurrency',
+		'notes'
+	);
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
-	$validkeys = array('id', 'created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'othercurrency', 'notes');
 	if (!in_array($sortby, $validkeys)) $sortby = "price";
+
+	$validorders = array(
+		"ASC",
+		"DESC"
+	);
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
-?><html>
+?><!DOCTYPE html><html>
  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
   <script src="jquery-1.4.3.min.js" type="text/javascript"></script>
   <script src="jquery.ba-bbq.min.js" type="text/javascript"></script>
   <script src="filter.orderbook.js" type="text/javascript"></script>
@@ -26,9 +41,7 @@
 	}
 	table.orderbookdisplay td {
 		border: 1px solid gray;
-		padding: 0px;
-		padding-left: 2px;
-		padding-right: 2px;
+		padding: 4px;
 	}
 	table.orderbookdisplay td.nowrap {
 		white-space: nowrap;
@@ -49,7 +62,8 @@
   <h2>#bitcoin-otc order book</h2>
   <p>[<a href="/">home</a>]</p>
   <h3>Summary statistics on outstanding orders</h3>
-  <ul><?php
+  <ul>
+<?php
 	try { $db = new PDO('sqlite:./otc/OTCOrderBook.db'); }
 	catch (PDOException $e) { die($e->getMessage()); }
 
@@ -91,7 +105,7 @@
 	$sortorders["othercurrency"]["linktext"] = "currency";
 	foreach ($sortorders as $by => $order) {
 		//if ($by == $sortby) $order["order"] = "DESC";
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&amp;sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
 	}
 ?>   </tr>
 <?php

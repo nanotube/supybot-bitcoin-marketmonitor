@@ -1,16 +1,18 @@
-<html>
- <head><title>#bitcoin-otc guide</title></head>
+<!DOCTYPE html><html>
+ <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+  <title>#bitcoin-otc guide</title>
+ </head>
  <body>
-  <div style="float: right; padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">Visit our sponsor:<br><a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="./dragonstale.jpg" style="border-style: none;"></a></div>
+  <div style="float: right; padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">Visit our sponsor:<br><a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img alt="" src="./dragonstale.jpg" style="border-style: none;"></a></div>
   <h2>Guide to safely using #bitcoin-otc</h2>
   <p>#bitcoin-otc is merely an aggregator of outstanding supply and demand. All transactions that may occur are conducted directly between counterparties, without any participation or intermediation from #bitcoin-otc. As such, it is each individual's responsibility to conduct due diligence on their counterparties, and otherwise act in a prudent way to avoid falling prey to fraudulent users. Below are some guidelines that you should consider when engaging in OTC transactions.</p>
   <h3>Risk of fraud</h3>
-  <p>When you trade OTC you engage in a transaction with people you possibly know nothing about. You may send your BTC to the person, and never get anything back. Or you may send your $currency to the person expecting BTC, and get nothing in return. This is a highly undesirable outcome for you, and you should do your best to guard against that. If you do not have a history of previous transactions with this person, or otherwise do not trust your counterparty, there are several mechanisms you can use to mitigate the risk of fraud:
-   <ul>
-    <li>You could choose a trustworthy third party to act as escrow. In this scheme, you send BTC to escrow party, your trading counterparty sends you $currency, you tell the escrow party to release the BTC over to your trading counterparty only when you have received $currency.</li>
-    <li>For a larger transaction, you can split up your trade into smaller chunks. So, e.g., instead of sending all 1000 btc at once to your counterparty and then waiting for payment, you could exchange it in chunks of 100 btc, so your maximum possible loss due to fraud is only 100 btc, rather than the whole 1000.</li>
-   </ul>
-  </p>
+  <p>When you trade OTC you engage in a transaction with people you possibly know nothing about. You may send your BTC to the person, and never get anything back. Or you may send your $currency to the person expecting BTC, and get nothing in return. This is a highly undesirable outcome for you, and you should do your best to guard against that. If you do not have a history of previous transactions with this person, or otherwise do not trust your counterparty, there are several mechanisms you can use to mitigate the risk of fraud:</p>
+  <ul>
+   <li>You could choose a trustworthy third party to act as escrow. In this scheme, you send BTC to escrow party, your trading counterparty sends you $currency, you tell the escrow party to release the BTC over to your trading counterparty only when you have received $currency.</li>
+   <li>For a larger transaction, you can split up your trade into smaller chunks. So, e.g., instead of sending all 1000 btc at once to your counterparty and then waiting for payment, you could exchange it in chunks of 100 btc, so your maximum possible loss due to fraud is only 100 btc, rather than the whole 1000.</li>
+  </ul>
   <h3>Notes on chargebacks</h3>
   <p>When trading BTC for reversible methods (such as paypal or credit card transactions), beware of chargeback risk. It is strongly recommended to avoid PayPal or credit card transactions with persons of unknown reputation, since even with escrow, your counterparty may chargeback the PayPal funds after receiving the BTC.</p>
   <p>One possible way to avoid these issues with PayPal is to use "personal gift" transactions which come out of PayPal or bank balance (rather than credit card). These transactions are not chargeback-able, and as a bonus, incur no fees. However, note that if your counterparty is using a stolen PayPal account, even these transactions may be reversed by PayPal once the real owner of the account files a complaint. So it's best to avoid PayPal when dealing with counterparties with no reputation.</p>

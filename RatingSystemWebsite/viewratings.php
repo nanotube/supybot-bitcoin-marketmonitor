@@ -1,13 +1,26 @@
 <?php
+	$validkeys = array(
+		'id',
+		'nick',
+		'created_at',
+		'total_rating',
+		'pos_rating_recv_count',
+		'neg_rating_recv_count',
+		'pos_rating_sent_count',
+		'neg_rating_sent_count'
+	);
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "total_rating";
-	$validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
 	if (!in_array($sortby, $validkeys)) $sortby = "total_rating";
 
+	$validorders = array(
+		"ASC",
+		"DESC"
+	);
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "DESC";
-	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
-?><html>
+?><!DOCTYPE html><html>
  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
   <title>OTC web of trust summary</title>
   <style><!--
 	body {
@@ -82,7 +95,7 @@
 	$sortorders["neg_rating_sent_count"]["linktext"] = "number of negative ratings sent";
 	foreach ($sortorders as $by => $order) {
 		//if ($by == $sortby) $order["order"] = "DESC";
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratings.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratings.php?sortby=$by&amp;sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
@@ -98,13 +111,13 @@
 ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&amp;sign=ANY&amp;type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
     <td><?php echo $entry['total_rating']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=RECV"><?php echo $entry['pos_rating_recv_count']; ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=RECV"><?php echo $entry['neg_rating_recv_count']; ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=SENT"><?php echo $entry['pos_rating_sent_count']; ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=SENT"><?php echo $entry['neg_rating_sent_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&amp;sign=POS&amp;type=RECV"><?php echo $entry['pos_rating_recv_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&amp;sign=NEG&amp;type=RECV"><?php echo $entry['neg_rating_recv_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&amp;sign=POS&amp;type=SENT"><?php echo $entry['pos_rating_sent_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&amp;sign=NEG&amp;type=SENT"><?php echo $entry['neg_rating_sent_count']; ?></a></td>
    </tr>
 <?
 		}
