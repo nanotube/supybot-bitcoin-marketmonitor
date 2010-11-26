@@ -110,6 +110,17 @@ class RatingSystemDB(object):
                        (sourceid, targetid))
         return cursor.fetchall()
 
+    def getRatingDetail(self, sourcenick, targetnick):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT ratings.created_at, ratings.rating, ratings.notes
+                          FROM ratings, users, users as users2 WHERE
+                          users.nick LIKE ? AND
+                          users2.nick LIKE ? AND
+                          ratings.rater_user_id = users.id AND
+                          ratings.rated_user_id = users2.id""",
+                       (sourcenick, targetnick))
+        return cursor.fetchall()
+
     def getConnections(self, nick):
         cursor = self.db.cursor()
         cursor.execute("""SELECT * FROM users, ratings
@@ -278,6 +289,24 @@ class RatingSystem(callbacks.Plugin):
         irc.reply("Rating entry successful. Use the 'getrating' command to "
                   "view %s's new rating." % nick)
     rate = wrap(rate, ['something', 'int', optional('text')])
+
+    def rated(self, irc, msg, args, nick):
+        """<nick>
+
+        Get the details about the rating you gave to <nick>, if any.
+        """
+        data = self.db.getRatingDetail(msg.nick, nick)
+        if len(data) == 0:
+            irc.error("You have not yet rated user %s" % nick)
+            return
+        data = data[0]
+        irc.reply("You rated user %s on %s, giving him a rating of %s, and "
+                  "supplied these additional notes: %s." % \
+                  (nick,
+                   time.ctime(data[0]),
+                   data[1],
+                   data[2]))
+    rated = wrap(rated, ['something'])
 
     def unrate(self, irc, msg, args, nick):
         """<nick>
