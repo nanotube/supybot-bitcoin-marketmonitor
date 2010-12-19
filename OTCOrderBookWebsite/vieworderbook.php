@@ -8,6 +8,7 @@
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 ?><html>
  <head>
+  <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
   <script src="jquery-1.4.3.min.js" type="text/javascript"></script>
   <script src="jquery.ba-bbq.min.js" type="text/javascript"></script>
   <script src="filter.orderbook.js" type="text/javascript"></script>
