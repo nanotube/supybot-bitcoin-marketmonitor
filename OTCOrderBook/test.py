@@ -126,7 +126,7 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('remove 4')
             self.assertNotError('buy 5000 btc at 0.05 LRUSD')
             self.assertRegexp('book LRUSD', '5000.*1000.*2000')
-            self.assertRegexp('book lrusd', '5000.*1000.*2000')
+#            self.assertRegexp('book lrusd', '5000.*1000.*2000')
         finally:
             world.testing = True
             self.prefix = origuser

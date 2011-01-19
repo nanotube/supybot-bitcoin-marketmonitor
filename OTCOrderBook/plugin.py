@@ -52,9 +52,10 @@ class OTCOrderDB(object):
                           buysell TEXT,
                           nick TEXT,
                           host TEXT,
-                          btcamount REAL,
+                          amount REAL,
+                          thing TEXT,
                           price REAL,
-                          othercurrency TEXT,
+                          otherthing TEXT,
                           notes TEXT)
                           """)
         self.db.commit()
@@ -79,29 +80,30 @@ class OTCOrderDB(object):
                        (expiry, timestamp))
         self.db.commit()
 
-    def getCurrencyBook(self, currency):
+    def getCurrencyBook(self, thing):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM orders WHERE othercurrency = ?
+        cursor.execute("""SELECT * FROM orders WHERE thing LIKE ?
+                       OR otherthing LIKE ?
                        ORDER BY price""",
-                       (currency.upper(),))
+                       (thing, thing))
         return cursor.fetchall()
 
-    def buy(self, nick, host, btcamount, price, othercurrency, notes):
+    def buy(self, nick, host, amount, thing, price, otherthing, notes):
         cursor = self.db.cursor()
         timestamp = time.time()
         cursor.execute("""INSERT INTO orders VALUES
-                       (NULL, ?, ?, "BUY", ?, ?, ?, ?, ?, ?)""",
-                       (timestamp, timestamp, nick, host, btcamount, price,
-                        othercurrency, notes))
+                       (NULL, ?, ?, "BUY", ?, ?, ?, ?, ?, ?, ?)""",
+                       (timestamp, timestamp, nick, host, amount, thing, price,
+                        otherthing, notes))
         self.db.commit()
 
-    def sell(self, nick, host, btcamount, price, othercurrency, notes):
+    def sell(self, nick, host, amount, thing, price, otherthing, notes):
         cursor = self.db.cursor()
         timestamp = time.time()
         cursor.execute("""INSERT INTO orders VALUES
-                       (NULL, ?, ?, "SELL", ?, ?, ?, ?, ?, ?)""",
-                       (timestamp, timestamp, nick, host, btcamount, price,
-                        othercurrency, notes))
+                       (NULL, ?, ?, "SELL", ?, ?, ?, ?, ?, ?, ?)""",
+                       (timestamp, timestamp, nick, host, amount, thing, price,
+                        otherthing, notes))
         self.db.commit()
 
     def refresh(self, host, id=None):
@@ -131,9 +133,9 @@ def getAt(irc, msg, args, state):
     if args[0].lower() in ['at', '@']:
         args.pop(0)
 
-def getBTC(irc, msg, args, state):
-    if args[0].lower() in ['btc','bitcoin','bitcoins']:
-        args.pop(0)
+#def getBTC(irc, msg, args, state):
+#    if args[0].lower() in ['btc','bitcoin','bitcoins']:
+#        args.pop(0)
 
 def getPositiveFloat(irc, msg, args, state, type='positive floating point number'):
     try:
@@ -158,7 +160,7 @@ def getNonNegativeFloat(irc, msg, args, state, type=' floating point number'):
 addConverter('at', getAt)
 addConverter('positiveFloat', getPositiveFloat)
 addConverter('nonNegativeFloat', getNonNegativeFloat)
-addConverter('btc', getBTC)
+#addConverter('btc', getBTC)
 
 class OTCOrderBook(callbacks.Plugin):
     """This plugin maintains an order book for order entry over irc.
@@ -192,11 +194,11 @@ class OTCOrderBook(callbacks.Plugin):
         except KeyError:
             return False
 
-    def buy(self, irc, msg, args, btcamount, price, othercurrency, notes):
-        """<btcamount> [btc|bitcoin|bitcoins] [at|@] <priceperbtc> <othercurrency> [<notes>]
+    def buy(self, irc, msg, args, amount, thing, price, otherthing, notes):
+        """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
 
-        Logs a buy order for <btcamount> BTC, at a price of <priceperbtc>
-        per BTC, in units of <othercurrency>. Use the optional <notes> field to
+        Logs a buy order for <amount> units of <thing>, at a price of <price>
+        per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
@@ -211,17 +213,17 @@ class OTCOrderBook(callbacks.Plugin):
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        self.db.buy(msg.nick, msg.host, btcamount, price, othercurrency.upper(), notes)
+        self.db.buy(msg.nick, msg.host, amount, thing, price, otherthing, notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
-    buy = wrap(buy, ['positiveFloat','btc','at','nonNegativeFloat','something',
+    buy = wrap(buy, ['positiveFloat','something','at','nonNegativeFloat','something',
                      optional('text')])
 
-    def sell(self, irc, msg, args, btcamount, price, othercurrency, notes):
-        """<btcamount> [btc|bitcoin|bitcoins] [at|@] <priceperbtc> <othercurrency> [<notes>]
+    def sell(self, irc, msg, args, amount, thing, price, otherthing, notes):
+        """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
 
-        Logs a sell order for <btcamount> BTC, at a price of <priceperbtc>
-        per BTC, in units of <othercurrency>. Use the optional <notes> field to
+        Logs a sell order for <amount> units of <thing, at a price of <price>
+        per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
@@ -236,10 +238,10 @@ class OTCOrderBook(callbacks.Plugin):
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        self.db.sell(msg.nick, msg.host, btcamount, price, othercurrency.upper(), notes)
+        self.db.sell(msg.nick, msg.host, amount, thing, price, otherthing, notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
-    sell = wrap(sell, ['positiveFloat','btc','at','nonNegativeFloat','something',
+    sell = wrap(sell, ['positiveFloat','something','at','nonNegativeFloat','something',
                      optional('text')])
 
     def refresh(self, irc, msg, args, orderid):
@@ -283,13 +285,14 @@ class OTCOrderBook(callbacks.Plugin):
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return
-        L = ["#%s %s %s %s %s BTC @ %s %s (%s)" % (id,
+        L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
                                                    time.ctime(refreshed_at),
                                                    host,
                                                    buysell,
-                                                   btcamount,
+                                                   amount,
+                                                   thing,
                                                    price,
-                                                   othercurrency,
+                                                   otherthing,
                                                    notes) \
              for (id,
                   created_at,
@@ -297,21 +300,22 @@ class OTCOrderBook(callbacks.Plugin):
                   buysell,
                   nick,
                   host,
-                  btcamount,
+                  amount,
+                  thing,
                   price,
-                  othercurrency,
+                  otherthing,
                   notes) in results]
 
         irc.replies(L, joiner=" || ")
     view = wrap(view, [optional('int')])
     
-    def book(self, irc, msg, args, currency):
-        """<currency>
+    def book(self, irc, msg, args, thing):
+        """<thing>
 
-        Get a list of open orders in <currency>.
+        Get a list of open orders for <thing>.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        results = self.db.getCurrencyBook(currency)
+        results = self.db.getCurrencyBook(thing)
         if len(results) == 0:
             irc.error("No orders for this currency present in database.")
             return
@@ -320,14 +324,15 @@ class OTCOrderBook(callbacks.Plugin):
                       "at http://bitcoin-otc.com/ to see the complete order "
                       "book in a nice table.")
             return
-        L = ["#%s %s %s@%s %s %s BTC @ %s %s (%s)" % (id,
+        L = ["#%s %s %s@%s %s %s %s @ %s %s (%s)" % (id,
                                                       time.ctime(refreshed_at),
                                                       nick,
                                                       host,
                                                       buysell,
-                                                      btcamount,
+                                                      amount,
+                                                      thing,
                                                       price,
-                                                      othercurrency,
+                                                      otherthing,
                                                       notes) \
              for (id,
                   created_at,
@@ -335,9 +340,10 @@ class OTCOrderBook(callbacks.Plugin):
                   buysell,
                   nick,
                   host,
-                  btcamount,
+                  amount,
+                  thing,
                   price,
-                  othercurrency,
+                  otherthing,
                   notes) in results]
         irc.replies(L, joiner=" || ")
     book = wrap(book, ['something'])
