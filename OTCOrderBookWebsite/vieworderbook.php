@@ -1,7 +1,7 @@
 <?php
 	//error_reporting(-1); ini_set('display_errors', 1);
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
-	$validkeys = array('id', 'created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'btcamount', 'price', 'othercurrency', 'notes');
+	$validkeys = array('id', 'created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'amount', 'thing', 'price', 'otherthing', 'notes');
 	if (!in_array($sortby, $validkeys)) $sortby = "price";
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
 	$validorders = array("ASC","DESC");
@@ -52,25 +52,25 @@
 	try { $db = new PDO('sqlite:./otc/OTCOrderBook.db'); }
 	catch (PDOException $e) { die($e->getMessage()); }
 
-	if (!$query = $db->Query('SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders'))
+	if (!$query = $db->Query('SELECT count(*) as ordercount FROM orders'))
 		echo "   <li>No outstanding orders found</li>";
 	else {
 		$entry = $query->fetch(PDO::FETCH_BOTH);
-		echo "   <li>" . number_format($entry['ordercount']) . " outstanding orders, for a total of " . number_format($entry['ordersum'], 1) . " BTC.</li>\n";
+		echo "   <li>" . number_format($entry['ordercount']) . " outstanding orders.</li>\n";
 	}
 
-	if (!$query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='BUY'"))
+	if (!$query = $db->Query("SELECT count(*) as ordercount FROM orders WHERE buysell='BUY'"))
 		echo "   <li>No outstanding BUY orders found</li>\n";
 	else {
 		$entry = $query->fetch(PDO::FETCH_BOTH);
-		echo "   <li>" . number_format($entry['ordercount']) . " outstanding BUY orders, for a total of " . number_format($entry['ordersum'], 1) . " BTC.</li>\n";
+		echo "   <li>" . number_format($entry['ordercount']) . " outstanding BUY orders.</li>\n";
 	}
 
-	if (!$query = $db->Query("SELECT count(*) as ordercount, sum(btcamount) as ordersum FROM orders WHERE buysell='SELL'"))
+	if (!$query = $db->Query("SELECT count(*) as ordercount FROM orders WHERE buysell='SELL'"))
 		echo "   <li>No outstanding SELL orders found</li>\n";
 	else {
 		$entry = $query->fetch(PDO::FETCH_BOTH);
-		echo "   <li>" . number_format($entry['ordercount']) . " outstanding SELL orders, for a total of " . number_format($entry['ordersum'], 1) . " BTC.</li>\n";
+		echo "   <li>" . number_format($entry['ordercount']) . " outstanding SELL orders.</li>\n";
 	}
 
 	//$totaltxfile = fopen("txcount.txt", "r");
@@ -86,8 +86,9 @@
 	$sortorders["created_at"]["othertext"] = "(UTC)";
 	$sortorders["refreshed_at"]["othertext"] = "(UTC)";
 	$sortorders["buysell"]["linktext"] = "type";
-	$sortorders["btcamount"]["linktext"] = "BTC amount";
-	$sortorders["othercurrency"]["linktext"] = "currency";
+	$sortorders["amount"]["linktext"] = "amount";
+	$sortorders["thing"]["linktext"] = "thing";
+	$sortorders["otherthing"]["linktext"] = "otherthing";
 	foreach ($sortorders as $by => $order) {
 		if ($order["linktext"] != "notes"){
 			echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
@@ -98,7 +99,7 @@
 	}
 ?>   </tr>
 <?php
-	if (!$query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, btcamount, price, othercurrency, notes FROM orders ORDER BY ' . $sortby . ' ' . $sortorder ))
+	if (!$query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ORDER BY ' . $sortby . ' ' . $sortorder ))
 		echo "   <tr><td>No outstanding orders found</td></tr>\n";
 	else {
 		//$resultrow = 0;
@@ -114,9 +115,10 @@
     <td class="type"><?php echo $entry["buysell"]; ?></td>
     <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
     <td class="nowrap"><?php echo $entry["host"]; ?></td>
-    <td><?php echo $entry["btcamount"]; ?></td>
+    <td><?php echo $entry["amount"]; ?></td>
+    <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
     <td class="price"><?php echo $entry["price"]; ?></td>
-    <td class="currency"><?php echo htmlspecialchars($entry["othercurrency"]); ?></td>
+    <td class="currency"><?php echo htmlspecialchars($entry["otherthing"]); ?></td>
     <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
    </tr>
 <?
