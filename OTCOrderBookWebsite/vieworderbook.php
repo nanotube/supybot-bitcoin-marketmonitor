@@ -6,6 +6,20 @@
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
 	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+	
+	$f = fopen("http://mtgox.com/code/ticker.php", "r");
+	$ticker = fread($f, 1024);
+	fclose($f);
+	$ticker = json_decode($ticker, true);
+	$ticker = $ticker['ticker'];
+	
+	function index_prices($rawprice){
+		$rawprice = preg_replace("{mtgoxask}", $ticker['sell'], $rawprice);
+		$rawprice = preg_replace("{mtgoxbid}", $ticker['buy'], $rawprice);
+		$rawprice = preg_replace("{mtgoxlast}", $ticker['last'], $rawprice);
+		$rawprice = eval("return(" . $rawprice . ");");
+		return($rawprice);
+	}
 ?><html>
  <head>
   <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
@@ -117,7 +131,7 @@
     <td class="nowrap"><?php echo $entry["host"]; ?></td>
     <td><?php echo $entry["amount"]; ?></td>
     <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
-    <td class="price"><?php echo $entry["price"]; ?></td>
+    <td class="price"><?php echo index_prices($entry["price"]); ?></td>
     <td class="currency"><?php echo htmlspecialchars($entry["otherthing"]); ?></td>
     <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
    </tr>
