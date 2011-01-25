@@ -98,6 +98,7 @@ class OTCOrderDB(object):
                        (timestamp, timestamp, nick, host, amount, thing, price,
                         otherthing, notes))
         self.db.commit()
+        return cursor.lastrowid
 
     def sell(self, nick, host, amount, thing, price, otherthing, notes):
         cursor = self.db.cursor()
@@ -107,6 +108,7 @@ class OTCOrderDB(object):
                        (timestamp, timestamp, nick, host, amount, thing, price,
                         otherthing, notes))
         self.db.commit()
+        return cursor.lastrowid
 
     def refresh(self, host, id=None):
         results = self.get(host, id)
@@ -234,7 +236,7 @@ class OTCOrderBook(callbacks.Plugin):
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
             irc.error("For identification purposes, you must have a freenode cloak "
                       "to use the order system. "
-                      "See http://bitcoin-otc.com/bitcoinotcguide.php for details.")
+                      "See http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc for details.")
             return
         results = self.db.get(msg.host)
         if len(results) >= self.registryValue('maxUserOpenOrders'):
@@ -242,9 +244,8 @@ class OTCOrderBook(callbacks.Plugin):
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        self.db.buy(msg.nick, msg.host, amount, thing, price, otherthing, notes)
-        irc.reply("Order entry successful. Use 'view' command to view your "
-                  "open orders.")
+        orderid = self.db.buy(msg.nick, msg.host, amount, thing, price, otherthing, notes)
+        irc.reply("Order id %s created." % (orderid,))
     buy = wrap(buy, ['positiveFloat','something','at','indexedPrice','something',
                      optional('text')])
 
@@ -260,7 +261,7 @@ class OTCOrderBook(callbacks.Plugin):
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
             irc.error("For identification purposes, you must have a freenode cloak "
                       "to use the order system. "
-                      "See http://bitcoin-otc.com/bitcoinotcguide.php for details.")
+                      "See http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc for details.")
             return
         results = self.db.get(msg.host)
         if len(results) >= self.registryValue('maxUserOpenOrders'):
@@ -268,9 +269,8 @@ class OTCOrderBook(callbacks.Plugin):
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        self.db.sell(msg.nick, msg.host, amount, thing, price, otherthing, notes)
-        irc.reply("Order entry successful. Use 'view' command to view your "
-                  "open orders.")
+        orderid = self.db.sell(msg.nick, msg.host, amount, thing, price, otherthing, notes)
+        irc.reply("Order id %s created." % (orderid,))
     sell = wrap(sell, ['positiveFloat','something','at','indexedPrice','something',
                      optional('text')])
 
