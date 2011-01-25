@@ -14,9 +14,10 @@
 	$ticker = $ticker['ticker'];
 	
 	function index_prices($rawprice){
-		$rawprice = preg_replace("{mtgoxask}", $ticker['sell'], $rawprice);
-		$rawprice = preg_replace("{mtgoxbid}", $ticker['buy'], $rawprice);
-		$rawprice = preg_replace("{mtgoxlast}", $ticker['last'], $rawprice);
+		global $ticker;
+		$rawprice = preg_replace("/{mtgoxask}/", $ticker['sell'], $rawprice);
+		$rawprice = preg_replace("/{mtgoxbid}/", $ticker['buy'], $rawprice);
+		$rawprice = preg_replace("/{mtgoxlast}/", $ticker['last'], $rawprice);
 		$rawprice = eval("return(" . $rawprice . ");");
 		return($rawprice);
 	}
