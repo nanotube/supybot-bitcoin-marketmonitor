@@ -228,7 +228,7 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a buy order for <amount> units of <thing>, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {mtgox(ask|bid|last} to index price to mtgox ask, bid, or last price.
+        and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
@@ -254,7 +254,7 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a sell order for <amount> units of <thing, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {mtgox(ask|bid|last} to index price to mtgox ask, bid, or last price.
+        and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
