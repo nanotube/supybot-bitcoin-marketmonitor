@@ -131,4 +131,24 @@ class OTCOrderBookTestCase(PluginTestCase):
             world.testing = True
             self.prefix = origuser
 
+    def testIndexing(self):
+        try:
+            origuser = self.prefix
+            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.assertNotError('buy 1000 btc at "{mtgoxbid} - 0.03" ppusd')
+            self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
+            self.assertRegexp('view --raw', 'BUY 1000.0 btc @ {mtgoxbid}')
+            self.assertNotError('remove')
+            self.assertNotError('sell 1000 btc at "{mtgoxask} + 0.03" ppusd')
+            self.assertRegexp('view', 'SELL 1000.0 btc @ \d')
+            self.assertRegexp('view --raw', 'SELL 1000.0 btc @ {mtgoxask}')
+            self.assertNotError('remove')
+            self.assertNotError('buy 1000 btc at "{mtgoxlast} - 0.03" ppusd')
+            self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
+            self.assertRegexp('view --raw', 'BUY 1000.0 btc @ {mtgoxlast}')
+            self.assertRegexp('book ppusd', 'BUY 1000.0 btc @ \d')
+            self.assertError('buy 1000 btc at "{zomg} + 1" ppusd');
+        finally:
+            self.prefix = origuser
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

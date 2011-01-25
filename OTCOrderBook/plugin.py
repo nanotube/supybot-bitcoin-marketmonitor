@@ -28,6 +28,8 @@ from supybot import ircdb
 import sqlite3
 import time
 import os.path
+import re
+import json
 
 class OTCOrderDB(object):
     def __init__(self, filename):
@@ -54,7 +56,7 @@ class OTCOrderDB(object):
                           host TEXT,
                           amount REAL,
                           thing TEXT,
-                          price REAL,
+                          price TEXT,
                           otherthing TEXT,
                           notes TEXT)
                           """)
@@ -137,6 +139,20 @@ def getAt(irc, msg, args, state):
 #    if args[0].lower() in ['btc','bitcoin','bitcoins']:
 #        args.pop(0)
 
+def getIndexedPrice(irc, msg, args, state, type='price input'):
+    """Indexed price can contain one or more of {mtgoxask}, {mtgoxbid},
+    {mtgoxlast}, included in an arithmetical expression."""
+    try:
+        v = args[0]
+        v = re.sub(r'{mtgoxask}|{mtgoxbid}|{mtgoxlast}', '1', v)
+        if not set(v).issubset(set('1234567890*-+./ ')) or '**' in v:
+            raise ValueError, "only {mtgoxask}, {mtgoxbid}, {mtgoxlast} and arithmetic allowed."
+        eval(v)
+        state.args.append(args[0])
+        del args[0]
+    except:
+        state.errorInvalid(type, args[0])
+
 def getPositiveFloat(irc, msg, args, state, type='positive floating point number'):
     try:
         v = float(args[0])
@@ -160,6 +176,7 @@ def getNonNegativeFloat(irc, msg, args, state, type=' floating point number'):
 addConverter('at', getAt)
 addConverter('positiveFloat', getPositiveFloat)
 addConverter('nonNegativeFloat', getNonNegativeFloat)
+addConverter('indexedPrice', getIndexedPrice)
 #addConverter('btc', getBTC)
 
 class OTCOrderBook(callbacks.Plugin):
@@ -194,12 +211,24 @@ class OTCOrderBook(callbacks.Plugin):
         except KeyError:
             return False
 
+    def _getMtgoxQuote(self):
+        ticker = utils.web.getUrl('http://mtgox.com/code/ticker.php')
+        self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
+        self.ticker = self.ticker['ticker']
+
+    def _getIndexedValue(self, rawprice):
+        rawprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
+        rawprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], rawprice)
+        rawprice = re.sub(r'{mtgoxlast}', self.ticker['last'], rawprice)
+        return eval(rawprice)
+
     def buy(self, irc, msg, args, amount, thing, price, otherthing, notes):
         """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
 
         Logs a buy order for <amount> units of <thing>, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
-        put in any special notes.
+        put in any special notes. <price> may include an arithmetical expression,
+        and {mtgox(ask|bid|last} to index price to mtgox ask, bid, or last price.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
@@ -216,7 +245,7 @@ class OTCOrderBook(callbacks.Plugin):
         self.db.buy(msg.nick, msg.host, amount, thing, price, otherthing, notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
-    buy = wrap(buy, ['positiveFloat','something','at','nonNegativeFloat','something',
+    buy = wrap(buy, ['positiveFloat','something','at','indexedPrice','something',
                      optional('text')])
 
     def sell(self, irc, msg, args, amount, thing, price, otherthing, notes):
@@ -224,7 +253,8 @@ class OTCOrderBook(callbacks.Plugin):
 
         Logs a sell order for <amount> units of <thing, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
-        put in any special notes.
+        put in any special notes. <price> may include an arithmetical expression,
+        and {mtgox(ask|bid|last} to index price to mtgox ask, bid, or last price.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
@@ -241,7 +271,7 @@ class OTCOrderBook(callbacks.Plugin):
         self.db.sell(msg.nick, msg.host, amount, thing, price, otherthing, notes)
         irc.reply("Order entry successful. Use 'view' command to view your "
                   "open orders.")
-    sell = wrap(sell, ['positiveFloat','something','at','nonNegativeFloat','something',
+    sell = wrap(sell, ['positiveFloat','something','at','indexedPrice','something',
                      optional('text')])
 
     def refresh(self, irc, msg, args, orderid):
@@ -274,13 +304,23 @@ class OTCOrderBook(callbacks.Plugin):
                       "view your open orders.")
     remove = wrap(remove, [optional('int')])
 
-    def view(self, irc, msg, args, orderid):
-        """<orderid>
+    def view(self, irc, msg, args, optlist, orderid):
+        """[--raw] [<orderid>]
 
         View information about your outstanding orders. If optional <orderid>
-        argument present, only show that particular order.
+        argument present, only show that particular order. If '--raw' option is
+        given, show raw price input, rather than the resulting indexed value.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
+        raw = False
+        for (option, arg) in optlist:
+            if option == 'raw':
+                raw = True
+        if raw:
+            f = lambda x: x
+        else:
+            self._getMtgoxQuote()
+            f = self._getIndexedValue
         results = self.db.get(msg.host, orderid)
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
@@ -291,7 +331,7 @@ class OTCOrderBook(callbacks.Plugin):
                                                    buysell,
                                                    amount,
                                                    thing,
-                                                   price,
+                                                   f(price),
                                                    otherthing,
                                                    notes) \
              for (id,
@@ -307,7 +347,7 @@ class OTCOrderBook(callbacks.Plugin):
                   notes) in results]
 
         irc.replies(L, joiner=" || ")
-    view = wrap(view, [optional('int')])
+    view = wrap(view, [getopts({'raw': '',}), optional('int')])
     
     def book(self, irc, msg, args, thing):
         """<thing>
@@ -324,6 +364,7 @@ class OTCOrderBook(callbacks.Plugin):
                       "at http://bitcoin-otc.com/ to see the complete order "
                       "book in a nice table.")
             return
+        self._getMtgoxQuote()
         L = ["#%s %s %s@%s %s %s %s @ %s %s (%s)" % (id,
                                                       time.ctime(refreshed_at),
                                                       nick,
@@ -331,7 +372,7 @@ class OTCOrderBook(callbacks.Plugin):
                                                       buysell,
                                                       amount,
                                                       thing,
-                                                      price,
+                                                      self._getIndexedValue(price),
                                                       otherthing,
                                                       notes) \
              for (id,
