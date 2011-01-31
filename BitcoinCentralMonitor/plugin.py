@@ -56,7 +56,7 @@ class BitcoinCentralMonitor(callbacks.Plugin):
     def _monitorBitcoinCentralTrades(self, irc):
         while not self.e.isSet():
             try:
-                new_trades = utils.web.getUrl('http://bitcoin-central.net/trades/all_trades.json')
+                new_trades = utils.web.getUrl('http://bitcoin-central.net/trades.json')
                 new_trades = json.loads(new_trades, parse_float=str, parse_int=str)
             except:
                 continue # let's just try again.
