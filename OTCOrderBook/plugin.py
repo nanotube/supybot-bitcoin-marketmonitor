@@ -143,12 +143,15 @@ def getAt(irc, msg, args, state):
 
 def getIndexedPrice(irc, msg, args, state, type='price input'):
     """Indexed price can contain one or more of {mtgoxask}, {mtgoxbid},
-    {mtgoxlast}, included in an arithmetical expression."""
+    {mtgoxlast}, included in an arithmetical expression.
+    It can also contain one expression of the form {XXX in YYY} which
+    queries google for currency conversion rate from XXX to YYY."""
     try:
         v = args[0]
         v = re.sub(r'{mtgoxask}|{mtgoxbid}|{mtgoxlast}', '1', v)
+        v = re.sub(r'{... in ...}', '1', v, 1)
         if not set(v).issubset(set('1234567890*-+./() ')) or '**' in v:
-            raise ValueError, "only {mtgoxask}, {mtgoxbid}, {mtgoxlast} and arithmetic allowed."
+            raise ValueError, "only {mtgoxask}, {mtgoxbid}, {mtgoxlast}, one {... in ...}, and arithmetic allowed."
         eval(v)
         state.args.append(args[0])
         del args[0]
@@ -218,11 +221,32 @@ class OTCOrderBook(callbacks.Plugin):
         self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
         self.ticker = self.ticker['ticker']
 
+    def _getCurrencyConversion(self, rawprice):
+        conv = re.search(r'{(...) in (...)}', rawprice)
+        if conv is None:
+            return rawprice
+        googlerate = self._queryGoogleRate(conv.group(1), conv.group(2))
+        indexedprice = re.sub(r'{... in ...}', googlerate, rawprice)
+        return indexedprice
+
+    def _queryGoogleRate(self, cur1, cur2):
+        googlerate = utils.web.getUrl('http://www.google.com/ig/calculator?hl=en&q=1%s=?%s' % \
+                (cur1, cur2,))
+        googlerate = re.sub(r'(\w+):', r'"\1":', googlerate) # badly formed json, missing quotes
+        googlerate = json.loads(googlerate, parse_float=str, parse_int=str)
+        if googlerate['error']:
+            raise ValueError, googlerate['error']
+        return googlerate['rhs'].split()[0]
+
     def _getIndexedValue(self, rawprice):
-        rawprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
-        rawprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], rawprice)
-        rawprice = re.sub(r'{mtgoxlast}', self.ticker['last'], rawprice)
-        return eval(rawprice)
+        try:
+            indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
+            indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], indexedprice)
+            indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last'], indexedprice)
+            indexedprice = self._getCurrencyConversion(indexedprice)
+            return eval(indexedprice)
+        except:
+            return rawprice
 
     def buy(self, irc, msg, args, amount, thing, price, otherthing, notes):
         """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
@@ -231,6 +255,8 @@ class OTCOrderBook(callbacks.Plugin):
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
         and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
+        May also include expression of the form {... in ...} which queries google
+        for a currency conversion rate between two currencies.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
@@ -256,6 +282,8 @@ class OTCOrderBook(callbacks.Plugin):
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
         and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
+        May also include expression of the form {... in ...} which queries google
+        for a currency conversion rate between two currencies.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):

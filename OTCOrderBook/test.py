@@ -150,6 +150,10 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'BUY 1000.0 btc @ {mtgoxlast}')
             self.assertRegexp('book ppusd', 'BUY 1000.0 btc @ \d')
+            self.assertNotError('remove')
+            self.assertNotError('buy 1000 btc at "({mtgoxlast} - 0.03) * {usd in eur}" ppeur')
+            self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
+            self.assertRegexp('view --raw', 'BUY 1000.0 btc @ \({mtgoxlast}')
             self.assertError('buy 1000 btc at "{zomg} + 1" ppusd');
         finally:
             self.prefix = origuser
