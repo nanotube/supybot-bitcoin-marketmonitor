@@ -26,6 +26,7 @@
 		$f = fopen("http://www.google.com/ig/calculator?hl=en&q=1" . $cur1 . "=?" . $cur2, "r");
 		$result = fread($f, 1024);
 		fclose($f);
+		$result	= preg_replace("/(\w+):/", "\"\\1\":", $result); //missing quotes in google json
 		$googlerate = json_decode($result, true);
 		if($googlerate['error'] != ""){
 			throw new Exception('google error');
