@@ -66,13 +66,21 @@ class OTCOrderDB(object):
     def close(self):
         self.db.close()
 
-    def get(self, host, id=None):
+    def get(self, host=None, id=None):
         cursor = self.db.cursor()
-        if id is None:
-            cursor.execute("""SELECT * FROM orders WHERE host=?""", (host,))
-        else:
-            cursor.execute("""SELECT * FROM orders WHERE host=? AND
-                           id=?""", (host, id))
+        sql = "SELECT * FROM orders WHERE"
+        joiner = ""
+        vars = []
+        if id is None and host is None:
+            return []
+        if host is not None:
+            sql += " host=?"
+            vars.append(host)
+            joiner = " AND"
+        if id is not None:
+            sql += joiner + " id=?"
+            vars.append(id)
+        cursor.execute(sql, tuple(vars))
         return cursor.fetchall()
 
     def deleteExpired(self, expiry):
@@ -264,7 +272,7 @@ class OTCOrderBook(callbacks.Plugin):
                       "to use the order system. "
                       "See http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc for details.")
             return
-        results = self.db.get(msg.host)
+        results = self.db.get(host=msg.host)
         if len(results) >= self.registryValue('maxUserOpenOrders'):
             irc.error("You may not have more than %s outstanding open orders." % \
                       self.registryValue('maxUserOpenOrders'))
@@ -291,7 +299,7 @@ class OTCOrderBook(callbacks.Plugin):
                       "to use the order system. "
                       "See http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc for details.")
             return
-        results = self.db.get(msg.host)
+        results = self.db.get(host=msg.host)
         if len(results) >= self.registryValue('maxUserOpenOrders'):
             irc.error("You may not have more than %s outstanding open orders." % \
                       self.registryValue('maxUserOpenOrders'))
@@ -349,7 +357,8 @@ class OTCOrderBook(callbacks.Plugin):
         else:
             self._getMtgoxQuote()
             f = self._getIndexedValue
-        results = self.db.get(msg.host, orderid)
+        host = msg.host if orderid is None else None
+        results = self.db.get(host, orderid)
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return

@@ -47,12 +47,14 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('buy 3000 bitcoin at 0.07 PPUSD really nice offer!')
             self.assertNotError('buy 4000 btc at 10 LRUSD some text')
             self.assertNotError('view')
+            self.assertRegexp('view 1', 'BUY 1000')
             self.assertError('buy 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
             self.prefix = 'stuff!stuff@gateway/web/freenode/moo'
             self.assertError('buy 1000 btc at 0.06 lrusd bla') # no cloak
             self.assertNotError('register nottester stuff')
             self.assertNotError('buy 1000 btc at 0.06 lrusd bla') # registered user
+            self.assertRegexp('view 2', 'stuff/somecloak BUY 2000')
         finally:
             world.testing = True
             self.prefix = origuser
