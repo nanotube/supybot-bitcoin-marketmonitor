@@ -244,9 +244,9 @@ class OTCOrderBook(callbacks.Plugin):
             indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], indexedprice)
             indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last'], indexedprice)
             indexedprice = self._getCurrencyConversion(indexedprice)
-            return eval(indexedprice)
+            return "%.5g" % eval(indexedprice)
         except:
-            return rawprice
+            return '"' + rawprice + '"'
 
     def buy(self, irc, msg, args, amount, thing, price, otherthing, notes):
         """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
@@ -345,7 +345,7 @@ class OTCOrderBook(callbacks.Plugin):
             if option == 'raw':
                 raw = True
         if raw:
-            f = lambda x: x
+            f = lambda x: '"%s"' % x
         else:
             self._getMtgoxQuote()
             f = self._getIndexedValue
