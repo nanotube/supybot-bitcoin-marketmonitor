@@ -201,7 +201,17 @@ class RatingSystemDB(object):
                               WHERE nick LIKE ?""", (targetnick,))
             self.db.commit()
         self.update_counts(sourcenick, sourceid, targetnick, targetid)
-        
+
+    def deleteuser(self, userid):
+        cursor = self.db.cursor()
+        cursor.execute("""DELETE FROM users
+                            WHERE id = ?""",
+                            (userid,))
+        cursor.execute("""DELETE FROM ratings
+                            WHERE rated_user_id = ? OR
+                            rater_user_id = ?""",
+                            (userid, userid,))
+        self.db.commit()
 
 class RatingSystem(callbacks.Plugin):
     """This plugin maintains an rating system among IRC users.
@@ -369,6 +379,22 @@ class RatingSystem(callbacks.Plugin):
                    data[5],
                    data[6]))
     getrating = wrap(getrating, ['something'])
+
+    def deleteuser(self, irc, msg, args, nick):
+        """<nick>
+        
+        Delete user, and all his sent/received ratings, from the database.
+        
+        Requires owner privileges.
+        """
+        data = self.db.get(nick)
+        if len(data) == 0:
+            irc.error("No such user in the database.")
+            return
+        self.db.deleteuser(data[0][0])
+        irc.reply("Successfully deleted user %s, id %s" % (nick, data[0][0],))
+    deleteuser = wrap(deleteuser, ['owner','something'])
+
 
 Class = RatingSystem
 

@@ -112,4 +112,24 @@ class RatingSystemTestCase(PluginTestCase):
         finally:
             self.prefix = origuser
 
+    def testDeleteUser(self):
+        # pre-seed the db with a rating for nanotube
+        cb = self.irc.getCallback('RatingSystem')
+        cursor = cb.db.db.cursor()
+        cursor.execute("""INSERT INTO users VALUES
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
+        cb.db.db.commit()
+        try:
+            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
+            origuser = self.prefix
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
+            self.assertNotError('rate someguy 4')
+            self.assertRegexp('getrating someguy', 'cumulative rating of 4')
+            self.assertNotError('deleteuser somEguy')
+            self.assertError('getrating someguy') # guy should be gone
+        finally:
+            self.prefix = origuser
+
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
