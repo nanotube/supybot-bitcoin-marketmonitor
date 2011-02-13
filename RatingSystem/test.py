@@ -41,15 +41,23 @@ class RatingSystemTestCase(PluginTestCase):
         cb = self.irc.getCallback('RatingSystem')
         cursor = cb.db.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
-                          (NULL, ?, ?, ?, ?, ?, ?, ?)""",
-                       (10, time.time(), 1, 0, 0, 0, 'nanotube'))
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
         cb.db.db.commit()
         self.assertError('rate someguy 4') # no cloak
         try:
             #world.testing = False
+            self.irc.state.nicksToHostmasks['uncloakedguy'] = 'uncloakedguy!stuff@123.345.5.6'
+            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
+            self.irc.state.nicksToHostmasks['someguy2'] = 'someguy2!stuff@stuff/somecloak'
+            self.irc.state.nicksToHostmasks['poorguy'] = 'poorguy!stuff@stuff/somecloak'
+            self.irc.state.nicksToHostmasks['SomeDude'] = 'SomeDude!stuff@stuff/somecloak'
+
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertError('rate nanotube 10') #can't self-rate
+            self.assertError('rate unknownguy 4') #user not in dict
+            self.assertError('rate uncloakedguy 6') #user not cloaked
             self.assertNotError('rate someguy 4')
             self.assertRegexp('getrating someguy', 'cumulative rating of 4')
             self.assertRegexp('getrating someguy', 'a total of 1')
@@ -89,13 +97,14 @@ class RatingSystemTestCase(PluginTestCase):
         cb = self.irc.getCallback('RatingSystem')
         cursor = cb.db.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
-                          (NULL, ?, ?, ?, ?, ?, ?, ?)""",
-                       (10, time.time(), 1, 0, 0, 0, 'nanotube'))
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
         cb.db.db.commit()
         try:
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertError('unrate someguy') #haven't rated him before
+            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
             self.assertNotError('rate someguy 4')
             self.assertRegexp('getrating someguy', 'cumulative rating of 4')
             self.assertNotError('unrate somEguy')

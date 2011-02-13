@@ -53,7 +53,8 @@ class RatingSystemDB(object):
                           neg_rating_recv_count INTEGER,
                           pos_rating_sent_count INTEGER,
                           neg_rating_sent_count INTEGER,
-                          nick TEXT UNIQUE ON CONFLICT REPLACE)
+                          nick TEXT UNIQUE ON CONFLICT REPLACE,
+                          host TEXT)
                            """)
         cursor.execute("""CREATE TABLE ratings (
                           id INTEGER PRIMARY KEY,
@@ -160,7 +161,7 @@ class RatingSystemDB(object):
         self.db.commit()
 
     def rate(self, sourcenick, sourceid, targetnick, targetid,
-             rating, replacementflag, notes):
+             rating, replacementflag, notes, targethost=None):
         """targetid is none if target user is new
         oldtotal is none if target user is new
         replacementflag is true if this user is updating a preexisting rating of his
@@ -169,8 +170,8 @@ class RatingSystemDB(object):
         timestamp = time.time()
         if targetid is None:
             cursor.execute("""INSERT INTO users VALUES
-                              (NULL, ?, ?, ?, ?, ?, ?, ?)""",
-                           (rating, timestamp, 0, 0, 0, 0, targetnick))
+                              (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                           (rating, timestamp, 0, 0, 0, 0, targetnick, targethost))
             self.db.commit()
             cursor.execute("""SELECT id FROM users
                               WHERE nick LIKE ?""", (targetnick,))
@@ -253,9 +254,12 @@ class RatingSystem(callbacks.Plugin):
                       "to use the rating system.")
             return
         userrating = self.db.get(msg.nick)
-        if len(userrating) == 0 and msg.nick != 'nanotube': # i am the source of all trust!
+        if len(userrating) == 0:
             irc.error("You have to have received some ratings in order to rate "
                       "other users.")
+            return
+        if userrating[0][8] != msg.host:
+            irc.error("Your hostmask doesn't match the one in the database.")
             return
         if self.registryValue('requirePositiveRating') and userrating[0][1] <= 0:
             irc.error("You must have a positive rating in order to rate others.")
@@ -274,18 +278,27 @@ class RatingSystem(callbacks.Plugin):
         sourceid = userrating[0][0]
         targetuserdata = self.db.get(nick)
         if len(targetuserdata) == 0:
+            try:
+                targethostmask = irc.state.nickToHostmask(nick)
+            except KeyError:
+                irc.error("User doesn't exist in database, and I do not see him to get his host.")
+                return
+            targethost = targethostmask.rsplit('@', 1)[1]
+            if not self._checkHost(targethost) and not self._checkRegisteredUser(targethostmask):
+                irc.error("Target user is not cloaked. To prevent identity theft, only cloaked users can be rated.")
+                return
             targetid = None
             replacementflag = False
         else:
+            targethost=None
             targetid = targetuserdata[0][0]
             priorrating = self.db.getExistingRating(sourceid, targetid)
             if len(priorrating) == 0:
                 replacementflag = False
             else:
                 replacementflag = True
-
         self.db.rate(msg.nick, sourceid, nick, targetid, rating,
-                     replacementflag, notes)
+                     replacementflag, notes, targethost)
         irc.reply("Rating entry successful. Use the 'getrating' command to "
                   "view %s's new rating." % nick)
     rate = wrap(rate, ['something', 'int', optional('text')])
@@ -341,12 +354,13 @@ class RatingSystem(callbacks.Plugin):
             irc.error("No such user in the database.")
             return
         data = data[0]
-        irc.reply("User %s was created on %s, and has a cumulative rating of %s, "
+        irc.reply("User %s, with hostmask %s, was created on %s, and has a cumulative rating of %s, "
                   "from a total of %s ratings. "
                   "Of these, %s are positive and %s are negative. "
                   "This user has also sent %s positive ratings, and %s "
                   "negative ratings to others." % \
                   (data[7],
+                   data[8],
                    time.ctime(data[2]),
                    data[1],
                    int(data[3]) + int(data[4]),
