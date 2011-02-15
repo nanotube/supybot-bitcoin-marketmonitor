@@ -64,26 +64,24 @@
 		text-align: center;
 	}
 	table.orderbookdisplay {
-		border: 1px solid gray;
-		border-collapse: collapse;
-		width: 100%;
-	}
-	table.orderbookdisplay td {
-		border: 1px solid gray;
-		padding: 4px;
-	}
-	table.orderbookdisplay td.nowrap {
-		white-space: nowrap;
-	}
-	table.orderbookdisplay th {
-		background-color: #d3d7cf;
-		border: 1px solid gray;
-		padding: 10px;
-		vertical-align: top;
-	}
-	tr.even {
-		background-color: #dbdfff;
-	}
+                border: 1px solid #c6c9ff;
+                border-collapse: collapse;
+                width: 100%;
+        }
+        table.orderbookdisplay td {
+        	padding: 4px;
+        }
+        table.orderbookdisplay td.nowrap {
+        	white-space: nowrap;
+        }
+        table.orderbookdisplay th {
+        	background-color: #f0f0ff;
+                padding: 10px;
+                vertical-align: middle;
+        }
+        tr.even {
+                background-color: #eeeeec;
+        }
   --></style>
   <title>#bitcoin-otc order book</title>
  </head>
@@ -142,7 +140,7 @@
 	}
 ?>   </tr>
 <?php
-	if (!$query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ORDER BY ' . $sortby . ' ' . $sortorder ))
+	if (!$query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ORDER BY ' . sqlite_escape_string($sortby) . ' ' . sqlite_escape_string($sortorder) ))
 		echo "   <tr><td>No outstanding orders found</td></tr>\n";
 	else {
 		//$resultrow = 0;
@@ -152,7 +150,7 @@
 			if ($color++ % 2) $class="even"; else $class="odd";
 ?>
    <tr class="<?php echo $class; ?>"> 
-    <td><?php echo $entry["id"]; ?></td>
+    <td><a href="vieworder.php?id=<?php echo $entry["id"]; ?>"><?php echo $entry["id"]; ?></a></td>
     <td class="nowrap"><?php echo gmdate("Y-m-d H:i:s", $entry["created_at"]); ?></td>
     <td class="nowrap"><?php echo gmdate("Y-m-d H:i:s", $entry["refreshed_at"]); ?></td>
     <td class="type"><?php echo $entry["buysell"]; ?></td>
