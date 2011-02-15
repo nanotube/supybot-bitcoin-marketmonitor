@@ -6,49 +6,9 @@
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
 	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
-	
-	$f = fopen("http://mtgox.com/code/ticker.php", "r");
-	$ticker = fread($f, 1024);
-	fclose($f);
-	$ticker = json_decode($ticker, true);
-	$ticker = $ticker['ticker'];
-	
-	function get_currency_conversion($rawprice){
-		if (!preg_match("/{(...) in (...)}/i", $rawprice, $matches)){
-		   return $rawprice;
-		}
-		$googlerate = query_google_rate($matches[1], $matches[2]);
-		$indexedprice = preg_replace("/{... in ...}/i", $googlerate, $rawprice);
-		return($indexedprice);
-	}
 
-	function query_google_rate($cur1, $cur2){
-		$f = fopen("http://www.google.com/ig/calculator?hl=en&q=1" . $cur1 . "=?" . $cur2, "r");
-		$result = fread($f, 1024);
-		fclose($f);
-		$result	= preg_replace("/(\w+):/", "\"\\1\":", $result); //missing quotes in google json
-		$googlerate = json_decode($result, true);
-		if($googlerate['error'] != ""){
-			throw new Exception('google error');
-		}
-		$googlerate = explode(" ", $googlerate['rhs']);
-		$googlerate = $googlerate[0];
-		return($googlerate);
-	}
-
-	function index_prices($rawprice){
-		global $ticker;
-		try {
-			$indexedprice = preg_replace("/{mtgoxask}/", $ticker['sell'], $rawprice);
-			$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy'], $indexedprice);
-			$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last'], $indexedprice);
-			$indexedprice = get_currency_conversion($indexedprice);
-			$indexedprice = eval("return(" . $indexedprice . ");");
-			return($indexedprice);
-		} catch (Exception $e) {
-		  	return($rawprice);
-		}
-	}
+	include("somefunctions.php");
+	
 ?><html>
  <head>
   <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
@@ -66,9 +26,9 @@
 	table.orderbookdisplay {
                 border: 1px solid #c6c9ff;
                 border-collapse: collapse;
-                width: 100%;
         }
         table.orderbookdisplay td {
+                border: 1px solid #c6c9ff;
         	padding: 4px;
         }
         table.orderbookdisplay td.nowrap {
@@ -151,11 +111,8 @@
 ?>
    <tr class="<?php echo $class; ?>"> 
     <td><a href="vieworder.php?id=<?php echo $entry["id"]; ?>"><?php echo $entry["id"]; ?></a></td>
-    <td class="nowrap"><?php echo gmdate("Y-m-d H:i:s", $entry["created_at"]); ?></td>
-    <td class="nowrap"><?php echo gmdate("Y-m-d H:i:s", $entry["refreshed_at"]); ?></td>
     <td class="type"><?php echo $entry["buysell"]; ?></td>
     <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
-    <td class="nowrap"><?php echo $entry["host"]; ?></td>
     <td><?php echo $entry["amount"]; ?></td>
     <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
     <td class="price"><?php echo index_prices($entry["price"]); ?></td>
