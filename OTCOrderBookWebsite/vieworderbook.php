@@ -1,7 +1,7 @@
 <?php
 	//error_reporting(-1); ini_set('display_errors', 1);
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
-	$validkeys = array('id', 'created_at', 'refreshed_at', 'buysell', 'nick', 'host', 'amount', 'thing', 'price', 'otherthing', 'notes');
+	$validkeys = array('id', 'buysell', 'nick', 'amount', 'thing', 'price', 'otherthing', 'notes');
 	if (!in_array($sortby, $validkeys)) $sortby = "price";
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
 	$validorders = array("ASC","DESC");
@@ -84,8 +84,6 @@
 <?php
 	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
 	if ($sortorder == "ASC") $sortorders[$sortby]["order"] = 'DESC';
-	$sortorders["created_at"]["othertext"] = "(UTC)";
-	$sortorders["refreshed_at"]["othertext"] = "(UTC)";
 	$sortorders["buysell"]["linktext"] = "type";
 	$sortorders["amount"]["linktext"] = "amount";
 	$sortorders["thing"]["linktext"] = "thing";
