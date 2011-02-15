@@ -113,7 +113,7 @@
     <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
     <td><?php echo $entry["amount"]; ?></td>
     <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
-    <td class="price"><?php echo index_prices($entry["price"]); ?></td>
+    <td class="price"><?php printf("%.5g", index_prices($entry["price"])); ?></td>
     <td class="currency"><?php echo htmlspecialchars($entry["otherthing"]); ?></td>
     <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
    </tr>
