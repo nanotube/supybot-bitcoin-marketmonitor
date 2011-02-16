@@ -77,7 +77,7 @@
    <tr class="<?php echo $class; ?>"> 
     <td><a href="vieworder.php?id=<?php echo $entry["id"]; ?>"><?php echo $entry["id"]; ?></a></td>
     <td class="type"><?php echo $entry["buysell"]; ?></td>
-    <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
     <td><?php echo $entry["amount"]; ?></td>
     <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
     <td class="price"><?php printf("%.5g", index_prices($entry["price"])); ?></td>
