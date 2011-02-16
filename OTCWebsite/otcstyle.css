@@ -1,0 +1,15 @@
+body { font: 13px/1.231 "Lucida Grande","DejaVu Sans","Bitstream Vera Sans",Verdana,Arial,sans-serif; background-color: white; color: #2e3436;}
+div.breadcrumbs { background: white url(nav-bg-reverse.gif) 0 -10px repeat-x; padding: 2px 8px 3px 8px; margin-bottom: 10px; font-size: 11px; color: #999; border-top: 1px solid white; border-bottom: 1px solid #ccc; text-align:left; }
+#header { background-color: #555753; padding: 5px; }
+a.header { color: #edd400; background-color: #888a85; padding: 5px; }
+#footer { background: white url(nav-bg-reverse.gif) 0 -10px repeat-x; padding: 3px 8px 3px 8px; margin-top: 30px; font-size: 12px; color: #777; border-top: 1px solid white; border-bottom: 1px solid #ccc; text-align: center; }
+#header table { color: #d3d7cf; width: 100%; }
+div.contentbox { background-color: #FFE0EB; border-style: none; padding: 10px; margin: 5px; width: 400px; float: left; }
+h2 { text-align: center;	}
+img { border: none; }
+
+table.datadisplay { border: 1px solid #c6c9ff; border-collapse: collapse; }
+table.datadisplay td { border: 1px solid #c6c9ff; padding: 4px; }
+table.datadisplay td.nowrap { white-space: nowrap; }
+table.datadisplay th { background-color: #f0f0ff; padding: 10px; vertical-align: middle; }
+table.datadisplay tr.even { background-color: #eeeeec; }
