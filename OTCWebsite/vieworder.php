@@ -49,7 +49,7 @@ Order <?php echo $id; ?>
    </tr>
    <tr>
     <th>nick</th>
-    <td><a href="http://trust.bitcoin-otc.com/viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
    </tr>
    <tr>
     <th>host</th>
