@@ -113,9 +113,9 @@ if ($query = $db->Query('SELECT distinct upper(otherthing) AS otherthing FROM or
 ?>   </tr>
 <?php
    $queryfilter = array();
-   if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . $typefilter . "'";
-   if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . $thingfilter . "'";
-   if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . $otherthingfilter . "'";
+   if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . sqlite_escape_string($typefilter) . "'";
+   if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . sqlite_escape_string($thingfilter) . "'";
+   if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
    if (sizeof($queryfilter) != 0) {
      $queryfilter = " WHERE " . join(' AND ', $queryfilter);
    }
