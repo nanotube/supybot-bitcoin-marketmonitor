@@ -4,7 +4,8 @@
  include("header.php");
 ?>
 <div class="breadcrumbs">
-<a href="/">Home</a> &rsaquo; Order Book
+<a href="/">Home</a> &rsaquo; 
+<a href="vieworderbook.php">Order Book</a>
 </div>
 
 <?php
@@ -16,36 +17,82 @@
 	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 
+	$typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
+	$thingfilter = isset($_GET["thing"]) ? $_GET["thing"] : "";
+	$otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
+
 	include("somefunctions.php");
 	
 ?>
-  <h3>Summary statistics on outstanding orders</h3>
-  <ul><?php
-	try { $db = new PDO('sqlite:./otc/OTCOrderBook.db'); }
-	catch (PDOException $e) { die($e->getMessage()); }
 
-	if (!$query = $db->Query('SELECT count(*) as ordercount FROM orders'))
-		echo "   <li>No outstanding orders found</li>";
-	else {
-		$entry = $query->fetch(PDO::FETCH_BOTH);
-		echo "   <li>" . number_format($entry['ordercount']) . " outstanding orders.</li>\n";
-	}
+<h2>OTC Order Book</h2>
 
-	if (!$query = $db->Query("SELECT count(*) as ordercount FROM orders WHERE buysell='BUY'"))
-		echo "   <li>No outstanding BUY orders found</li>\n";
-	else {
-		$entry = $query->fetch(PDO::FETCH_BOTH);
-		echo "   <li>" . number_format($entry['ordercount']) . " outstanding BUY orders.</li>\n";
-	}
+<table class="datadisplay" style="width: 100%;">
+<tr>
+  <?php
+    try { $db = new PDO('sqlite:./otc/OTCOrderBook.db'); }
+    catch (PDOException $e) { die($e->getMessage()); }
 
-	if (!$query = $db->Query("SELECT count(*) as ordercount FROM orders WHERE buysell='SELL'"))
-		echo "   <li>No outstanding SELL orders found</li>\n";
-	else {
-		$entry = $query->fetch(PDO::FETCH_BOTH);
-		echo "   <li>" . number_format($entry['ordercount']) . " outstanding SELL orders.</li>\n";
-	}
-?>  </ul>
-  <h3>List of outstanding orders</h3>
+    echo ' <td style="text-align: center;">Total orders<br>';
+    if (!$query = $db->Query('SELECT count(*) as ordercount FROM orders'))
+      echo "0";
+    else {
+      $entry = $query->fetch(PDO::FETCH_BOTH);
+      echo number_format($entry['ordercount']);
+    }
+    echo "</td>\n";
+
+    echo ' <td style="text-align: center;">Buy orders<br>';
+    if (!$query = $db->Query("SELECT count(*) as ordercount FROM orders WHERE buysell='BUY'"))
+      echo "0";
+    else {
+      $entry = $query->fetch(PDO::FETCH_BOTH);
+      echo number_format($entry['ordercount']);
+    }
+    echo "</td>\n";
+
+    echo ' <td style="text-align: center;">Sell orders<br>';
+    if (!$query = $db->Query("SELECT count(*) as ordercount FROM orders WHERE buysell='SELL'"))
+      echo "0";
+    else {
+      $entry = $query->fetch(PDO::FETCH_BOTH);
+      echo number_format($entry['ordercount']);
+    }
+    echo "</td>\n";
+?>
+
+<td style="text-align: right;">
+<form method="GET" action="vieworderbook.php">
+<select name="type">
+<option label="--type--" value="" selected>--type--</option>
+<option value="BUY">BUY</option>
+<option value="SELL">SELL</option>
+</select>
+<select name="thing">
+<option label="--thing--" value="" selected>--thing--</option>
+<?php
+if ($query = $db->Query('SELECT distinct upper(thing) AS thing FROM orders ORDER BY thing ASC')){
+  while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+    echo '<option value="' . $entry['thing'] . '">' . $entry['thing'] . "</option>\n";
+  }
+}
+?>
+</select>
+<select name="otherthing">
+<option label="otherthing" value="" selected>--otherthing--</option>
+<?php
+if ($query = $db->Query('SELECT distinct upper(otherthing) AS otherthing FROM orders ORDER BY otherthing ASC')){
+  while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+    echo '<option value="' . $entry['otherthing'] . '">' . $entry['otherthing'] . "</option>\n";
+  }
+}
+?>
+</select>
+<input type="submit" value="Filter" />
+</form>
+</td></tr>
+</table>
+
   <table class="datadisplay">
    <tr>
 <?php
@@ -65,14 +112,23 @@
 	}
 ?>   </tr>
 <?php
-	if (!$query = $db->Query('SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ORDER BY ' . sqlite_escape_string($sortby) . ' ' . sqlite_escape_string($sortorder) ))
-		echo "   <tr><td>No outstanding orders found</td></tr>\n";
-	else {
-		//$resultrow = 0;
-		//$results = $query->fetchAll(PDO::FETCH_BOTH);
-		$color = 0;
-		while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-			if ($color++ % 2) $class="even"; else $class="odd";
+   $queryfilter = array();
+   if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . $typefilter . "'";
+   if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . $thingfilter . "'";
+   if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . $otherthingfilter . "'";
+   if (sizeof($queryfilter) != 0) {
+     $queryfilter = " WHERE " . join(' AND ', $queryfilter);
+   }
+   else {
+     $queryfilter = "";
+   }
+   $sql = 'SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ' . $queryfilter . ' ORDER BY ' . sqlite_escape_string($sortby) . ' ' . sqlite_escape_string($sortorder);
+   if (!$query = $db->Query($sql))
+     echo "   <tr><td>No outstanding orders found</td></tr>\n";
+   else {
+     $color = 0;
+     while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+       if ($color++ % 2) $class="even"; else $class="odd";
 ?>
    <tr class="<?php echo $class; ?>"> 
     <td><a href="vieworder.php?id=<?php echo $entry["id"]; ?>"><?php echo $entry["id"]; ?></a></td>
@@ -85,8 +141,8 @@
     <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
    </tr>
 <?
-		}
-	}
+     }
+   }
 ?>  </table>
 
 <?php
