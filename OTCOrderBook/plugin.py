@@ -362,6 +362,11 @@ class OTCOrderBook(callbacks.Plugin):
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return
+        if len(results) > self.registryValue('maxOrdersInBookList'):
+            irc.error("Too many orders to list on channel. Visit "
+                    "http://bitcoin-otc.com/vieworderbook.php?nick=%s "
+                    "to see the list of your outstanding orders." % (msg.nick,))
+            return
         L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
                                                    time.ctime(refreshed_at),
                                                    host,
@@ -397,9 +402,9 @@ class OTCOrderBook(callbacks.Plugin):
             irc.error("No orders for this currency present in database.")
             return
         if len(results) > self.registryValue('maxOrdersInBookList'):
-            irc.error("Too many orders to list on channel. Visit the website "
-                      "at http://bitcoin-otc.com/ to see the complete order "
-                      "book in a nice table.")
+            irc.error("Too many orders to list on channel. Visit the web "
+                      "order book, http://bitcoin-otc.com/vieworderbook.php "
+                      "to see the complete order book.")
             return
         self._getMtgoxQuote()
         L = ["#%s %s %s@%s %s %s %s @ %s %s (%s)" % (id,
