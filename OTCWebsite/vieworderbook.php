@@ -20,6 +20,7 @@
 	$typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
 	$thingfilter = isset($_GET["thing"]) ? $_GET["thing"] : "";
 	$otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
+    $nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
 
 	include("somefunctions.php");
 	
@@ -68,6 +69,16 @@
 <option value="BUY">BUY</option>
 <option value="SELL">SELL</option>
 </select>
+<select name="nick">
+<option label="--nick--" value="" selected>--nick--</option>
+<?php
+if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE NOCASE ASC')){
+  while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+    echo '<option value="' . $entry['nick'] . '">' . $entry['nick'] . "</option>\n";
+  }
+}
+?>
+</select>
 <select name="thing">
 <option label="--thing--" value="" selected>--thing--</option>
 <?php
@@ -115,6 +126,7 @@ if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM o
    $queryfilter = array();
    if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . sqlite_escape_string($typefilter) . "'";
    if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . sqlite_escape_string($thingfilter) . "'";
+   if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
    if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
    if (sizeof($queryfilter) != 0) {
      $queryfilter = " WHERE " . join(' AND ', $queryfilter);
