@@ -71,9 +71,9 @@
 <select name="thing">
 <option label="--thing--" value="" selected>--thing--</option>
 <?php
-if ($query = $db->Query('SELECT distinct upper(thing) AS thing FROM orders ORDER BY thing ASC')){
+if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDER BY uthing ASC')){
   while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . $entry['thing'] . '">' . $entry['thing'] . "</option>\n";
+    echo '<option value="' . $entry['uthing'] . '">' . $entry['uthing'] . "</option>\n";
   }
 }
 ?>
@@ -81,9 +81,9 @@ if ($query = $db->Query('SELECT distinct upper(thing) AS thing FROM orders ORDER
 <select name="otherthing">
 <option label="otherthing" value="" selected>--otherthing--</option>
 <?php
-if ($query = $db->Query('SELECT distinct upper(otherthing) AS otherthing FROM orders ORDER BY otherthing ASC')){
+if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM orders ORDER BY uotherthing ASC')){
   while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . $entry['otherthing'] . '">' . $entry['otherthing'] . "</option>\n";
+    echo '<option value="' . $entry['uotherthing'] . '">' . $entry['uotherthing'] . "</option>\n";
   }
 }
 ?>
