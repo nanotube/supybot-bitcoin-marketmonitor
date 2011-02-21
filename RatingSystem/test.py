@@ -58,10 +58,10 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('rate nanotube 10') #can't self-rate
             self.assertError('rate unknownguy 4') #user not in dict
             self.assertError('rate uncloakedguy 6') #user not cloaked
-            self.assertNotError('rate someguy 4')
+            self.assertRegexp('rate someguy 4', 'rating of 4 for user someguy has been recorded')
             self.assertRegexp('getrating someguy', 'cumulative rating of 4')
             self.assertRegexp('getrating someguy', 'a total of 1')
-            self.assertNotError('rate someguy 6')
+            self.assertRegexp('rate someguy 6', 'changed from 4 to 6')
             self.assertRegexp('getrating someguy', 'cumulative rating of 6')
             self.assertRegexp('getrating someguy', 'a total of 1')
             self.assertRegexp('getrating nanotube', 'sent 1 positive')

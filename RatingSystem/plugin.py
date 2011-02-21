@@ -285,6 +285,8 @@ class RatingSystem(callbacks.Plugin):
                       (min(validratings), max(validratings)))
             return
 
+        result = "Your rating of %s for user %s has been recorded." % (rating, nick,)
+        
         sourceid = userrating[0][0]
         targetuserdata = self.db.get(nick)
         if len(targetuserdata) == 0:
@@ -307,10 +309,10 @@ class RatingSystem(callbacks.Plugin):
                 replacementflag = False
             else:
                 replacementflag = True
+                result = "Your rating for user %s has changed from %s to %s." % (nick, priorrating[0][4], rating,)
         self.db.rate(msg.nick, sourceid, nick, targetid, rating,
                      replacementflag, notes, targethost)
-        irc.reply("Rating entry successful. Use the 'getrating' command to "
-                  "view %s's new rating." % nick)
+        irc.reply("Rating entry successful. %s" % (result,))
     rate = wrap(rate, ['something', 'int', optional('text')])
 
     def rated(self, irc, msg, args, nick):
