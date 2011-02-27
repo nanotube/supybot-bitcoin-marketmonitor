@@ -56,6 +56,7 @@ class RatingSystemTestCase(PluginTestCase):
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertError('rate nanotube 10') #can't self-rate
+            self.assertError('rate nanOtube 10') #can't self-rate
             self.assertError('rate unknownguy 4') #user not in dict
             self.assertError('rate uncloakedguy 6') #user not cloaked
             self.assertRegexp('rate someguy 4', 'rating of 4 for user someguy has been recorded')

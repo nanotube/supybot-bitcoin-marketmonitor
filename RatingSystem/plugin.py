@@ -274,7 +274,7 @@ class RatingSystem(callbacks.Plugin):
         if self.registryValue('requirePositiveRating') and userrating[0][1] <= 0:
             irc.error("You must have a positive rating in order to rate others.")
             return
-        if msg.nick == nick:
+        if msg.nick.lower() == nick.lower():
             irc.error("You cannot rate yourself.")
             return
         validratings = range(self.registryValue('ratingMin'),
