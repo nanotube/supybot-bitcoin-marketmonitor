@@ -9,21 +9,19 @@
 </div>
 
 <?php
-	//error_reporting(-1); ini_set('display_errors', 1);
-	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
-	$validkeys = array('id', 'buysell', 'nick', 'amount', 'thing', 'price', 'otherthing', 'notes');
-	if (!in_array($sortby, $validkeys)) $sortby = "price";
-	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	$validorders = array("ASC","DESC");
-	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+  $sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
+  $validkeys = array('id', 'buysell', 'nick', 'amount', 'thing', 'price', 'otherthing', 'notes');
+  if (!in_array($sortby, $validkeys)) $sortby = "price";
+  $sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
+  $validorders = array("ASC","DESC");
+  if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 
-	$typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
-	$thingfilter = isset($_GET["thing"]) ? $_GET["thing"] : "";
-	$otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
-    $nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
-
-	include("somefunctions.php");
-	
+  $typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
+  $thingfilter = isset($_GET["thing"]) ? $_GET["thing"] : "";
+  $otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
+  $eitherthingfilter = isset($_GET["eitherthing"]) ? $_GET["eitherthing"] : "";
+  $nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
+  include("somefunctions.php");
 ?>
 
 <h2>OTC Order Book</h2>
@@ -83,8 +81,9 @@ if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE 
 <option label="--thing--" value="" selected>--thing--</option>
 <?php
 if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDER BY uthing ASC')){
-  while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . $entry['uthing'] . '">' . $entry['uthing'] . "</option>\n";
+  $thingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
+  foreach ($thingdata as $thing) {
+    echo '<option value="' . $thing . '">' . $thing . "</option>\n";
   }
 }
 ?>
@@ -93,9 +92,21 @@ if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDE
 <option label="otherthing" value="" selected>--otherthing--</option>
 <?php
 if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM orders ORDER BY uotherthing ASC')){
-  while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . $entry['uotherthing'] . '">' . $entry['uotherthing'] . "</option>\n";
+  $otherthingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
+  foreach ($otherthingdata as $otherthing) {
+    echo '<option value="' . $otherthing . '">' . $otherthing . "</option>\n";
   }
+}
+?>
+</select>
+<select name="eitherthing">
+<option label="eitherthing" value="" selected>--eitherthing--</option>
+<?php
+$eitherthingdata = array_merge($thingdata, $otherthingdata);
+sort($eitherthingdata, SORT_STRING);
+$eitherthingdata = array_unique($eitherthingdata);
+foreach ($eitherthingdata as $eitherthing) {
+  echo '<option value="' . $eitherthing . '">' . $eitherthing . "</option>\n";
 }
 ?>
 </select>
@@ -107,20 +118,20 @@ if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM o
   <table class="datadisplay">
    <tr>
 <?php
-	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
-	if ($sortorder == "ASC") $sortorders[$sortby]["order"] = 'DESC';
-	$sortorders["buysell"]["linktext"] = "type";
-	$sortorders["amount"]["linktext"] = "amount";
-	$sortorders["thing"]["linktext"] = "thing";
-	$sortorders["otherthing"]["linktext"] = "otherthing";
-	foreach ($sortorders as $by => $order) {
-		if ($order["linktext"] != "notes"){
-			echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
-		}
-		else {
-			echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
-		}
-	}
+foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
+if ($sortorder == "ASC") $sortorders[$sortby]["order"] = 'DESC';
+$sortorders["buysell"]["linktext"] = "type";
+$sortorders["amount"]["linktext"] = "amount";
+$sortorders["thing"]["linktext"] = "thing";
+$sortorders["otherthing"]["linktext"] = "otherthing";
+foreach ($sortorders as $by => $order) {
+  if ($order["linktext"] != "notes"){
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+  }
+  else {
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+  }
+}
 ?>   </tr>
 <?php
    $queryfilter = array();
@@ -128,6 +139,7 @@ if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM o
    if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . sqlite_escape_string($thingfilter) . "'";
    if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
    if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
+   if ($eitherthingfilter != "") $queryfilter[] = "(thing LIKE '" . sqlite_escape_string($eitherthingfilter) . "' OR otherthing LIKE '" . sqlite_escape_string($eitherthingfilter) . "')";
    if (sizeof($queryfilter) != 0) {
      $queryfilter = " WHERE " . join(' AND ', $queryfilter);
    }
