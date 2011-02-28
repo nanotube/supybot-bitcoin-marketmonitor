@@ -18,11 +18,23 @@ Ticker
 
 <p>The ticker table is constructed from all orders of BTC against one of the supported <a href="currencycodes.php">currency codes</a>. If you want your order to be included, make sure to use one of the supported currency codes. Just as importantly - if you have a non-standard order on the book (loans, futures, options, etc.), please use a non-standard currency code so as not to skew the quote list.</p>
 
-<p>This data feed is updated every 5 minutes.</p>
+<?php
+date_default_timezone_set('UTC');
+$lastupdated = "unknown";
+if (file_exists('OTCQuotes.db')) {
+ $lastupdated = date("F d Y H:i:s T", filemtime('OTCQuotes.db'));
+}
+?>
+
+<p>
+This data feed is updated every 5 minutes. <br>
+Last updated on: <?php echo $lastupdated; ?>. <br>
+Current OTC time: <?php echo date("F d Y H:i:s T"); ?>.
+</p>
 
 <?php
-     	try { $db = new PDO('sqlite:./OTCQuotes.db'); }
-	catch (PDOException $e) { die($e->getMessage()); }
+try { $db = new PDO('sqlite:./OTCQuotes.db'); }
+catch (PDOException $e) { die($e->getMessage()); }
 ?>
   <table class="datadisplay">
      <tr>
