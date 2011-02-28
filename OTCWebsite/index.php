@@ -23,6 +23,7 @@
     <h4>resources</h4>
     <ul>
      <li><a href="vieworderbook.php">Web view of the open order book</a>.
+     <li><a href="ticker.php">Currency ticker</a>.
      <li><a href="http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc">A guide to using #bitcoin-otc</a>. A must-read for all users: how to use the order book, and how to stay safe while conducting OTC transactions.
     </ul>
    </div>
