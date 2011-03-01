@@ -141,11 +141,11 @@ class RatingSystemTestCase(PluginTestCase):
                         'second-level trust from user nanotube to user someguy2 is 5')
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertRegexp('gettrust someguy2', 
-                        'second-level trust from user nanotube to user someguy2 is 5.*level one rating is None')
+                        'second-level trust from user nanotube to user someguy2 is 5.*via 1.*level one rating is None')
             self.assertNotError('rate someguy -1')
             self.assertNotError('rate someguy2 7')
             self.assertRegexp('gettrust someguy2', 
-                        'second-level trust from user nanotube to user someguy2 is -1.*level one rating is 7')
+                        'second-level trust from user nanotube to user someguy2 is -1.*via 1.*level one rating is 7')
             self.assertRegexp('gettrust nobody nobody2', 'nobody2 is None.*rating is None')
         finally:
             #world.testing = True

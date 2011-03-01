@@ -105,7 +105,7 @@ class RatingSystemDB(object):
 
     def getLevel2Ratings(self, sourcenick, destnick):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT sum(min(ratings1.rating, ratings2.rating))
+        cursor.execute("""SELECT sum(min(ratings1.rating, ratings2.rating)), count(ratings1.rating)
                     FROM users as users1, users as users2, ratings as ratings1, ratings as ratings2 WHERE
                     users1.nick LIKE ? AND
                     ratings1.rater_user_id = users1.id AND
@@ -114,9 +114,9 @@ class RatingSystemDB(object):
                     ratings2.rater_user_id = ratings1.rated_user_id""", (sourcenick,destnick,))
         sumratings = cursor.fetchall()
         if len(sumratings) > 0:
-            return sumratings[0][0]
+            return sumratings[0]
         else:
-            return 0
+            return [0,0]
 
     def getExistingRating(self, sourceid, targetid):
         cursor = self.db.cursor()
@@ -414,9 +414,9 @@ class RatingSystem(callbacks.Plugin):
             l1_rating = l1_rating[0][1]
         else:
             l1_rating = None
-        irc.reply("The second-level trust from user %s to user %s is %s. "
+        irc.reply("The second-level trust from user %s to user %s is %s, via %s connections. "
                         "The direct level one rating is %s." % \
-                        (sourcenick, destnick, sum_l2_ratings, l1_rating,))
+                        (sourcenick, destnick, sum_l2_ratings[0], sum_l2_ratings[1], l1_rating,))
     gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):
