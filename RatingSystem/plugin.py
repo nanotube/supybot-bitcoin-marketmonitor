@@ -103,6 +103,21 @@ class RatingSystemDB(object):
                            (nick,))
         return cursor.fetchall()
 
+    def getLevel2Ratings(self, sourcenick, destnick):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT sum(min(ratings1.rating, ratings2.rating))
+                    FROM users as users1, users as users2, ratings as ratings1, ratings as ratings2 WHERE
+                    users1.nick LIKE ? AND
+                    ratings1.rater_user_id = users1.id AND
+                    users2.nick LIKE ? AND
+                    ratings2.rated_user_id = users2.id AND
+                    ratings2.rater_user_id = ratings1.rated_user_id""", (sourcenick,destnick,))
+        sumratings = cursor.fetchall()
+        if len(sumratings) > 0:
+            return sumratings[0][0]
+        else:
+            return 0
+
     def getExistingRating(self, sourceid, targetid):
         cursor = self.db.cursor()
         cursor.execute("""SELECT * from ratings WHERE
@@ -214,7 +229,7 @@ class RatingSystemDB(object):
         self.db.commit()
 
 class RatingSystem(callbacks.Plugin):
-    """This plugin maintains an rating system among IRC users.
+    """This plugin maintains a rating system among IRC users.
     Use commands 'rate' and 'unrate' to enter/remove your ratings.
     Use command 'getrating' to view a user's total rating and other details.
     """
@@ -381,6 +396,28 @@ class RatingSystem(callbacks.Plugin):
                    data[5],
                    data[6]))
     getrating = wrap(getrating, ['something'])
+
+    def gettrust(self, irc, msg, args, sourcenick, destnick):
+        """[<sourcenick>] <destnick>
+        
+        Get second-level trust for <destnick>, starting from <sourcenick>.
+        If <sourcenick> is not supplied, your own nick is used as the source.
+        The result is the sum of min(link1, link2) from <sourcenick> to
+        <destnick>.
+        """
+        if destnick is None:
+            destnick = sourcenick
+            sourcenick = msg.nick
+        sum_l2_ratings = self.db.getLevel2Ratings(sourcenick, destnick)
+        l1_rating = self.db.getRatingDetail(sourcenick, destnick)
+        if len(l1_rating) > 0:
+            l1_rating = l1_rating[0][1]
+        else:
+            l1_rating = None
+        irc.reply("The second-level trust from user %s to user %s is %s. "
+                        "The direct level one rating is %s." % \
+                        (sourcenick, destnick, sum_l2_ratings, l1_rating,))
+    gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):
         """<nick>
