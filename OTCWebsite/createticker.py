@@ -22,6 +22,7 @@ import urllib2
 import re
 import json
 import os
+import time
 
 class Quote:
     def __init__(self, rawbids, rawasks, currency, mtgox_ticker):
@@ -155,6 +156,7 @@ class QuoteCreator:
     def write_json(self):
         json_dict = {}
         [json_dict.update(quote.json()) for quote in self.quotes]
+        json_dict = {'ticker': json_dict, 'timestamp': time.time()}
         f = open(self.json_path, 'w')
         f.write(json.dumps(json_dict))
         f.close()
