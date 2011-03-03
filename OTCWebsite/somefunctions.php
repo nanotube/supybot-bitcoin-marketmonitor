@@ -1,10 +1,15 @@
 <?php
-$f = fopen("http://mtgox.com/code/ticker.php", "r");
-$ticker = fread($f, 1024);
-fclose($f);
-$ticker = json_decode($ticker, true);
-$ticker = $ticker['ticker'];
-	
+
+error_reporting(E_ALL & ~ E_NOTICE & ~E_WARNING);
+
+try {
+	$f = fopen("http://mtgox.com/code/ticker.php", "r");
+	$ticker = fread($f, 1024);
+	fclose($f);
+	$ticker = json_decode($ticker, true);
+	$ticker = $ticker['ticker'];
+} catch (Exception $e) {
+}
 function get_currency_conversion($rawprice){
 	if (!preg_match("/{(...) in (...)}/i", $rawprice, $matches)){
 	   return $rawprice;
@@ -35,7 +40,12 @@ function index_prices($rawprice){
 		$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy'], $indexedprice);
 		$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last'], $indexedprice);
 		$indexedprice = get_currency_conversion($indexedprice);
-		$indexedprice = eval("return(" . $indexedprice . ");");
+		ob_start();
+		$indexedprice = eval('set_error_handler("doNothing");function doNothing() { return true };return(' . $indexedprice . ');');
+		ob_clean();
+		if ( $indexedprice === false ) {
+			return($rawprice);
+		}
 		return($indexedprice);
 	} catch (Exception $e) {
 	  	return($rawprice);
