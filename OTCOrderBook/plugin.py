@@ -225,9 +225,12 @@ class OTCOrderBook(callbacks.Plugin):
             return False
 
     def _getMtgoxQuote(self):
-        ticker = utils.web.getUrl('http://mtgox.com/code/ticker.php')
-        self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
-        self.ticker = self.ticker['ticker']
+        try:
+            ticker = utils.web.getUrl('http://mtgox.com/code/ticker.php')
+            self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
+            self.ticker = self.ticker['ticker']
+        except:
+            pass # don't want to die on failure of mtgox
 
     def _getCurrencyConversion(self, rawprice):
         conv = re.search(r'{(...) in (...)}', rawprice)
