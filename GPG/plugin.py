@@ -1,0 +1,304 @@
+###
+# GPG - supybot plugin to authenticate users via GPG keys
+# Copyright (C) 2011, Daniel Folkinshteyn <nanotube@users.sourceforge.net>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###
+
+from supybot import conf
+import supybot.utils as utils
+from supybot.commands import *
+import supybot.plugins as plugins
+import supybot.ircutils as ircutils
+import supybot.callbacks as callbacks
+
+import sqlite3
+import re
+import os
+import hashlib
+import time
+
+try:
+    gnupg = utils.python.universalImport('gnupg', 'local.gnupg')
+except ImportError:
+    raise callbacks.Error, \
+            "You need the gnupg module installed to use this plugin." 
+
+domainRe = re.compile('^' + utils.web._domain + '$', re.I)
+
+class GPGDB(object):
+    def __init__(self, filename):
+        self.filename = filename
+        self.db = None
+
+    def open(self):
+        if os.path.exists(self.filename):
+            db = sqlite3.connect(self.filename, check_same_thread = False)
+            db.text_factory = str
+            self.db = db
+            return
+        
+        db = sqlite3.connect(self.filename, check_same_thread = False)
+        db.text_factory = str
+        self.db = db
+        cursor = self.db.cursor()
+        cursor.execute("""CREATE TABLE users (
+                          id INTEGER PRIMARY KEY,
+                          keyid TEXT,
+                          fingerprint TEXT,
+                          registered_at INTEGER,
+                          nick TEXT)
+                           """)
+        self.db.commit()
+        return
+
+    def close(self):
+        self.db.close()
+
+    def getByNick(self, nick):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM users WHERE nick = ?""", (nick,))
+        return cursor.fetchall()
+
+    def getByKey(self, keyid):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM users WHERE keyid = ?""", (keyid,))
+        return cursor.fetchall()
+
+    def register(self, keyid, fingerprint, timestamp, nick):
+        cursor = self.db.cursor()
+        cursor.execute("""INSERT INTO users VALUES
+                                    (NULL, ?, ?, ?, ?)""",
+                                    (keyid, fingerprint, timestamp, nick))
+        self.db.commit()
+
+def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
+    v = args[0]
+    m = re.search(r'^(0x)?([0-9A-Fa-f]{16})$', v)
+    if m is None:
+        state.errorInvalid(type, args[0])
+        return
+    state.args.append(m.group(2).upper())
+    del args[0]
+
+def getKeyserver(irc, msg, args, state, type='keyserver'):
+    v = args[0]
+    if not domainRe.search(v):
+        state.errorInvalid(type, args[0])
+        return
+    state.args.append(args[0])
+    del args[0]
+
+addConverter('keyid', getGPGKeyID)
+addConverter('keyserver', getKeyserver)
+
+class GPG(callbacks.Plugin):
+    """This plugin lets users create identities based on GPG keys,
+    and to authenticate via GPG signed messages."""
+    threaded = True
+
+    def __init__(self, irc):
+        self.__parent = super(GPG, self)
+        self.__parent.__init__(irc)
+        self.filename = conf.supybot.directories.data.dirize('GPG.db')
+        self.db = GPGDB(self.filename)
+        self.db.open()
+        self.gpg = gnupg.GPG(gnupghome = conf.supybot.directories.data.dirize('GPGkeyring'))
+        self.pending_auth = {}
+        self.authed_users = {}
+
+    def die(self):
+        self.__parent.die()
+        self.db.close()
+
+    def _removeExpiredRequests(self):
+        for host,auth in self.pending_auth.iteritems():
+            try:
+                if time.time() - auth['expiry'] > self.registryValue('authRequestTimeout'):
+                    if auth['registration']:
+                        gpg.delete_keys(auth['fingerprint'])
+                    del self.pending_auth[host]
+            except:
+                pass #let's keep going
+
+    def register(self, irc, msg, args, nick, keyid, keyserver):
+        """<nick> <keyid> [<keyserver>]
+
+        Register your GPG identity, associating GPG key <keyid> with <nick>.
+        <keyid> is a 16 digit key id, with or without the '0x' prefix.
+        Optional <keyserver> argument tells us where to get your public key.
+        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        You will be given a random passphrase to clearsign with your key, and
+        submit to the bot with the 'verify' command.
+        Your passphrase will expire within 5 minutes.
+        """
+        self._removeExpiredRequests()
+        keyservers = []
+        if keyserver:
+            keyservers.extend([keyserver])
+        else:
+            keyservers.extend(self.registryValue('keyservers').split(','))
+        try:
+            for ks in keyservers:
+                result = self.gpg.recv_keys(ks, keyid)
+                if result.results[0].has_key('ok'):
+                    fingerprint = result.results[0]['fingerprint']
+                    break
+            else:
+                raise
+        except:
+            pass # error we couldn't retrieve
+        challenge = hashlib.sha256(os.urandom(128)).hexdigest()
+        request = {msg.host: {'keyid':keyid, 'host':msg.host,
+                            'nick':nick, 'expiry':time.time(),
+                            'registration':True, 'fingerprint':fingerprint,
+                            'challenge':challenge}}
+        self.pending_auth.update(request)
+        irc.reply("Request successful. Your challenge string is: %s" % challenge)
+    register = wrap(register, ['something', 'keyid', optional('keyserver')])
+
+    def auth(self, irc, msg, args, nick):
+        """<nick>
+
+        Initiate authentication for user <nick>.
+        You must have registered a GPG key with the bot for this to work.
+        You will be given a random passphrase to clearsign with your key, and
+        submit to the bot with the 'verify' command.
+        Your passphrase will expire within 5 minutes.
+        """
+        self._removeExpiredRequests()
+        userdata = self.db.getByNick(nick)
+        if len(userdata) == 0:
+            irc.error("This nick is not registered. Please register.")
+            return
+        keyid = userdata[0][1]
+        fingerprint = userdata[0][2]
+        challenge = hashlib.sha256(os.urandom(128)).hexdigest()
+        request = {msg.host: {'nick':nick, 'host':msg.host,
+                                'expiry':time.time(), 'keyid':keyid,
+                                'registration':False, 'challenge':challenge,
+                                'fingerprint':fingerprint}}
+        self.pending_auth.update(request)
+        irc.reply("Request successful. Your challenge string is: %s" % challenge)
+    auth = wrap(auth, ['something'])
+
+    def _unauth(self, msg):
+        try:
+            del self.authed_users[msg.host]
+            return True
+        except KeyError:
+            return False
+
+    def unauth(self, irc, msg, args):
+        """takes no arguments
+        
+        Unauthenticate, 'logout' of your GPG session.
+        """
+        if self._unauth(msg):
+            irc.reply("Your GPG session has been terminated.")
+        else:
+            irc.error("You do not have a GPG session to terminate.")
+    unauth = wrap(unauth)
+
+    def verify(self, irc, msg, args, url):
+        """<url>
+
+        Verify the latest authentication request by providing a pastebin <url>
+        which contains the challenge string clearsigned with your GPG key
+        of record. If verified, you'll be authenticated for the duration of the bot's
+        or your IRC session on channel (whichever is shorter).
+        """
+        self._removeExpiredRequests()
+        try:
+            authrequest = self.pending_auth[msg.host]
+        except KeyError:
+            irc.error("Could not find a pending authentication request from your host. "
+                            "Either it expired, or you changed host, or you haven't made one.")
+            return
+        try:
+            data = utils.web.getUrl(url)
+        except:
+            irc.error("Failed to retrieve clearsigned data. Check your url.")
+            return
+        if authrequest['challenge'] not in data:
+            irc.error("Challenge string not present in signed message.")
+            return
+        try:
+            vo = self.gpg.verify(data)
+            if not vo.valid:
+                irc.error("Signature verification failed.")
+                return
+            if vo.key_id != authrequest['keyid']:
+                irc.error("Signature is not made with the key on record for this nick.")
+                return
+        except:
+            irc.error("Authentication failed. Please try again.")
+            return
+        response = ""
+        if authrequest['registration']:
+            self.db.register(authrequest['keyid'], authrequest['fingerprint'],
+                        time.time(), authrequest['nick'])
+            response = "Registration successful. "
+        self.authed_users[msg.host] = {'timestamp':time.time(),
+                    'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
+                    'fingerprint':authrequest['fingerprint']}
+        del self.pending_auth[msg.host]
+        irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
+                        (authrequest['nick'], authrequest['keyid']))
+    verify = wrap(verify, ['httpUrl'])
+
+    def ident(self, irc, msg, args):
+        """takes no arguments
+        
+        Returns details about your GPG identity with the bot, or notes the
+        absence thereof.
+        """
+        try:
+            authinfo = self.authed_users[msg.host]
+            irc.reply("You are identified as user %s, with GPG key id %s, "
+                            "and key fingerprint %s." % (authinfo['nick'],
+                                        authinfo['keyid'],
+                                        authinfo['fingerprint']))
+        except KeyError:
+            irc.reply("You are not identified.")
+    ident = wrap(ident)
+
+    def _ident(self, host):
+        """Use to check identity status from other plugins."""
+        try:
+            return self.authed_users[host]
+        except KeyError:
+            return None
+
+    def doQuit(self, irc, msg):
+        """Kill the authentication when user quits."""
+        self._unauth(msg)
+
+    def doPart(self, irc, msg):
+        """Kill the authentication when user parts channel."""
+        channels = self.registryValue('channels').split(';')
+        if msg.args[0] in channels:
+            self._unauth(msg)
+
+    def doError(self, irc, msg):
+        """Reset the auth dict when bot gets disconnected."""
+        networks = self.registryValue('networks').split(';')
+        if irc.network in networks:
+            self.authed_users.clear()
+
+Class = GPG
+
+
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
