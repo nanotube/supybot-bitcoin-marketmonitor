@@ -259,21 +259,49 @@ class GPG(callbacks.Plugin):
                         (authrequest['nick'], authrequest['keyid']))
     verify = wrap(verify, ['httpUrl'])
 
-    def ident(self, irc, msg, args):
-        """takes no arguments
+    def ident(self, irc, msg, args, nick):
+        """[<nick>]
         
         Returns details about your GPG identity with the bot, or notes the
         absence thereof.
-        """
+        If optional <nick> is given, tells you about <nick> instead.
+        """        
+        if nick is not None:
+            try:
+                hostmask = irc.state.nickToHostmask(nick)
+            except KeyError:
+                irc.error("I am not seeing this user on IRC. "
+                        "If you want information about a registered gpg user, "
+                        "try the 'gpg info' command instead.")
+                return
+            host = hostmask.rsplit('@', 1)[1]
+            response = "Nick '%s', with host '%s', is " % (nick, host,)
+        else:
+            host = msg.host
+            response = "You are "
         try:
-            authinfo = self.authed_users[msg.host]
-            irc.reply("You are identified as user %s, with GPG key id %s, "
+            authinfo = self.authed_users[host]
+            irc.reply(response + "identified as user %s, with GPG key id %s, "
                             "and key fingerprint %s." % (authinfo['nick'],
                                         authinfo['keyid'],
                                         authinfo['fingerprint']))
         except KeyError:
-            irc.reply("You are not identified.")
-    ident = wrap(ident)
+            irc.reply(response + "not identified.")
+    ident = wrap(ident, [optional('something')])
+
+    def info(self, irc, msg, args, nick):
+        """<nick>
+        
+        Returns the registration details of registered user <nick>.
+        """
+        result = self.db.getByNick(nick)
+        if len(result) == 0:
+            irc.error("No such user registered.")
+            return
+        result = result[0]
+        irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s." %\
+                (result[4], result[1], result[2], time.ctime(result[3])))
+    info = wrap(info, ['something'])
 
     def _ident(self, host):
         """Use to check identity status from other plugins."""

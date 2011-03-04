@@ -55,6 +55,7 @@ class GPGTestCase(PluginTestCase):
         self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
                     'Registration successful. You are now authenticated')
         self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident test', 'is identified')
 
         m = self.getMsg('auth someone')
         self.failUnless('Request successful' in str(m))
@@ -84,5 +85,6 @@ class GPGTestCase(PluginTestCase):
         finally:
             conf.supybot.plugins.GPG.channels.setValue(oc)
 
+        self.assertRegexp('gpg info someone', "User 'someone'.*registered on")
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
