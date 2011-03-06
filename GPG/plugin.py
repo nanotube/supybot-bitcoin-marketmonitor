@@ -361,7 +361,12 @@ class GPG(callbacks.Plugin):
                     except KeyError:
                         pass
 
-Class = GPG
+    def doNick(self, irc, msg):
+        if msg.prefix in self.authed_users.keys():
+            newprefix = msg.args[0] + '!' + msg.prefix.split('!',1)[1]
+            self.authed_users[newprefix] = self.authed_users[msg.prefix]
+            self._unauth(msg.prefix)
 
+Class = GPG
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
