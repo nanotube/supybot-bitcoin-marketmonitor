@@ -18,6 +18,7 @@
 ###
 
 from supybot import conf
+from supybot import ircmsgs
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -80,8 +81,8 @@ class GPGDB(object):
     def register(self, keyid, fingerprint, timestamp, nick):
         cursor = self.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
-                                    (NULL, ?, ?, ?, ?)""",
-                                    (keyid, fingerprint, timestamp, nick))
+                        (NULL, ?, ?, ?, ?)""",
+                        (keyid, fingerprint, timestamp, nick))
         self.db.commit()
 
 def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
@@ -124,12 +125,12 @@ class GPG(callbacks.Plugin):
         self.db.close()
 
     def _removeExpiredRequests(self):
-        for host,auth in self.pending_auth.iteritems():
+        for hostmask,auth in self.pending_auth.iteritems():
             try:
                 if time.time() - auth['expiry'] > self.registryValue('authRequestTimeout'):
                     if auth['registration']:
                         gpg.delete_keys(auth['fingerprint'])
-                    del self.pending_auth[host]
+                    del self.pending_auth[hostmask]
             except:
                 pass #let's keep going
 
@@ -159,9 +160,10 @@ class GPG(callbacks.Plugin):
             else:
                 raise
         except:
-            pass # error we couldn't retrieve
+            irc.error("Could not retrieve your key from keyserver.")
+            return
         challenge = hashlib.sha256(os.urandom(128)).hexdigest()
-        request = {msg.host: {'keyid':keyid, 'host':msg.host,
+        request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
                             'registration':True, 'fingerprint':fingerprint,
                             'challenge':challenge}}
@@ -186,7 +188,7 @@ class GPG(callbacks.Plugin):
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
         challenge = hashlib.sha256(os.urandom(128)).hexdigest()
-        request = {msg.host: {'nick':nick, 'host':msg.host,
+        request = {msg.prefix: {'nick':nick,
                                 'expiry':time.time(), 'keyid':keyid,
                                 'registration':False, 'challenge':challenge,
                                 'fingerprint':fingerprint}}
@@ -194,9 +196,9 @@ class GPG(callbacks.Plugin):
         irc.reply("Request successful. Your challenge string is: %s" % challenge)
     auth = wrap(auth, ['something'])
 
-    def _unauth(self, msg):
+    def _unauth(self, hostmask):
         try:
-            del self.authed_users[msg.host]
+            del self.authed_users[hostmask]
             return True
         except KeyError:
             return False
@@ -206,11 +208,22 @@ class GPG(callbacks.Plugin):
         
         Unauthenticate, 'logout' of your GPG session.
         """
-        if self._unauth(msg):
+        if self._unauth(msg.prefix):
             irc.reply("Your GPG session has been terminated.")
         else:
             irc.error("You do not have a GPG session to terminate.")
     unauth = wrap(unauth)
+
+    def _testPresenceInChannels(self, irc, nick):
+        """Make sure authenticating user is present in channels being monitored."""
+        for channel in self.registryValue('channels').split(';'):
+            try:
+                if nick in irc.state.channels[channel].users:
+                    return True
+            except KeyError:
+                pass
+        else:
+            return False
 
     def verify(self, irc, msg, args, url):
         """<url>
@@ -221,8 +234,12 @@ class GPG(callbacks.Plugin):
         or your IRC session on channel (whichever is shorter).
         """
         self._removeExpiredRequests()
+        if not self._testPresenceInChannels(irc, msg.nick):
+            irc.error("In order to authenticate, you must be present in one "
+                    "of the following channels: %s" % (self.registryValue('channels'),))
+            return
         try:
-            authrequest = self.pending_auth[msg.host]
+            authrequest = self.pending_auth[msg.prefix]
         except KeyError:
             irc.error("Could not find a pending authentication request from your host. "
                             "Either it expired, or you changed host, or you haven't made one.")
@@ -251,10 +268,10 @@ class GPG(callbacks.Plugin):
             self.db.register(authrequest['keyid'], authrequest['fingerprint'],
                         time.time(), authrequest['nick'])
             response = "Registration successful. "
-        self.authed_users[msg.host] = {'timestamp':time.time(),
+        self.authed_users[msg.prefix] = {'timestamp':time.time(),
                     'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
                     'fingerprint':authrequest['fingerprint']}
-        del self.pending_auth[msg.host]
+        del self.pending_auth[msg.prefix]
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     verify = wrap(verify, ['httpUrl'])
@@ -275,12 +292,12 @@ class GPG(callbacks.Plugin):
                         "try the 'gpg info' command instead.")
                 return
             host = hostmask.rsplit('@', 1)[1]
-            response = "Nick '%s', with host '%s', is " % (nick, host,)
+            response = "Nick '%s', with hostmask '%s', is " % (nick, host,)
         else:
-            host = msg.host
+            hostmask = msg.prefix
             response = "You are "
         try:
-            authinfo = self.authed_users[host]
+            authinfo = self.authed_users[hostmask]
             irc.reply(response + "identified as user %s, with GPG key id %s, "
                             "and key fingerprint %s." % (authinfo['nick'],
                                         authinfo['keyid'],
@@ -306,25 +323,43 @@ class GPG(callbacks.Plugin):
     def _ident(self, host):
         """Use to check identity status from other plugins."""
         try:
-            return self.authed_users[host]
+            return self.authed_users[hostmask]
         except KeyError:
             return None
 
     def doQuit(self, irc, msg):
         """Kill the authentication when user quits."""
-        self._unauth(msg)
+        if irc.network == self.registryValue('network'):
+            self._unauth(msg.prefix)
 
     def doPart(self, irc, msg):
         """Kill the authentication when user parts channel."""
         channels = self.registryValue('channels').split(';')
-        if msg.args[0] in channels:
-            self._unauth(msg)
+        if msg.args[0] in channels and irc.network == self.registryValue('network'):
+            if ircutils.strEqual(msg.nick, irc.nick): #we're parting
+                self.authed_users.clear()
+            else:
+                self._unauth(msg.prefix)
 
     def doError(self, irc, msg):
         """Reset the auth dict when bot gets disconnected."""
-        networks = self.registryValue('networks').split(';')
-        if irc.network in networks:
+        if irc.network == self.registryValue('network'):
             self.authed_users.clear()
+
+    def doKick(self, irc, msg):
+        """Kill the authentication when user gets kicked."""
+        channels = self.registryValue('channels').split(';')
+        if msg.args[0] in channels and irc.network == self.registryValue('network'):
+            (channel, nicks) = msg.args[:2]
+            if ircutils.toLower(irc.nick) in ircutils.toLower(nicks).split(','):
+                self.authed_users.clear()
+            else:
+                for nick in nicks:
+                    try:
+                        hostmask = irc.state.nickToHostmask(nick)
+                        self._unauth(hostmask)
+                    except KeyError:
+                        pass
 
 Class = GPG
 

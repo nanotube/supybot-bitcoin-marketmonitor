@@ -20,6 +20,7 @@
 from supybot.test import *
 from supybot import ircmsgs
 from supybot import conf
+from supybot import irclib
 
 try:
     gnupg = utils.python.universalImport('gnupg', 'local.gnupg')
@@ -40,51 +41,87 @@ class GPGTestCase(PluginTestCase):
         self.cb = self.irc.getCallback('GPG')
         self.s = ServerProxy('http://paste.pocoo.org/xmlrpc/')
         shutil.copy(self.secringlocation, self.cb.gpg.gnupghome)
+        
+        chan = irclib.ChannelState()
+        chan.addUser('test')
+        self.irc.state.channels['#test'] = chan
 
     def testRegister(self):
-        self.assertRegexp('gpg ident', 'not identified')
-        self.assertError('register someone 0xBADKEY')
-        self.assertError('register someone 0x23420982') # bad length
-        self.assertError('register someone 0xAAAABBBBCCCCDDDD') #doesn't exist
-        self.cb.gpg.list_keys()
-        m = self.getMsg('register someone %s' % self.testkeyid)
-        self.failUnless('Request successful' in str(m))
-        challenge = str(m).split('is: ')[1]
-        sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
-        pasteid = self.s.pastes.newPaste('text',sd.data)
-        self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
-                    'Registration successful. You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified')
-        self.assertRegexp('gpg ident test', 'is identified')
-
-        m = self.getMsg('auth someone')
-        self.failUnless('Request successful' in str(m))
-        challenge = str(m).split('is: ')[1]
-        sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
-        pasteid = self.s.pastes.newPaste('text',sd.data)
-        self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
-                    'You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified')
-
-        self.irc.feedMsg(msg=ircmsgs.quit(prefix=self.prefix))
-        self.assertRegexp('gpg ident', 'not identified')
-
-        m = self.getMsg('auth someone')
-        self.failUnless('Request successful' in str(m))
-        challenge = str(m).split('is: ')[1]
-        sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
-        pasteid = self.s.pastes.newPaste('text',sd.data)
-        self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
-                    'You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified')
         try:
-            oc = conf.supybot.plugins.GPG.channels()
+            ocn = conf.supybot.plugins.GPG.network()
+            conf.supybot.plugins.GPG.network.setValue('test')
+            occ = conf.supybot.plugins.GPG.channels()
             conf.supybot.plugins.GPG.channels.setValue('#test')
+
+            #test register
+            self.assertRegexp('gpg ident', 'not identified')
+            self.assertError('register someone 0xBADKEY')
+            self.assertError('register someone 0x23420982') # bad length
+            self.assertError('register someone 0xAAAABBBBCCCCDDDD') #doesn't exist
+            self.cb.gpg.list_keys()
+            m = self.getMsg('register someone %s' % self.testkeyid)
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1]
+            sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
+            pasteid = self.s.pastes.newPaste('text',sd.data)
+            self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
+                        'Registration successful. You are now authenticated')
+
+            #test ident
+            self.assertRegexp('gpg ident', 'You are identified')
+            self.assertRegexp('gpg ident test', 'is identified')
+
+            #test auth
+            m = self.getMsg('auth someone')
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1]
+            sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
+            pasteid = self.s.pastes.newPaste('text',sd.data)
+            self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
+                        'You are now authenticated')
+            self.assertRegexp('gpg ident', 'You are identified')
+            
+
+            #test quit
+            self.irc.feedMsg(msg=ircmsgs.quit(prefix=self.prefix))
+            self.assertRegexp('gpg ident', 'not identified')
+            chan = irclib.ChannelState()
+            chan.addUser('test')
+            self.irc.state.channels['#test'] = chan
+
+            m = self.getMsg('auth someone')
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1]
+            sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
+            pasteid = self.s.pastes.newPaste('text',sd.data)
+            self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
+                        'You are now authenticated')
+            self.assertRegexp('gpg ident', 'You are identified')
+
+            #test part
             self.irc.feedMsg(msg=ircmsgs.part("#test", prefix=self.prefix))
             self.assertRegexp('gpg ident', 'not identified')
-        finally:
-            conf.supybot.plugins.GPG.channels.setValue(oc)
+            chan = irclib.ChannelState()
+            chan.addUser('test')
+            self.irc.state.channels['#test'] = chan
 
+            m = self.getMsg('auth someone')
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1]
+            sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
+            pasteid = self.s.pastes.newPaste('text',sd.data)
+            self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
+                        'You are now authenticated')
+            self.assertRegexp('gpg ident', 'You are identified')
+
+            #test kick
+            self.irc.feedMsg(msg=ircmsgs.kick("#test", 'test', prefix=self.prefix))
+            self.assertRegexp('gpg ident', 'not identified')
+        finally:
+            conf.supybot.plugins.GPG.network.setValue(ocn)
+            conf.supybot.plugins.GPG.channels.setValue(occ)
+
+        #test info
         self.assertRegexp('gpg info someone', "User 'someone'.*registered on")
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

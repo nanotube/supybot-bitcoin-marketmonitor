@@ -39,10 +39,9 @@ conf.registerGlobalValue(GPG, 'keyservers',
     use for key retrieval. Comma-separated list."""))
 conf.registerGlobalValue(GPG, 'channels',
     registry.String("#bitcoin-otc", """Channels to monitor for user parts
-    for auth removal. Semicolon-separated list"""))
-conf.registerGlobalValue(GPG, 'networks',
-    registry.String("freenode", """Networks to monitor for user parts/quits
-    and bot quits for auth removal. Semicolon-separated list"""))
-
+    for auth removal. Semicolon-separated list."""))
+conf.registerGlobalValue(GPG, 'network',
+    registry.String("freenode", """Network to monitor for user parts/quits
+    and bot quits for auth removal."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
