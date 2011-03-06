@@ -101,7 +101,7 @@ class QuoteCreator:
             'PKR', 'PLN', 'PYG', 'QAR', 'RON', 'RSD', 'RUB', 'SAR', 'SCR',
             'SEK', 'SGD', 'SKK', 'SLL', 'SVC', 'THB', 'TND', 'TRY', 'TTD',
             'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VEF', 'VND',
-            'XOF', 'YER', 'ZAR', 'ZMK',]
+            'XOF', 'YER', 'ZAR', 'ZMK', 'ZWR',]
         self.db1 = sqlite3.connect(orderbook_db_path)
 
     def run(self):

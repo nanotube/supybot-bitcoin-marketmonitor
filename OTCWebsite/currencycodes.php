@@ -119,6 +119,7 @@ Currency codes
 <tr><td>YER</td><td>Yemeni Rial</td></tr>
 <tr><td>ZAR</td><td>South African Rand</td></tr>
 <tr><td>ZMK</td><td>Zambian Kwacha</td></tr>
+<tr><td>ZWR</td><td>Zimbabwe Dollar (Aug 2008 - Jan 2009)</td></tr>
 </table>
 
 <p><a href="quotes.json">JSON data</a></p>
