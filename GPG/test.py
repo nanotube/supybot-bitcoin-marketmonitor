@@ -59,7 +59,7 @@ class GPGTestCase(PluginTestCase):
             self.assertError('register someone 0x23420982') # bad length
             self.assertError('register someone 0xAAAABBBBCCCCDDDD') #doesn't exist
             self.cb.gpg.list_keys()
-            m = self.getMsg('register someone %s' % self.testkeyid)
+            m = self.getMsg('register someone %s' % (self.testkeyid,))
             self.failUnless('Request successful' in str(m))
             challenge = str(m).split('is: ')[1]
             sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
@@ -71,14 +71,13 @@ class GPGTestCase(PluginTestCase):
             self.assertRegexp('gpg ident', 'You are identified')
             self.assertRegexp('gpg ident test', 'is identified')
 
-            #test nick
-            op = self.prefix
-            self.irc.feedMsg(msg=ircmsgs.nick('newnick', prefix=self.prefix))
+            #test unauth
+            self.assertRegexp('gpg unauth', 'has been terminated')
             self.assertRegexp('gpg ident', 'not identified')
-            self.prefix = 'newnick' + '!' + self.prefix.split('!',1)[1]
-            self.assertRegexp('gpg ident', 'You are identified')
-            self.irc.feedMsg(msg=ircmsgs.nick('test', prefix=self.prefix))
-            self.prefix = op
+
+            #duplicate nick/key registrations
+            self.assertError('register someone BBBBBBBBCCCCDDDD')
+            self.assertError('register newguy %s' % (self.testkeyid,))
 
             #test auth
             m = self.getMsg('auth someone')
@@ -89,7 +88,15 @@ class GPGTestCase(PluginTestCase):
             self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
                         'You are now authenticated')
             self.assertRegexp('gpg ident', 'You are identified')
-            
+
+            #test nick
+            op = self.prefix
+            self.irc.feedMsg(msg=ircmsgs.nick('newnick', prefix=self.prefix))
+            self.assertRegexp('gpg ident', 'not identified')
+            self.prefix = 'newnick' + '!' + self.prefix.split('!',1)[1]
+            self.assertRegexp('gpg ident', 'You are identified')
+            self.irc.feedMsg(msg=ircmsgs.nick('test', prefix=self.prefix))
+            self.prefix = op
 
             #test quit
             self.irc.feedMsg(msg=ircmsgs.quit(prefix=self.prefix))

@@ -146,6 +146,12 @@ class GPG(callbacks.Plugin):
         Your passphrase will expire within 5 minutes.
         """
         self._removeExpiredRequests()
+        if self.db.getByNick(nick):
+            irc.error("Username already registered. Try a different username.")
+            return
+        if self.db.getByKey(keyid):
+            irc.error("This key already registered in the database.")
+            return
         keyservers = []
         if keyserver:
             keyservers.extend([keyserver])
@@ -265,6 +271,9 @@ class GPG(callbacks.Plugin):
             return
         response = ""
         if authrequest['registration']:
+            if self.db.getByNick(authrequest['nick']) or self.db.getByKey(authrequest['keyid']):
+                irc.error("Username or key already in the database.")
+                return
             self.db.register(authrequest['keyid'], authrequest['fingerprint'],
                         time.time(), authrequest['nick'])
             response = "Registration successful. "
