@@ -36,7 +36,7 @@
      <li><a href="trust.php">OTC web of trust homepage</a>
      <li><a href="viewratings.php">Explore the trust database</a>
      <li><a href="http://wiki.bitcoin-otc.com/wiki/OTC_Rating_System">Guide to using the web of trust</a>
-     <li><a href="http://wiki.bitcoin-otc.com/wiki/User_GPG_keys">Known user GPG keys</a>
+     <li><a href="viewgpg.php">Registered user GPG keys</a>
     </ul>
    </div>
   </div>
