@@ -71,6 +71,15 @@ class GPGTestCase(PluginTestCase):
             self.assertRegexp('gpg ident', 'You are identified')
             self.assertRegexp('gpg ident test', 'is identified')
 
+            #test nick
+            op = self.prefix
+            self.irc.feedMsg(msg=ircmsgs.nick('newnick', prefix=self.prefix))
+            self.assertRegexp('gpg ident', 'not identified')
+            self.prefix = 'newnick' + '!' + self.prefix.split('!',1)[1]
+            self.assertRegexp('gpg ident', 'You are identified')
+            self.irc.feedMsg(msg=ircmsgs.nick('test', prefix=self.prefix))
+            self.prefix = op
+
             #test auth
             m = self.getMsg('auth someone')
             self.failUnless('Request successful' in str(m))
