@@ -33,6 +33,8 @@ function query_google_rate($cur1, $cur2){
 	return($googlerate);
 }
 
+function doNothing() { return(true); }
+
 function index_prices($rawprice){
 	global $ticker;
 	try {
@@ -40,8 +42,9 @@ function index_prices($rawprice){
 		$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy'], $indexedprice);
 		$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last'], $indexedprice);
 		$indexedprice = get_currency_conversion($indexedprice);
+		$code = 'set_error_handler("doNothing");return(' . $indexedprice . ');restore_error_handler();';
 		ob_start();
-		$indexedprice = eval('set_error_handler("doNothing");function doNothing() { return true };return(' . $indexedprice . ');');
+		$indexedprice = eval($code);
 		ob_clean();
 		if ( $indexedprice === false ) {
 			return($rawprice);
