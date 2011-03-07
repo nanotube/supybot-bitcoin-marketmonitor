@@ -32,7 +32,7 @@ from xmlrpclib import ServerProxy
 import shutil
 
 class GPGTestCase(PluginTestCase):
-    plugins = ('GPG',)
+    plugins = ('GPG','RatingSystem')
 
     def setUp(self):
         PluginTestCase.setUp(self)
