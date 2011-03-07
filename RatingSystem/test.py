@@ -36,7 +36,8 @@ import time
 class RatingSystemTestCase(PluginTestCase):
     plugins = ('RatingSystem','User')
 
-    def testRate(self):
+    def setUp(self):
+        PluginTestCase.setUp(self)
         # pre-seed the db with a rating for nanotube
         cb = self.irc.getCallback('RatingSystem')
         cursor = cb.db.db.cursor()
@@ -44,9 +45,10 @@ class RatingSystemTestCase(PluginTestCase):
                           (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
         cb.db.db.commit()
+
+    def testRate(self):
         self.assertError('rate someguy 4') # no cloak
         try:
-            #world.testing = False
             self.irc.state.nicksToHostmasks['uncloakedguy'] = 'uncloakedguy!stuff@123.345.5.6'
             self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
             self.irc.state.nicksToHostmasks['someguy2'] = 'someguy2!stuff@stuff/somecloak'
@@ -90,17 +92,9 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('rated nobody')
             self.assertRegexp('rated somedude', 'You rated user somedude .* giving him a rating of 6')
         finally:
-            #world.testing = True
             self.prefix = origuser
 
     def testUnrate(self):
-        # pre-seed the db with a rating for nanotube
-        cb = self.irc.getCallback('RatingSystem')
-        cursor = cb.db.db.cursor()
-        cursor.execute("""INSERT INTO users VALUES
-                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
-        cb.db.db.commit()
         try:
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
@@ -114,15 +108,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.prefix = origuser
 
     def testGetTrust(self):
-        # pre-seed the db with a rating for nanotube
-        cb = self.irc.getCallback('RatingSystem')
-        cursor = cb.db.db.cursor()
-        cursor.execute("""INSERT INTO users VALUES
-                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
-        cb.db.db.commit()
         try:
-            #world.testing = False
             self.irc.state.nicksToHostmasks['uncloakedguy'] = 'uncloakedguy!stuff@123.345.5.6'
             self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
             self.irc.state.nicksToHostmasks['someguy2'] = 'someguy2!stuff@stuff/somecloak'
@@ -148,17 +134,9 @@ class RatingSystemTestCase(PluginTestCase):
                         'second-level trust from user nanotube to user someguy2 is -1.*via 1.*level one rating is 7')
             self.assertRegexp('gettrust nobody nobody2', 'nobody2 is None.*rating is None')
         finally:
-            #world.testing = True
             self.prefix = origuser
 
     def testDeleteUser(self):
-        # pre-seed the db with a rating for nanotube
-        cb = self.irc.getCallback('RatingSystem')
-        cursor = cb.db.db.cursor()
-        cursor.execute("""INSERT INTO users VALUES
-                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
-        cb.db.db.commit()
         try:
             self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
             origuser = self.prefix

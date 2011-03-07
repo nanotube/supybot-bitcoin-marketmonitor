@@ -24,6 +24,7 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import conf
 from supybot import ircdb
+from supybot import world
 
 import sqlite3
 import time
