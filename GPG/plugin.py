@@ -159,6 +159,12 @@ class GPG(callbacks.Plugin):
         if self.db.getByKey(keyid):
             irc.error("This key already registered in the database.")
             return
+        rs = irc.getCallback('RatingSystem')
+        rsdata = rs.db.get(nick)
+        if len(rsdata) != 0 and rsdata[0][8] != msg.host:
+            irc.error("This username is reserved for the existing member of the "
+                    "web of trust, with host '%s'." % (rsdata[0][8],))
+            return
         keyservers = []
         if keyserver:
             keyservers.extend([keyserver])
