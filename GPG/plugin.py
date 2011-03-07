@@ -136,7 +136,10 @@ class GPG(callbacks.Plugin):
             try:
                 if time.time() - auth['expiry'] > self.registryValue('authRequestTimeout'):
                     if auth['registration'] and not self.db.getByKey(auth['keyid']):
-                        gpg.delete_keys(auth['fingerprint'])
+                        try:
+                            gpg.delete_keys(auth['fingerprint'])
+                        except:
+                            pass
                     del self.pending_auth[hostmask]
             except:
                 pass #let's keep going
