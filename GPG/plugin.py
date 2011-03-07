@@ -30,6 +30,7 @@ import re
 import os
 import hashlib
 import time
+import copy
 
 try:
     gnupg = utils.python.universalImport('gnupg', 'local.gnupg')
@@ -125,10 +126,11 @@ class GPG(callbacks.Plugin):
         self.db.close()
 
     def _removeExpiredRequests(self):
-        for hostmask,auth in self.pending_auth.iteritems():
+        pending_auth_copy = copy.deepcopy(self.pending_auth)
+        for hostmask,auth in pending_auth_copy.iteritems():
             try:
                 if time.time() - auth['expiry'] > self.registryValue('authRequestTimeout'):
-                    if auth['registration']:
+                    if auth['registration'] and not self.db.getByKey(auth['keyid']):
                         gpg.delete_keys(auth['fingerprint'])
                     del self.pending_auth[hostmask]
             except:
