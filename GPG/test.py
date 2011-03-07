@@ -71,6 +71,9 @@ class GPGTestCase(PluginTestCase):
             self.assertRegexp('gpg ident', 'You are identified')
             self.assertRegexp('gpg ident test', 'is identified')
 
+            #test stats
+            self.assertRegexp('gpg stats', '1 registered users.*1 currently authenticated.*0 pending auth')
+
             #test unauth
             self.assertRegexp('gpg unauth', 'has been terminated')
             self.assertRegexp('gpg ident', 'not identified')

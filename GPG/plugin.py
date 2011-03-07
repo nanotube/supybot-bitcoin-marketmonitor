@@ -79,6 +79,11 @@ class GPGDB(object):
         cursor.execute("""SELECT * FROM users WHERE keyid = ?""", (keyid,))
         return cursor.fetchall()
 
+    def getCount(self):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT count(*) FROM users""")
+        return cursor.fetchall()
+
     def register(self, keyid, fingerprint, timestamp, nick):
         cursor = self.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
@@ -330,6 +335,24 @@ class GPG(callbacks.Plugin):
         irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s." %\
                 (result[4], result[1], result[2], time.ctime(result[3])))
     info = wrap(info, ['something'])
+
+    def stats(self, irc, msg, args):
+        """takes no arguments
+        
+        Gives the statistics on number of registered users,
+        number of authenticated users, number of pending authentications.
+        """
+        try:
+            regusers = self.db.getCount()[0][0]
+            authedusers = len(self.authed_users)
+            pendingauths = len(self.pending_auth)
+        except:
+            irc.error("Problem retrieving statistics. Try again later.")
+            return
+        irc.reply("There are %s registered users, %s currently authenticated. "
+                "There are also %s pending authentication requests." % \
+                (regusers, authedusers, pendingauths,))
+    stats = wrap(stats)
 
     def _ident(self, host):
         """Use to check identity status from other plugins."""
