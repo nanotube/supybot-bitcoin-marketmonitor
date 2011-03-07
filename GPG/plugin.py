@@ -71,7 +71,7 @@ class GPGDB(object):
 
     def getByNick(self, nick):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM users WHERE nick = ?""", (nick,))
+        cursor.execute("""SELECT * FROM users WHERE nick LIKE ?""", (nick,))
         return cursor.fetchall()
 
     def getByKey(self, keyid):

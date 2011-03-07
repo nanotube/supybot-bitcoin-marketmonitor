@@ -139,5 +139,6 @@ class GPGTestCase(PluginTestCase):
 
         #test info
         self.assertRegexp('gpg info someone', "User 'someone'.*registered on")
+        self.assertRegexp('gpg info somEoNe', "User 'someone'.*registered on")
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
