@@ -263,8 +263,8 @@ class GPG(callbacks.Plugin):
         try:
             authrequest = self.pending_auth[msg.prefix]
         except KeyError:
-            irc.error("Could not find a pending authentication request from your host. "
-                            "Either it expired, or you changed host, or you haven't made one.")
+            irc.error("Could not find a pending authentication request from your hostmask. "
+                        "Either it expired, or you changed hostmask, or you haven't made one.")
             return
         try:
             data = utils.web.getUrl(url)
@@ -316,8 +316,7 @@ class GPG(callbacks.Plugin):
                         "If you want information about a registered gpg user, "
                         "try the 'gpg info' command instead.")
                 return
-            host = hostmask.rsplit('@', 1)[1]
-            response = "Nick '%s', with hostmask '%s', is " % (nick, host,)
+            response = "Nick '%s', with hostmask '%s', is " % (nick, hostmask,)
         else:
             hostmask = msg.prefix
             response = "You are "
@@ -363,7 +362,7 @@ class GPG(callbacks.Plugin):
                 (regusers, authedusers, pendingauths,))
     stats = wrap(stats)
 
-    def _ident(self, host):
+    def _ident(self, hostmask):
         """Use to check identity status from other plugins."""
         try:
             return self.authed_users[hostmask]
