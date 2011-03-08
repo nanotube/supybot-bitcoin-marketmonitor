@@ -34,7 +34,7 @@ import sqlite3
 import time
 
 class RatingSystemTestCase(PluginTestCase):
-    plugins = ('RatingSystem','User')
+    plugins = ('RatingSystem','User','GPG')
 
     def setUp(self):
         PluginTestCase.setUp(self)
@@ -46,51 +46,58 @@ class RatingSystemTestCase(PluginTestCase):
                        (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
         cb.db.db.commit()
 
-    def testRate(self):
-        self.assertError('rate someguy 4') # no cloak
-        try:
-            self.irc.state.nicksToHostmasks['uncloakedguy'] = 'uncloakedguy!stuff@123.345.5.6'
-            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
-            self.irc.state.nicksToHostmasks['someguy2'] = 'someguy2!stuff@stuff/somecloak'
-            self.irc.state.nicksToHostmasks['poorguy'] = 'poorguy!stuff@stuff/somecloak'
-            self.irc.state.nicksToHostmasks['SomeDude'] = 'SomeDude!stuff@stuff/somecloak'
+        #preseed the GPG db with a GPG registration and auth for nanotube
+        gpg = self.irc.getCallback('GPG')
+        gpg.db.register('AAAAAAAAAAAAAAA1', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA1',
+                    time.time(), 'nanotube')
+        gpg.authed_users['nanotube!stuff@stuff/somecloak'] = {'nick':'nanotube'}
+        gpg.db.register('AAAAAAAAAAAAAAA2', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA2',
+                    time.time(), 'registeredguy')
+        gpg.db.register('AAAAAAAAAAAAAAA3', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3',
+                    time.time(), 'authedguy')
+        gpg.authed_users['authedguy!stuff@123.345.234.34'] = {'nick':'authedguy'}
+        gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
+                    time.time(), 'authedguy2')
+        gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2'}
 
+    def testRate(self):
+        self.assertError('rate someguy 4') # not authenticated
+        try:
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertError('rate nanotube 10') #can't self-rate
             self.assertError('rate nanOtube 10') #can't self-rate
-            self.assertError('rate unknownguy 4') #user not in dict
-            self.assertError('rate uncloakedguy 6') #user not cloaked
-            self.assertRegexp('rate someguy 4', 'rating of 4 for user someguy has been recorded')
-            self.assertRegexp('getrating someguy', 'cumulative rating of 4')
-            self.assertRegexp('getrating someguy', 'a total of 1')
-            self.assertRegexp('rate someguy 6', 'changed from 4 to 6')
-            self.assertRegexp('getrating someguy', 'cumulative rating of 6')
-            self.assertRegexp('getrating someguy', 'a total of 1')
+            self.assertError('rate unknownguy 4') #user not in db and not authed
+            self.assertRegexp('rate registeredguy 4', 'rating of 4 for user registeredguy has been recorded')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 4')
+            self.assertRegexp('getrating registeredguy', 'a total of 1')
+            self.assertRegexp('rate registeredguy 6', 'changed from 4 to 6')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 6')
+            self.assertRegexp('getrating registeredguy', 'a total of 1')
             self.assertRegexp('getrating nanotube', 'sent 1 positive')
-            self.assertError('rate someguy2 0') # rating must be in bounds, and no zeros
-            self.assertError('rate someguy2 -20')
-            self.assertError('rate someguy2 30')
-            self.assertNotError('rate someguy2 -10')
-            self.assertRegexp('getrating nanotube', 'sent 1 positive ratings, and 1 negative')
-            self.assertRegexp('getrating someguy2', 'cumulative rating of -10')
-            self.prefix = 'someguy!stuff@stuff/somecloak'
-            self.assertNotError('rate someguy2 9')
-            self.assertRegexp('getrating someguy2', 'cumulative rating of -1')
-            self.prefix = 'someguy2!stuff@stuff/somecloak'
-            self.assertError('rate someguy 2') # rated -1, can't rate
+            self.assertError('rate registeredguy 0') # rating must be in bounds, and no zeros
+            self.assertError('rate registeredguy -20')
+            self.assertError('rate registeredguy 30')
+            self.assertNotError('rate registeredguy -10')
+            self.assertNotError('rate authedguy 5')
+            self.assertNotError('rate authedguy2 -1')
+            self.assertRegexp('getrating nanotube', 'sent 1 positive ratings, and 2 negative')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of -10')
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('rate registeredguy 9')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of -1')
+            self.prefix = 'registeredguy!stuff@stuff/somecloak'
+            self.assertError('rate nanotube 2') # unauthed, can't rate
+            self.prefix = 'authedguy2!stuff@123.345.234.34'
+            self.assertError('rate nanotube 2') # rated -1, can't rate
             self.prefix = 'nanotube!stuff@stuff/somecloak'
-            self.assertNotError('unrate someguy2')
-            self.assertRegexp('getrating someguy2', 'cumulative rating of 9')
-            self.assertNotError('rate poorguy -5')
+            self.assertNotError('unrate registeredguy')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 9')
             self.assertRegexp('getrating nanotube', 'and 1 negative ratings to others')
-            self.assertNotError('unrate poorguy')
-            self.assertRegexp('getrating nanotube', 'and 0 negative ratings to others')
-            self.assertNotError('rate SomeDude 5')
-            self.assertNotError('rate somedude 6')
-            self.assertRegexp('getrating SomeDude', 'cumulative rating of 6')
+            self.assertNotError('rate registeredGUY 5')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 14')
             self.assertError('rated nobody')
-            self.assertRegexp('rated somedude', 'You rated user somedude .* giving him a rating of 6')
+            self.assertRegexp('rated registeredguy', 'You rated user registeredguy .* giving him a rating of 5')
         finally:
             self.prefix = origuser
 
@@ -99,52 +106,45 @@ class RatingSystemTestCase(PluginTestCase):
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertError('unrate someguy') #haven't rated him before
-            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
-            self.assertNotError('rate someguy 4')
-            self.assertRegexp('getrating someguy', 'cumulative rating of 4')
-            self.assertNotError('unrate somEguy')
-            self.assertError('getrating someguy') # guy should be gone, having no connections.
+            self.assertError('unrate registeredguy') #haven't rated him before
+            self.assertNotError('rate registeredguy 4')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 4')
+            self.assertNotError('unrate regISTEredguy')
+            self.assertError('getrating registeredguy') # guy should be gone, having no connections.
         finally:
             self.prefix = origuser
 
     def testGetTrust(self):
         try:
-            self.irc.state.nicksToHostmasks['uncloakedguy'] = 'uncloakedguy!stuff@123.345.5.6'
-            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
-            self.irc.state.nicksToHostmasks['someguy2'] = 'someguy2!stuff@stuff/somecloak'
-            self.irc.state.nicksToHostmasks['poorguy'] = 'poorguy!stuff@stuff/somecloak'
-            self.irc.state.nicksToHostmasks['SomeDude'] = 'SomeDude!stuff@stuff/somecloak'
-
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
-            self.assertNotError('rate someguy 5')
-            self.prefix = 'someguy!stuff@stuff/somecloak'
-            self.assertNotError('rate someguy2 3')
-            self.assertRegexp('gettrust nanotube someguy2', 
-                        'second-level trust from user nanotube to user someguy2 is 3')
-            self.assertNotError('rate someguy2 7')
-            self.assertRegexp('gettrust nanotube someguy2', 
-                        'second-level trust from user nanotube to user someguy2 is 5')
+            self.assertNotError('rate authedguy 5')
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('rate authedguy2 3')
+            self.assertRegexp('gettrust nanotube authedguy2', 
+                        'second-level trust from user nanotube to user authedguy2 is 3')
+            self.assertNotError('rate authedguy2 7')
+            self.assertRegexp('gettrust nanotube authedguy2', 
+                        'second-level trust from user nanotube to user authedguy2 is 5')
             self.prefix = 'nanotube!stuff@stuff/somecloak'
-            self.assertRegexp('gettrust someguy2', 
-                        'second-level trust from user nanotube to user someguy2 is 5.*via 1.*level one rating is None')
-            self.assertNotError('rate someguy -1')
-            self.assertNotError('rate someguy2 7')
-            self.assertRegexp('gettrust someguy2', 
-                        'second-level trust from user nanotube to user someguy2 is -1.*via 1.*level one rating is 7')
+            self.assertRegexp('gettrust authedguy2', 
+                        'second-level trust from user nanotube to user authedguy2 is 5.*via 1.*level one rating is None')
+            self.assertNotError('rate authedguy -1')
+            self.assertNotError('rate authedguy2 7')
+            self.assertRegexp('gettrust authedguy2', 
+                        'second-level trust from user nanotube to user authedguy2 is -1.*via 1.*level one rating is 7')
             self.assertRegexp('gettrust nobody nobody2', 'nobody2 is None.*rating is None')
         finally:
             self.prefix = origuser
 
     def testDeleteUser(self):
         try:
-            self.irc.state.nicksToHostmasks['someguy'] = 'someguy!stuff@stuff/somecloak'
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
-            self.assertNotError('rate someguy 4')
-            self.assertRegexp('getrating someguy', 'cumulative rating of 4')
-            self.assertNotError('deleteuser somEguy')
-            self.assertError('getrating someguy') # guy should be gone
+            self.assertNotError('rate registeredguy 4')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 4')
+            self.assertNotError('deleteuser registeredGUy')
+            self.assertError('getrating registeredguy') # guy should be gone
         finally:
             self.prefix = origuser
 

@@ -24,7 +24,6 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import conf
 from supybot import ircdb
-from supybot import world
 
 import sqlite3
 import time
@@ -260,6 +259,9 @@ class RatingSystem(callbacks.Plugin):
         except KeyError:
             return False
 
+    def _checkGPGAuth(self, irc, prefix):
+        return irc.getCallback('GPG')._ident(prefix)
+
     def _ratingBoundsCheck(self, rating):
         if rating >= self.registryValue('ratingMin') and \
            rating <= self.registryValue('ratingMax'):
@@ -270,27 +272,24 @@ class RatingSystem(callbacks.Plugin):
         """<nick> <rating> [<notes>]
 
         Enters a rating for <nick> in the amount of <rating>. Use optional
-        <notes> field to enter any notes you have about this user. Things
-        like transaction details, or total transactions you've had with this
-        user are good candidates for notes. Your previously existing rating,
+        <notes> field to enter any notes you have about this user. <nick>
+        must be the user's GPG-registered username, Your previously existing rating,
         if any, will be overwritten.
         """
-        if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
-            irc.error("For identification purposes, you must have a freenode cloak "
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            irc.error("For identification purposes, you must be identified via GPG "
                       "to use the rating system.")
             return
-        userrating = self.db.get(msg.nick)
+        userrating = self.db.get(gpgauth['nick'])
         if len(userrating) == 0:
             irc.error("You have to have received some ratings in order to rate "
                       "other users.")
             return
-        if userrating[0][8] != msg.host:
-            irc.error("Your hostmask doesn't match the one in the database.")
-            return
         if self.registryValue('requirePositiveRating') and userrating[0][1] <= 0:
             irc.error("You must have a positive rating in order to rate others.")
             return
-        if msg.nick.lower() == nick.lower():
+        if gpgauth['nick'].lower() == nick.lower():
             irc.error("You cannot rate yourself.")
             return
         validratings = range(self.registryValue('ratingMin'),
@@ -306,28 +305,24 @@ class RatingSystem(callbacks.Plugin):
         sourceid = userrating[0][0]
         targetuserdata = self.db.get(nick)
         if len(targetuserdata) == 0:
-            try:
-                targethostmask = irc.state.nickToHostmask(nick)
-            except KeyError:
-                irc.error("User doesn't exist in database, and I do not see him to get his host.")
-                return
-            targethost = targethostmask.rsplit('@', 1)[1]
-            if not self._checkHost(targethost) and not self._checkRegisteredUser(targethostmask):
-                irc.error("Target user is not cloaked. To prevent identity theft, only cloaked users can be rated.")
+            targetgpgdata = irc.getCallback('GPG').db.getByNick(nick)
+            if len(targetgpgdata) == 0:
+                irc.error("User doesn't exist in the Rating or GPG databases. User must be "
+                                "GPG-registered to receive ratings.")
                 return
             targetid = None
             replacementflag = False
         else:
-            targethost=None
             targetid = targetuserdata[0][0]
             priorrating = self.db.getExistingRating(sourceid, targetid)
             if len(priorrating) == 0:
                 replacementflag = False
             else:
                 replacementflag = True
-                result = "Your rating for user %s has changed from %s to %s." % (nick, priorrating[0][4], rating,)
-        self.db.rate(msg.nick, sourceid, nick, targetid, rating,
-                     replacementflag, notes, targethost)
+                result = "Your rating for user %s has changed from %s to %s." % \
+                        (nick, priorrating[0][4], rating,)
+        self.db.rate(gpgauth['nick'], sourceid, nick, targetid, rating,
+                     replacementflag, notes)
         irc.reply("Rating entry successful. %s" % (result,))
     rate = wrap(rate, ['something', 'int', optional('text')])
 
@@ -336,7 +331,12 @@ class RatingSystem(callbacks.Plugin):
 
         Get the details about the rating you gave to <nick>, if any.
         """
-        data = self.db.getRatingDetail(msg.nick, nick)
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is not None:
+            sourcenick = gpgauth['nick']
+        else:
+            sourcenick = msg.nick
+        data = self.db.getRatingDetail(sourcenick, nick)
         if len(data) == 0:
             irc.error("You have not yet rated user %s" % nick)
             return
@@ -354,9 +354,13 @@ class RatingSystem(callbacks.Plugin):
 
         Remove your rating for <nick> from the database.
         """
-        userrating = self.db.get(msg.nick)
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            irc.error("You must be GPG authenticated to perform this operation.")
+            return
+        userrating = self.db.get(gpgauth['nick'])
         if len(userrating) == 0:
-            irc.error("Your nick does not exist in the database.")
+            irc.error("Your nick does not exist in the Rating database.")
             return
         sourceid = userrating[0][0]
         targetuserdata = self.db.get(nick)
@@ -368,7 +372,7 @@ class RatingSystem(callbacks.Plugin):
         if len(priorrating) == 0:
             irc.error("You have not given this nick a rating previously.")
             return
-        self.db.unrate(msg.nick, sourceid, nick, targetid)
+        self.db.unrate(gpgauth['nick'], sourceid, nick, targetid)
         irc.reply("Successfully removed your rating for %s." % nick)
     unrate = wrap(unrate, ['something'])
 
@@ -406,9 +410,12 @@ class RatingSystem(callbacks.Plugin):
         The result is the sum of min(link1, link2) from <sourcenick> to
         <destnick>.
         """
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is not None:
+            sn = gpgauth['nick']
         if destnick is None:
             destnick = sourcenick
-            sourcenick = msg.nick
+            sourcenick = sn
         sum_l2_ratings = self.db.getLevel2Ratings(sourcenick, destnick)
         l1_rating = self.db.getRatingDetail(sourcenick, destnick)
         if len(l1_rating) > 0:
