@@ -413,6 +413,8 @@ class RatingSystem(callbacks.Plugin):
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is not None:
             sn = gpgauth['nick']
+        else:
+            sn = msg.nick
         if destnick is None:
             destnick = sourcenick
             sourcenick = sn

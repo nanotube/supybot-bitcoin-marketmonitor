@@ -134,6 +134,8 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertRegexp('gettrust authedguy2', 
                         'second-level trust from user nanotube to user authedguy2 is -1.*via 1.*level one rating is 7')
             self.assertRegexp('gettrust nobody nobody2', 'nobody2 is None.*rating is None')
+            self.prefix = 'randomguy!stuff@stuff/somecloak'
+            self.assertRegexp('gettrust authedguy2', 'authedguy2 is None.*rating is None')
         finally:
             self.prefix = origuser
 
