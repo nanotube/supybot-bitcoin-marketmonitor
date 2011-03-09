@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <?php
- $pagetitle = "#bitcoin-otc gpg key database";
+ $pagetitle = "#bitcoin-otc gpg key data";
  include("header.php");
 ?>
 
@@ -13,15 +13,25 @@
 	if (! isset($_GET[$var]) && $sortby == "total_rating" ) $sortorder = "DESC";
 	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+	
+	$nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
 ?>
 
 <div class="breadcrumbs">
 <a href="/">Home</a> &rsaquo;
 <a href="trust.php">Web of Trust</a> &rsaquo;
-GPG Key database
+<?php
+if ($nickfilter != ""){
+	echo '<a href="viewgpg.php">GPG Key database</a> &rsaquo;';
+	echo "GPG Key for $nickfilter";
+}
+else {
+	echo "GPG Key database";
+}
+?>
 </div>
 
-  <h3>#bitcoin-otc gpg key database</h3>
+  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user $nickfilter";} ?></h3>
   <table class="datadisplay">
    <tr>
 
@@ -35,12 +45,21 @@ GPG Key database
 	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
 	$sortorders["registered_at"]["othertext"] = "(UTC)";
 	foreach ($sortorders as $by => $order) {
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewgpg.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewgpg.php?nick=$nickfilter&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
 <?php
-	if (!$query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' ' . $sortorder))
+	$queryfilter = array();
+	if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
+	if (sizeof($queryfilter) != 0) {
+		$queryfilter = " WHERE " . join(' AND ', $queryfilter);
+	}
+	else {
+		$queryfilter = "";
+	}
+	$sql = 'SELECT * FROM users ' . $queryfilter . 'ORDER BY ' . sqlite_escape_string($sortby) . ' ' . sqlite_escape_string($sortorder);
+	if (!$query = $db->Query($sql))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		$color = 0;

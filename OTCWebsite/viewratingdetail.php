@@ -43,7 +43,7 @@ Rating for <?php echo $nick; ?>
    [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=NEG">view negative</a>] ||
    [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=ANY">view all</a>]
   </p>
-  <h3>Summary statistics</h3>
+  <h3>About <?php echo $nick; ?></h3>
   <ul>
 <?php
 	$typequeries = array('RECV' => 'users.id = ratings.rated_user_id', 'SENT' => 'users.id = ratings.rater_user_id');
@@ -58,6 +58,7 @@ Rating for <?php echo $nick; ?>
 		$entry = $sth->fetch(PDO::FETCH_BOTH);
 		echo "<li>Count of " . $signs[$sign] . " ratings " . $types[$type] . ": " . number_format($entry['ratingcount']) . ". Total of points: " . number_format($entry['ratingsum']) . ".</li>\n";
 	}
+	echo '<li><a href="viewgpg.php?nick=' . $nick . '">GPG identity</a></li>';
 ?>
   </ul>
   <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?></h3>
