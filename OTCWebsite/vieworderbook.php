@@ -61,7 +61,9 @@
 ?>
 
 <td style="text-align: right;">
-<form method="GET" action="vieworderbook.php">
+<form method="GET" action="vieworderbook.php?">
+<input type="hidden" name="sortby" value="<?php echo $sortby; ?>">
+<input type="hidden" name="sortorder" value="<?php echo $sortorder; ?>">
 <select name="type">
 <option label="--type--" value="" selected>--type--</option>
 <option value="BUY">BUY</option>
@@ -126,10 +128,10 @@ $sortorders["thing"]["linktext"] = "thing";
 $sortorders["otherthing"]["linktext"] = "otherthing";
 foreach ($sortorders as $by => $order) {
   if ($order["linktext"] != "notes"){
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter" . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
   else {
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter" ."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
 }
 ?>   </tr>
