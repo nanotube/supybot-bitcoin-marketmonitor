@@ -190,7 +190,8 @@ class GPG(callbacks.Plugin):
                             'registration':True, 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
-        irc.reply("Request successful. Your challenge string is: %s" % challenge)
+        irc.reply("Request successful for user %s. Your challenge string is: %s" %\
+                (nick, challenge,))
     register = wrap(register, ['something', 'keyid', optional('keyserver')])
 
     def auth(self, irc, msg, args, nick):
@@ -215,7 +216,8 @@ class GPG(callbacks.Plugin):
                                 'registration':False, 'challenge':challenge,
                                 'fingerprint':fingerprint}}
         self.pending_auth.update(request)
-        irc.reply("Request successful. Your challenge string is: %s" % challenge)
+        irc.reply("Request successful for user %s. Your challenge string is: %s" %\
+                (nick, challenge,))
     auth = wrap(auth, ['something'])
 
     def _unauth(self, hostmask):
