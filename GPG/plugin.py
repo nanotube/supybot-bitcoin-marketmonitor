@@ -352,6 +352,7 @@ class GPG(callbacks.Plugin):
         Gives the statistics on number of registered users,
         number of authenticated users, number of pending authentications.
         """
+        self._removeExpiredRequests()
         try:
             regusers = self.db.getCount()[0][0]
             authedusers = len(self.authed_users)
