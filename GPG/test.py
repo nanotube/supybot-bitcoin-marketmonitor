@@ -58,8 +58,13 @@ class GPGTestCase(PluginTestCase):
             self.assertError('register someone 0xBADKEY')
             self.assertError('register someone 0x23420982') # bad length
             self.assertError('register someone 0xAAAABBBBCCCCDDDD') #doesn't exist
+            self.assertRegexp('register someone 0xAAAABBBBCCCCDDDD "bad key server arg"', 'given a random passphrase') #badly formed keyserver
             self.cb.gpg.list_keys()
-            m = self.getMsg('register someone %s' % (self.testkeyid,))
+            m = self.getMsg('register someone %s hkp://pgp.surfnet.nl:11371' % (self.testkeyid,)) #test url keyserver arg
+            self.failUnless('Request successful' in str(m))
+            m = self.getMsg('register someone %s pgp.surfnet.nl' % (self.testkeyid,)) #test domain keyserver arg
+            self.failUnless('Request successful' in str(m))
+            m = self.getMsg('register someone %s' % (self.testkeyid,)) #test without keyserver arg
             self.failUnless('Request successful' in str(m))
             challenge = str(m).split('is: ')[1]
             sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)

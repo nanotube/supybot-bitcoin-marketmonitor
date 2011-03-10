@@ -39,6 +39,7 @@ except ImportError:
             "You need the gnupg module installed to use this plugin." 
 
 domainRe = re.compile('^' + utils.web._domain + '$', re.I)
+urlRe = re.compile('^' + utils.web._urlRe + '$', re.I)
 
 class GPGDB(object):
     def __init__(self, filename):
@@ -102,7 +103,7 @@ def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
 
 def getKeyserver(irc, msg, args, state, type='keyserver'):
     v = args[0]
-    if not domainRe.search(v):
+    if not urlRe.search(v) and not domainRe.search(v):
         state.errorInvalid(type, args[0])
         return
     state.args.append(args[0])
