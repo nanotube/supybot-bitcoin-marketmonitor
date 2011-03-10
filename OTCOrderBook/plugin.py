@@ -66,21 +66,31 @@ class OTCOrderDB(object):
     def close(self):
         self.db.close()
 
-    def get(self, host=None, id=None):
+    def get(self, nick=None, id=None):
         cursor = self.db.cursor()
         sql = "SELECT * FROM orders WHERE"
         joiner = ""
         vars = []
-        if id is None and host is None:
+        if id is None and nick is None:
             return []
-        if host is not None:
-            sql += " host=?"
-            vars.append(host)
+        if nick is not None:
+            sql += " nick=?"
+            vars.append(nick)
             joiner = " AND"
         if id is not None:
             sql += joiner + " id=?"
             vars.append(id)
         cursor.execute(sql, tuple(vars))
+        return cursor.fetchall()
+
+    def getByNick(self, nick):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM orders WHERE nick=?""", (nick,))
+        return cursor.fetchall()
+
+    def getById(self, id):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM orders WHERE id=?""", (id,))
         return cursor.fetchall()
 
     def deleteExpired(self, expiry):
@@ -118,8 +128,8 @@ class OTCOrderDB(object):
         self.db.commit()
         return cursor.lastrowid
 
-    def refresh(self, host, id=None):
-        results = self.get(host, id)
+    def refresh(self, nick, id=None):
+        results = self.get(nick, id)
         if len(results) != 0:
             cursor = self.db.cursor()
             timestamp = time.time()
@@ -211,18 +221,8 @@ class OTCOrderBook(callbacks.Plugin):
         self.__parent.die()
         self.db.close()
 
-    def _checkHost(self, host):
-        if self.registryValue('requireCloak'):
-            if "/" not in host or host.startswith('gateway/web/freenode'):
-                return False
-        return True
-
-    def _checkRegisteredUser(self, prefix):
-        try:
-            _ = ircdb.users.getUser(prefix)
-            return True
-        except KeyError:
-            return False
+    def _checkGPGAuth(self, irc, prefix):
+        return irc.getCallback('GPG')._ident(prefix)
 
     def _getMtgoxQuote(self):
         try:
@@ -270,18 +270,18 @@ class OTCOrderBook(callbacks.Plugin):
         for a currency conversion rate between two currencies.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
-            irc.error("For identification purposes, you must have a freenode cloak "
-                      "to use the order system. "
-                      "See http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc for details.")
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            irc.error("For identification purposes, you must be identified via GPG "
+                      "to use the rating system.")
             return
-        results = self.db.get(host=msg.host)
+        results = self.db.getByNick(gpgauth['nick'])
         if len(results) >= self.registryValue('maxUserOpenOrders'):
             irc.error("You may not have more than %s outstanding open orders." % \
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        orderid = self.db.buy(msg.nick, msg.host, amount, thing, price, otherthing, notes)
+        orderid = self.db.buy(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes)
         irc.reply("Order id %s created." % (orderid,))
     buy = wrap(buy, ['positiveFloat','something','at','indexedPrice','something',
                      optional('text')])
@@ -297,18 +297,18 @@ class OTCOrderBook(callbacks.Plugin):
         for a currency conversion rate between two currencies.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        if not self._checkHost(msg.host) and not self._checkRegisteredUser(msg.prefix):
-            irc.error("For identification purposes, you must have a freenode cloak "
-                      "to use the order system. "
-                      "See http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc for details.")
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            irc.error("For identification purposes, you must be identified via GPG "
+                      "to use the rating system.")
             return
-        results = self.db.get(host=msg.host)
+        results = self.db.getByNick(gpgauth['nick'])
         if len(results) >= self.registryValue('maxUserOpenOrders'):
             irc.error("You may not have more than %s outstanding open orders." % \
                       self.registryValue('maxUserOpenOrders'))
             return
 
-        orderid = self.db.sell(msg.nick, msg.host, amount, thing, price, otherthing, notes)
+        orderid = self.db.sell(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes)
         irc.reply("Order id %s created." % (orderid,))
     sell = wrap(sell, ['positiveFloat','something','at','indexedPrice','something',
                      optional('text')])
@@ -320,7 +320,12 @@ class OTCOrderBook(callbacks.Plugin):
         <orderid> argument present, only refreshes that particular order.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        rv = self.db.refresh(msg.host, orderid)
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            irc.error("For identification purposes, you must be identified via GPG "
+                      "to use the rating system.")
+            return
+        rv = self.db.refresh(gpgauth['nick'], orderid)
         if rv is not False:
             irc.reply("Order refresh successful, %s orders refreshed." % rv)
         else:
@@ -335,7 +340,12 @@ class OTCOrderBook(callbacks.Plugin):
         only removes that particular order.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
-        rv = self.db.remove(msg.host, orderid)
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            irc.error("For identification purposes, you must be identified via GPG "
+                      "to use the rating system.")
+            return
+        rv = self.db.remove(gpgauth['nick'], orderid)
         if rv is not False:
             irc.reply("Order remove successful, %s orders removed." % rv)
         else:
@@ -343,14 +353,16 @@ class OTCOrderBook(callbacks.Plugin):
                       "view your open orders.")
     remove = wrap(remove, [optional('int')])
 
-    def view(self, irc, msg, args, optlist, orderid):
-        """[--raw] [<orderid>]
+    def view(self, irc, msg, args, optlist, query):
+        """[--raw] [<orderid>|<nick>]
 
         View information about your outstanding orders. If optional <orderid>
-        argument present, only show that particular order. If '--raw' option is
-        given, show raw price input, rather than the resulting indexed value.
+        or <nick> argument is present, only show orders with that id or nick.
+        If '--raw' option is given, show raw price input, rather than the
+        resulting indexed value.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
         raw = False
         for (option, arg) in optlist:
             if option == 'raw':
@@ -360,15 +372,23 @@ class OTCOrderBook(callbacks.Plugin):
         else:
             self._getMtgoxQuote()
             f = self._getIndexedValue
-        host = msg.host if orderid is None else None
-        results = self.db.get(host, orderid)
+        if query is None:
+            if gpgauth is None:
+                nick = msg.nick
+            else:
+                nick = gpgauth['nick']
+            results = self.db.getByNick(nick)
+        elif isinstance(query, int):
+            results = self.db.getById(query)
+        else:
+            results = self.db.getByNick(query)
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return
         if len(results) > self.registryValue('maxOrdersInBookList'):
             irc.error("Too many orders to list on channel. Visit "
                     "http://bitcoin-otc.com/vieworderbook.php?nick=%s "
-                    "to see the list of your outstanding orders." % (msg.nick,))
+                    "to see the list of matching orders." % (nick,))
             return
         L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
                                                    time.ctime(refreshed_at),
@@ -392,7 +412,7 @@ class OTCOrderBook(callbacks.Plugin):
                   notes) in results]
 
         irc.replies(L, joiner=" || ")
-    view = wrap(view, [getopts({'raw': '',}), optional('int')])
+    view = wrap(view, [getopts({'raw': '',}), optional(first('int','something'))])
     
     def book(self, irc, msg, args, thing):
         """<thing>

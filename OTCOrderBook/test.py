@@ -33,15 +33,31 @@ from supybot.test import *
 import sqlite3
 
 class OTCOrderBookTestCase(PluginTestCase):
-    plugins = ('OTCOrderBook','User')
+    plugins = ('OTCOrderBook','GPG')
+
+    def setUp(self):
+        PluginTestCase.setUp(self)
+
+        #preseed the GPG db with a GPG registration and auth for nanotube
+        gpg = self.irc.getCallback('GPG')
+        gpg.db.register('AAAAAAAAAAAAAAA1', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA1',
+                    time.time(), 'nanotube')
+        gpg.authed_users['nanotube!stuff@stuff/somecloak'] = {'nick':'nanotube'}
+        gpg.db.register('AAAAAAAAAAAAAAA2', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA2',
+                    time.time(), 'registeredguy')
+        gpg.db.register('AAAAAAAAAAAAAAA3', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3',
+                    time.time(), 'authedguy')
+        gpg.authed_users['authedguy!stuff@123.345.234.34'] = {'nick':'authedguy'}
+        gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
+                    time.time(), 'authedguy2')
+        gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2'}
 
     def testBuy(self):
-        # no cloak
+        # no gpg auth
         self.assertError('buy 1000 btc at 0.06 LRUSD really nice offer!')
         try:
-            world.testing = False
             origuser = self.prefix
-            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertRegexp('buy 1000 btc at 0.06 LRUSD really nice offer!', 'Order id \d+ created')
             self.assertNotError('buy 2000 bitcoins @ 0.06 LRUSD')
             self.assertNotError('buy 3000 bitcoin at 0.07 PPUSD really nice offer!')
@@ -50,22 +66,15 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertRegexp('view 1', 'BUY 1000')
             self.assertError('buy 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
-            self.prefix = 'stuff!stuff@gateway/web/freenode/moo'
-            self.assertError('buy 1000 btc at 0.06 lrusd bla') # no cloak
-            self.assertNotError('register nottester stuff')
-            self.assertNotError('buy 1000 btc at 0.06 lrusd bla') # registered user
-            self.assertRegexp('view 2', 'stuff/somecloak BUY 2000')
         finally:
-            world.testing = True
             self.prefix = origuser
 
     def testSell(self):
-        # no cloak
+        # no gpg auth
         self.assertError('buy 1000 btc at 0.06 LRUSD really nice offer!')
         try:
-            world.testing = False
             origuser = self.prefix
-            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertRegexp('sell 1000 btc at 0.06 LRUSD really nice offer!', 'Order id \d+ created')
             self.assertNotError('sell 2000 bitcoins @ 0.06 LRUSD')
             self.assertNotError('sell 3000 bitcoin at 0.07 PPUSD really nice offer!')
@@ -73,33 +82,24 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('view')
             self.assertError('sell 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
-            self.prefix = 'stuff!stuff@stuff'
-            self.assertError('sell 1000 btc at 0.06 lrusd bla') # no cloak
-            self.assertNotError('register nottester stuff')
-            self.assertNotError('sell 1000 btc at 0.06 lrusd bla') # registered user
-            self.assertNotError('sell 1000 btc at 0 usd loan for 1 month at 1% monthly interest')
         finally:
-            world.testing = True
             self.prefix = origuser
 
     def testRefresh(self):
         try:
-            world.testing = False
             origuser = self.prefix
-            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
             self.assertNotError('refresh')
             self.assertNotError('refresh 1')
             self.assertRegexp('view', '1000')
         finally:
-            world.testing = True
             self.prefix = origuser
 
     def testRemove(self):
         try:
-            world.testing = False
             origuser = self.prefix
-            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
             self.assertNotError('sell 2000 btc at 0.06 LRUSD really nice offer!')
             self.assertRegexp('view', '1000.*2000')
@@ -110,14 +110,12 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('remove')
             self.assertError('view')
         finally:
-            world.testing = True
             self.prefix = origuser
 
     def testBook(self):
         try:
-            world.testing = False
             origuser = self.prefix
-            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
             self.assertNotError('sell 2000 btc at 0.07 LRUSD really nice offer!')
             self.assertNotError('buy 3000 btc at 0.06 PPUSD really nice offer!')
@@ -128,15 +126,13 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('remove 4')
             self.assertNotError('buy 5000 btc at 0.05 LRUSD')
             self.assertRegexp('book LRUSD', '5000.*1000.*2000')
-#            self.assertRegexp('book lrusd', '5000.*1000.*2000')
         finally:
-            world.testing = True
             self.prefix = origuser
 
     def testIndexing(self):
         try:
             origuser = self.prefix
-            self.prefix = 'stuff!stuff@stuff/somecloak'
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('buy 1000 btc at "{mtgoxbid} - 0.03" ppusd')
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'BUY 1000.0 btc @ "{mtgoxbid}')
@@ -157,6 +153,24 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'BUY 1000.0 btc @ "\({mtgoxlast}')
             self.assertError('buy 1000 btc at "{zomg} + 1" ppusd');
+        finally:
+            self.prefix = origuser
+
+    def testView(self):
+        try:
+            origuser = self.prefix
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
+            self.assertNotError('buy 1000 btc at .8 usd')
+            self.assertNotError('sell 2000 btc at .9 usd')
+            self.assertRegexp('view', '1000.*2000')
+            self.assertRegexp('view 1', '1000')
+            self.assertRegexp('view nanotube', '1000.*2000')
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('buy 3000 btc at .7 eur')
+            self.assertNotError('sell 4000 btc at .8 eur')
+            self.assertRegexp('view 2', '2000')
+            self.assertRegexp('view', '3000.*4000')
+            self.assertRegexp('view nanotube', '1000.*2000')
         finally:
             self.prefix = origuser
 

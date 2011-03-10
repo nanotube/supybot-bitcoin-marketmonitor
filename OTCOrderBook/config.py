@@ -45,11 +45,6 @@ OTCOrderBook = conf.registerPlugin('OTCOrderBook')
 # conf.registerGlobalValue(OTCOrderBook, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
 
-conf.registerGlobalValue(OTCOrderBook, 'requireCloak',
-    registry.Boolean(True, """Only allow users with cloaks to enter orders.
-    Good idea to have this set to prevent clonebot attacks to spamify the
-    database."""))
-
 conf.registerGlobalValue(OTCOrderBook, 'orderExpiry',
     registry.NonNegativeInteger(604800, """Time until order expiry. Unless a user
     calls 'refresh', orders will expire after this many seconds. Set to 0 for no
