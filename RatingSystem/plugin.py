@@ -246,19 +246,6 @@ class RatingSystem(callbacks.Plugin):
         self.__parent.die()
         self.db.close()
 
-    def _checkHost(self, host):
-        if self.registryValue('requireCloak'):
-            if "/" not in host or host.startswith('gateway/web/freenode'):
-                return False
-        return True
-
-    def _checkRegisteredUser(self, prefix):
-        try:
-            _ = ircdb.users.getUser(prefix)
-            return True
-        except KeyError:
-            return False
-
     def _checkGPGAuth(self, irc, prefix):
         return irc.getCallback('GPG')._ident(prefix)
 

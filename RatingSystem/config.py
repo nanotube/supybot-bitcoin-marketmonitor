@@ -42,11 +42,6 @@ def configure(advanced):
 
 RatingSystem = conf.registerPlugin('RatingSystem')
 
-conf.registerGlobalValue(RatingSystem, 'requireCloak',
-    registry.Boolean(True, """Only allow users with cloaks to enter ratings.
-    Good idea to have this set to prevent clonebot attacks to spamify the
-    database."""))
-
 conf.registerGlobalValue(RatingSystem, 'requirePositiveRating',
     registry.Boolean(True, """Only allow users with a positive rating to enter
     ratings."""))

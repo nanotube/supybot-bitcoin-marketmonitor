@@ -34,7 +34,7 @@ import sqlite3
 import time
 
 class RatingSystemTestCase(PluginTestCase):
-    plugins = ('RatingSystem','User','GPG')
+    plugins = ('RatingSystem','GPG')
 
     def setUp(self):
         PluginTestCase.setUp(self)
