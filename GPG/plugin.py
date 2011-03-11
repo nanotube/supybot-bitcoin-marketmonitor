@@ -333,19 +333,27 @@ class GPG(callbacks.Plugin):
             irc.reply(response + "not identified.")
     ident = wrap(ident, [optional('something')])
 
-    def info(self, irc, msg, args, nick):
-        """<nick>
-        
+    def info(self, irc, msg, args, optlist, nick):
+        """[--key] <nick>
+
         Returns the registration details of registered user <nick>.
+        If '--key' option is given, interpret <nick> as a GPG key ID.
         """
-        result = self.db.getByNick(nick)
+        key = False
+        for (option, arg) in optlist:
+            if option == 'key':
+                key = True
+        if key:
+            result = self.db.getByKey(nick)
+        else:
+            result = self.db.getByNick(nick)
         if len(result) == 0:
             irc.error("No such user registered.")
             return
         result = result[0]
         irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s." %\
                 (result[4], result[1], result[2], time.ctime(result[3])))
-    info = wrap(info, ['something'])
+    info = wrap(info, [getopts({'key': '',}),'something'])
 
     def stats(self, irc, msg, args):
         """takes no arguments
