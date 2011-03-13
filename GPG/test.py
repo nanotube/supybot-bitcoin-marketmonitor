@@ -88,7 +88,7 @@ class GPGTestCase(PluginTestCase):
         challenge = str(m).split('is: ')[1]
         sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
         pasteid = self.s.pastes.newPaste('text',sd.data)
-        self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
+        self.assertRegexp('verify http://paste.pocoo.org/show/%s/' % (pasteid,), 
                     'Registration successful. You are now authenticated')
 
         #are we identified?
