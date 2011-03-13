@@ -162,5 +162,7 @@ class GPGTestCase(PluginTestCase):
     def testInfo(self):
         self.assertRegexp('gpg info authedguy', "User 'authedguy'.*registered on")
         self.assertRegexp('gpg info authEDguY', "User 'authedguy'.*registered on")
+        self.assertRegexp('gpg info AAAAAAAAAAAAAAA1', "No such user registered")
+        self.assertRegexp('gpg info --key AAAAAAAAAAAAAAA1', "User 'nanotube'.*registered on")
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
