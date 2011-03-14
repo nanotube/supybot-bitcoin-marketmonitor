@@ -21,6 +21,7 @@
   $otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
   $eitherthingfilter = isset($_GET["eitherthing"]) ? $_GET["eitherthing"] : "";
   $nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
+  $notesfilter = isset($_GET["notes"]) ? $_GET["notes"] : "";
   include("somefunctions.php");
 ?>
 
@@ -112,6 +113,7 @@ foreach ($eitherthingdata as $eitherthing) {
 }
 ?>
 </select>
+<label>Search notes: <input type="text" name="notes" /></label>
 <input type="submit" value="Filter" />
 </form>
 </td></tr>
@@ -128,10 +130,10 @@ $sortorders["thing"]["linktext"] = "thing";
 $sortorders["otherthing"]["linktext"] = "otherthing";
 foreach ($sortorders as $by => $order) {
   if ($order["linktext"] != "notes"){
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter" . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter&notes=$notesfilter" . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
   else {
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter" ."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter&notes=$notesfilter" ."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
 }
 ?>   </tr>
@@ -142,6 +144,7 @@ foreach ($sortorders as $by => $order) {
    if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
    if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
    if ($eitherthingfilter != "") $queryfilter[] = "(thing LIKE '" . sqlite_escape_string($eitherthingfilter) . "' OR otherthing LIKE '" . sqlite_escape_string($eitherthingfilter) . "')";
+   if ($notesfilter != "") $queryfilter[] = "notes LIKE '%" . sqlite_escape_string($notesfilter) . "%'";
    if (sizeof($queryfilter) != 0) {
      $queryfilter = " WHERE " . join(' AND ', $queryfilter);
    }
