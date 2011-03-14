@@ -273,7 +273,7 @@ class OTCOrderBook(callbacks.Plugin):
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("For identification purposes, you must be identified via GPG "
-                      "to use the rating system.")
+                      "to use the order book.")
             return
         results = self.db.getByNick(gpgauth['nick'])
         if len(results) >= self.registryValue('maxUserOpenOrders'):
@@ -300,7 +300,7 @@ class OTCOrderBook(callbacks.Plugin):
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("For identification purposes, you must be identified via GPG "
-                      "to use the rating system.")
+                      "to use the order book.")
             return
         results = self.db.getByNick(gpgauth['nick'])
         if len(results) >= self.registryValue('maxUserOpenOrders'):
@@ -323,7 +323,7 @@ class OTCOrderBook(callbacks.Plugin):
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("For identification purposes, you must be identified via GPG "
-                      "to use the rating system.")
+                      "to use the order book.")
             return
         rv = self.db.refresh(gpgauth['nick'], orderid)
         if rv is not False:
@@ -343,7 +343,7 @@ class OTCOrderBook(callbacks.Plugin):
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("For identification purposes, you must be identified via GPG "
-                      "to use the rating system.")
+                      "to use the order book.")
             return
         rv = self.db.remove(gpgauth['nick'], orderid)
         if rv is not False:
