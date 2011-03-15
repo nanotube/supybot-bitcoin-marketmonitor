@@ -74,7 +74,7 @@ class OTCOrderDB(object):
         if id is None and nick is None:
             return []
         if nick is not None:
-            sql += " nick=?"
+            sql += " nick LIKE ?"
             vars.append(nick)
             joiner = " AND"
         if id is not None:
@@ -85,7 +85,7 @@ class OTCOrderDB(object):
 
     def getByNick(self, nick):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM orders WHERE nick=?""", (nick,))
+        cursor.execute("""SELECT * FROM orders WHERE nick LIKE ?""", (nick,))
         return cursor.fetchall()
 
     def getById(self, id):
@@ -140,8 +140,8 @@ class OTCOrderDB(object):
             return len(results)
         return False
 
-    def remove(self, host, id=None):
-        results = self.get(host, id)
+    def remove(self, nick, id=None):
+        results = self.get(nick, id)
         if len(results) != 0:
             cursor = self.db.cursor()
             for row in results:

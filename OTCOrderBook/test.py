@@ -171,6 +171,7 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertRegexp('view 2', '2000')
             self.assertRegexp('view', '3000.*4000')
             self.assertRegexp('view nanotube', '1000.*2000')
+            self.assertRegexp('view naNOtuBe', '1000.*2000')
         finally:
             self.prefix = origuser
 
