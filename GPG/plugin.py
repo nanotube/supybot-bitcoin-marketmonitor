@@ -212,7 +212,7 @@ class GPG(callbacks.Plugin):
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
         challenge = hashlib.sha256(os.urandom(128)).hexdigest()
-        request = {msg.prefix: {'nick':nick,
+        request = {msg.prefix: {'nick':userdata[0][4],
                                 'expiry':time.time(), 'keyid':keyid,
                                 'registration':False, 'challenge':challenge,
                                 'fingerprint':fingerprint}}
