@@ -113,10 +113,12 @@ class GPGExt(callbacks.Plugin):
             irc.error("GPG identity tag failed to verify with key id %s. Reason: %s" % \
                     (keyid, result['error']))
             return
-        irc.reply("Verified signature made with keyid %s, for site %s and user %s. "
-                "Note that you must still verify manually that the GPG identity tag "
+        irc.reply("Verified signature made with keyid %s, belonging to OTC user %s, "
+                "for site %s and user %s. "
+                "Note that you must still verify manually that (1) the site and username "
+                "match the content of signed message, and (2) that the GPG identity tag "
                 "was posted in user-only accessible area of the site." % \
-                (keyid, result['site'], result['user'],))
+                (keyid, nick, result['site'], result['user'],))
     verify = wrap(verify, ['httpUrl',optional('something')])
 
 Class = GPGExt
