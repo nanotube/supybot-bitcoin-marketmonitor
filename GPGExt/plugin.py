@@ -180,20 +180,15 @@ class GPGExt(callbacks.Plugin):
             irc.error("GPG identity tag failed to verify with key id %s. Reason: %s" % \
                     (result['keyid'], result['error']))
             return
-        irc.reply("Verified signature made with keyid %s, belonging to OTC user %s, "
-                "for site %s and user %s. "
-                "Note that you must still verify manually that (1) the site and username "
-                "match the content of signed message, and (2) that the GPG identity tag "
-                "was posted in user-only accessible area of the site." % \
-                (result['keyid'], result['nick'], result['site'], result['user'],))
 
         #ebay special: check for match of user and site
         if result['user'].lower() != ebaynick.lower() or not re.match(r'(http://)?(www.)?ebay.com', result['site']):
             irc.error("Site or user do not match.")
             return
+
         irc.reply("Verified signature made with keyid %s, belonging to OTC user %s, "
                 "for site %s and user %s. " % \
-                (keyid, nick, result['site'], result['user'],))
+                (result['keyid'], result['nick'], result['site'], result['user'],))
     ebay = wrap(ebay, ['something',optional('something')])
 
 Class = GPGExt
