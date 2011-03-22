@@ -44,4 +44,8 @@ class GPGExtTestCase(PluginTestCase):
         self.assertError('GPGExt verify http://google.com nosuchuser') #bad user
         self.assertRegexp('GPGExt verify http://nanotube.users.sourceforge.net nanotube', 'Verified signature')
 
+    def testEbay(self):
+        self.assertRegexp('GPGExt ebay mndrix mndrix', 'Verified signature')
+        self.assertError('GPGExt ebay mndrix nanotube')
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

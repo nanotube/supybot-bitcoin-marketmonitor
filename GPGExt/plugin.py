@@ -25,6 +25,7 @@ import supybot.callbacks as callbacks
 
 import re
 import base64
+from lxml import etree
 
 # regexp to match the gpg_identity tag
 # make sure to drop any html tags a site may add after.
@@ -46,6 +47,54 @@ class GPGExt(callbacks.Plugin):
 
     def _checkGPGReg(self, irc, nick):
         return irc.getCallback('GPG').db.getByNick(nick)
+
+    def _verifySetup(self, irc, msg, nick):
+        """Initial verification setup."""
+        result = {}
+        if nick is None:
+            gpgauth = self._checkGPGAuth(irc, msg.prefix)
+            if gpgauth is not None:
+                nick = gpgauth['nick']
+            else:
+                nick = msg.nick
+        gpgreg = self._checkGPGReg(irc, nick)
+        if len(gpgreg) == 0:
+            result['error'] = "Nick %s not registered in GPG database." % (nick,)
+            return result
+        keyid = gpgreg[0][1]
+        result['nick'] = nick
+        result['keyid'] = keyid
+        return result
+
+    def _verifyCont(self, irc, msg, pagedata):
+        """Next step, process the gpg identity tag."""
+        result = {}
+        m = gpgtagre.search(pagedata)
+        if m is None:
+            result['error'] = "GPG identity tag not found on target page."
+            return result
+        data = m.group(1)
+        if '.' in data: # this is a url
+            try:
+                signedmsg = utils.web.getUrl(data)
+            except:
+                result['error'] = "Can't retrieve signature from link '%s' in GPG identity tag." % (data,)
+                return result
+        else:
+            try:
+                signedmsg = base64.b64decode(data)
+            except:
+                result['error'] = "Problems base64 decoding key data."
+                return result
+        try:
+            m = re.search(r'-----BEGIN PGP SIGNED MESSAGE-----.*?\n-----END PGP SIGNATURE-----', signedmsg, re.S)
+            signedmsg = m.group(0)
+        except:
+            result['error'] = "Malformed signed message."
+            return result
+        result['signedmsg'] = signedmsg
+        return result
+
 
     def _verifyGPGSigData(self, irc, data, keyid):
         """verify data, return site and nick dict if all good, return dict with 'error' otherwise."""
@@ -69,57 +118,83 @@ class GPGExt(callbacks.Plugin):
         Pulls the gpg signature data from <url>, and verifies it against <nick>'s
         registered gpg key. If <nick> is omitted, uses the requestor's registered nick.
         """
-        if nick is None:
-            gpgauth = self._checkGPGAuth(irc, msg.prefix)
-            if gpgauth is not None:
-                nick = gpgauth['nick']
-            else:
-                nick = msg.nick
-        gpgreg = self._checkGPGReg(irc, nick)
-        if len(gpgreg) == 0:
-            irc.error("Nick %s not registered in GPG database." % (nick,))
+        result = self._verifySetup(irc, msg, nick)
+        if result.has_key('error'):
+            irc.error(result['error'])
             return
-        keyid = gpgreg[0][1]
         try:
             pagedata = utils.web.getUrl(url)
         except:
             irc.error("Problem retrieving target url.")
             return
-        m = gpgtagre.search(pagedata)
-        if m is None:
-            irc.error("GPG identity tag not found on target page.")
+        result.update(self._verifyCont(irc, msg, pagedata))
+        if result.has_key('error'):
+            irc.error(result['error'])
             return
-        data = m.group(1)
-        if '.' in data: # this is a url
-            try:
-                signedmsg = utils.web.getUrl(data)
-            except:
-                irc.error("Can't retrieve signature from link '%s' in GPG identity tag." % (data,))
-                return
-        else:
-            try:
-                signedmsg = base64.b64decode(data)
-            except:
-                irc.error("Problems base64 decoding key data.")
-                return
-        try:
-            m = re.search(r'-----BEGIN PGP SIGNED MESSAGE-----.*?\n-----END PGP SIGNATURE-----', signedmsg, re.S)
-            signedmsg = m.group(0)
-        except:
-            irc.error("Malformed signed message.")
-            return
-        result = self._verifyGPGSigData(irc, signedmsg, keyid)
+        result.update(self._verifyGPGSigData(irc, result['signedmsg'], result['keyid']))
         if result.has_key('error'):
             irc.error("GPG identity tag failed to verify with key id %s. Reason: %s" % \
-                    (keyid, result['error']))
+                    (result['keyid'], result['error']))
             return
         irc.reply("Verified signature made with keyid %s, belonging to OTC user %s, "
                 "for site %s and user %s. "
                 "Note that you must still verify manually that (1) the site and username "
                 "match the content of signed message, and (2) that the GPG identity tag "
                 "was posted in user-only accessible area of the site." % \
-                (keyid, nick, result['site'], result['user'],))
+                (result['keyid'], result['nick'], result['site'], result['user'],))
     verify = wrap(verify, ['httpUrl',optional('something')])
+
+    def ebay(self, irc, msg, args, ebaynick, nick):
+        """<ebaynick> [<nick>]
+        
+        Pulls the gpg signature data from <ebaynick> myworld profile on ebay,
+        and verifies it against <nick>'s registered gpg key. 
+        If <nick> is omitted, uses the requestor's registered nick.
+        """
+        result = self._verifySetup(irc, msg, nick)
+        if result.has_key('error'):
+            irc.error(result['error'])
+            return
+        try:
+            url = 'http://myworld.ebay.com/' + ebaynick
+            pagedata = utils.web.getUrl(url)
+        except:
+            irc.error("Problem retrieving target url: %s" % (url,))
+            return
+
+        # ebay special: process ebay page
+        parser = etree.HTMLParser()
+        tree = etree.parse('http://myworld.ebay.com/mndrix', parser)
+        context = etree.iterwalk(tree, tag='div')
+        for _, element in context:
+            for item in element.items():
+                if item[0] == 'id' and item[1] == 'PortalColumnTwo':
+                    ebaybio = etree.tostring(element)
+
+        result.update(self._verifyCont(irc, msg, ebaybio))
+        if result.has_key('error'):
+            irc.error(result['error'])
+            return
+        result.update(self._verifyGPGSigData(irc, result['signedmsg'], result['keyid']))
+        if result.has_key('error'):
+            irc.error("GPG identity tag failed to verify with key id %s. Reason: %s" % \
+                    (result['keyid'], result['error']))
+            return
+        irc.reply("Verified signature made with keyid %s, belonging to OTC user %s, "
+                "for site %s and user %s. "
+                "Note that you must still verify manually that (1) the site and username "
+                "match the content of signed message, and (2) that the GPG identity tag "
+                "was posted in user-only accessible area of the site." % \
+                (result['keyid'], result['nick'], result['site'], result['user'],))
+
+        #ebay special: check for match of user and site
+        if result['user'].lower() != ebaynick.lower() or not re.match(r'(http://)?(www.)?ebay.com', result['site']):
+            irc.error("Site or user do not match.")
+            return
+        irc.reply("Verified signature made with keyid %s, belonging to OTC user %s, "
+                "for site %s and user %s. " % \
+                (keyid, nick, result['site'], result['user'],))
+    ebay = wrap(ebay, ['something',optional('something')])
 
 Class = GPGExt
 
