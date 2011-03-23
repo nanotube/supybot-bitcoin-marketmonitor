@@ -381,7 +381,8 @@ class OTCOrderBook(callbacks.Plugin):
         elif isinstance(query, int):
             results = self.db.getById(query)
         else:
-            results = self.db.getByNick(query)
+            nick = query
+            results = self.db.getByNick(nick)
         if len(results) == 0:
             irc.error("No orders found matching these criteria.")
             return
