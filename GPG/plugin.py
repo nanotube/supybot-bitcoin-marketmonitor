@@ -283,6 +283,8 @@ class GPG(callbacks.Plugin):
             vo = self.gpg.verify(data)
             if not vo.valid:
                 irc.error("Signature verification failed.")
+                self.log.info("Signature verification from %s failed. Details: %s" % \
+                        (msg.prefix, vo.stderr))
                 return
             if vo.key_id != authrequest['keyid'] and vo.pubkey_fingerprint[-16:] != authrequest['keyid']:
                 irc.error("Signature is not made with the key on record for this nick.")
