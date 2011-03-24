@@ -720,6 +720,8 @@ class Verify(object):
              self.creation_date,
              self.sig_timestamp,
              self.expire_timestamp) = value.split()[:4]
+             # may be different if signature is made with a subkey:
+            self.pubkey_fingerprint = value.split()[-1]
         elif key == "SIG_ID":
             (self.signature_id,
              self.creation_date, self.timestamp) = value.split()
@@ -732,6 +734,12 @@ class Verify(object):
         elif key == "NO_PUBKEY":
             self.valid = False
             self.key_id = value
+        elif key in ("KEYEXPIRED", "SIGEXPIRED",):
+            # these are useless in verify, since they are spit out for any
+            # pub/subkeys on the key, not just the one doing the signing.
+            # if we want to check for signatures with expired key,
+            # the relevant flag is EXPKEYSIG.
+            pass
         else:
             raise ValueError("Unknown status message: %r" % key)
 
