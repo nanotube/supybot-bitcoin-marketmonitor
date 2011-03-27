@@ -135,6 +135,15 @@ class GPGTestCase(PluginTestCase):
                     'You are now authenticated')
         self.assertRegexp('gpg ident', 'You are identified')
 
+    def testChangenick(self):
+        self.assertError('gpg changenick somethingnew') #not authed
+        self.prefix = 'authedguy2!stuff@123.345.234.34'
+        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg changenick mycoolnewnick',
+                'changed your nick from authedguy2 to mycoolnewnick')
+        self.assertRegexp('gpg ident authedguy2', 'identified as user mycoolnewnick')
+        self.assertRegexp('gpg info mycoolnewnick', "User 'mycoolnewnick'.* registered on")
+
     def testNick(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
         self.assertRegexp('gpg ident', 'are identified')

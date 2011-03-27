@@ -92,6 +92,12 @@ class GPGDB(object):
                         (keyid, fingerprint, timestamp, nick))
         self.db.commit()
 
+    def changenick(self, oldnick, newnick):
+        cursor = self.db.cursor()
+        cursor.execute("""UPDATE users SET nick = ? WHERE nick = ?""",
+                        (newnick, oldnick,))
+        self.db.commit()
+
 def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
     v = args[0]
     m = re.search(r'^(0x)?([0-9A-Fa-f]{16})$', v)
@@ -316,6 +322,26 @@ class GPG(callbacks.Plugin):
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     verify = wrap(verify, ['httpUrl'])
+
+    def changenick(self, irc, msg, args, newnick):
+        """<newnick>
+        
+        Changes your GPG registered username to <newnick>.
+        You must be authenticated in order to use this command.
+        """
+        self._removeExpiredRequests()
+        gpgauth = self._ident(msg.prefix)
+        if gpgauth is None:
+            irc.error("You must be authenticated in order to change your registered username.")
+            return
+        if self.db.getByNick(newnick):
+            irc.error("Username already registered. Try a different username.")
+            return
+        oldnick = gpgauth['nick']
+        self.db.changenick(oldnick, newnick)
+        gpgauth['nick'] = newnick
+        irc.reply("Successfully changed your nick from %s to %s." % (oldnick, newnick,))
+    changenick = wrap(changenick, ['something'])
 
     def ident(self, irc, msg, args, nick):
         """[<nick>]
