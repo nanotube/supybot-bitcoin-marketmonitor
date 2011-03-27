@@ -393,7 +393,7 @@ class OTCOrderBook(callbacks.Plugin):
             return
         L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
                                                    time.ctime(refreshed_at),
-                                                   host,
+                                                   nick,
                                                    buysell,
                                                    amount,
                                                    thing,
@@ -431,10 +431,9 @@ class OTCOrderBook(callbacks.Plugin):
                       "to see the complete order book.")
             return
         self._getMtgoxQuote()
-        L = ["#%s %s %s@%s %s %s %s @ %s %s (%s)" % (id,
+        L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
                                                       time.ctime(refreshed_at),
                                                       nick,
-                                                      host,
                                                       buysell,
                                                       amount,
                                                       thing,
