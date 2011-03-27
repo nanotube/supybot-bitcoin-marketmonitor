@@ -124,12 +124,21 @@ class GPG(callbacks.Plugin):
         self.db = GPGDB(self.filename)
         self.db.open()
         self.gpg = gnupg.GPG(gnupghome = conf.supybot.directories.data.dirize('GPGkeyring'))
-        self.pending_auth = {}
-        self.authed_users = {}
+        try: #restore auth dicts, if we're reloading the plugin
+            self.authed_users = utils.gpg_authed_users
+            utils.gpg_authed_users = {}
+            self.pending_auth = utils.gpg_pending_auth
+            utils.gpg_pending_auth = {}
+        except AttributeError:
+            self.pending_auth = {}
+            self.authed_users = {}
 
     def die(self):
         self.__parent.die()
         self.db.close()
+        # save auth dicts, in case we're reloading the plugin
+        utils.gpg_authed_users = self.authed_users
+        utils.gpg_pending_auth = self.pending_auth
 
     def _removeExpiredRequests(self):
         pending_auth_copy = copy.deepcopy(self.pending_auth)

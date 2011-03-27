@@ -21,6 +21,7 @@ from supybot.test import *
 from supybot import ircmsgs
 from supybot import conf
 from supybot import irclib
+from supybot import utils
 
 try:
     gnupg = utils.python.universalImport('gnupg', 'local.gnupg')
@@ -70,6 +71,11 @@ class GPGTestCase(PluginTestCase):
         occ = conf.supybot.plugins.GPG.channels()
         conf.supybot.plugins.GPG.channels.setValue('#test')
 
+    def tearDown(self):
+        gpg = self.irc.getCallback('GPG')
+        gpg.authed_users = {}
+        gpg.pending_auth = {}
+        PluginTestCase.tearDown(self)
 
     def testRegister(self):
         # default test user hostmask: test!user@host.domain.tld
