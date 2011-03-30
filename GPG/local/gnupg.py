@@ -740,6 +740,14 @@ class Verify(object):
             # if we want to check for signatures with expired key,
             # the relevant flag is EXPKEYSIG.
             pass
+        elif key == "EXPKEYSIG":
+            # signed with expired key
+            self.valid = False
+            self.key_id = value.split()[0]
+        elif key == "REVKEYSIG":
+            # signed with revoked key
+            self.valid = False
+            self.key_id = value.split()[0]
         else:
             raise ValueError("Unknown status message: %r" % key)
 
