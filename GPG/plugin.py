@@ -198,7 +198,10 @@ class GPG(callbacks.Plugin):
             else:
                 raise
         except:
-            irc.error("Could not retrieve your key from keyserver.")
+            irc.error("Could not retrieve your key from keyserver. "
+                    "Either it isn't there, or it is invalid.")
+            self.log.info("GPG register: failed to retrieve key %s from keyservers %s. Details: %s" % \
+                    (keyid, keyservers, result.stderr,))
             return
         challenge = hashlib.sha256(os.urandom(128)).hexdigest()
         request = {msg.prefix: {'keyid':keyid,
