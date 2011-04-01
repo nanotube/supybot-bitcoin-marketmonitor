@@ -289,7 +289,7 @@ class GPG(callbacks.Plugin):
             return
         try:
             rawdata = utils.web.getUrl(url)
-            m = re.search(r'-----BEGIN PGP SIGNED MESSAGE-----\nHash.*?\n-----END PGP SIGNATURE-----', rawdata, re.S)
+            m = re.search(r'-----BEGIN PGP SIGNED MESSAGE-----\r?\nHash.*?\n-----END PGP SIGNATURE-----', rawdata, re.S)
             data = m.group(0)
         except:
             irc.error("Failed to retrieve clearsigned data. Check your url.")
