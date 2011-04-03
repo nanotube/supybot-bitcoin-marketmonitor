@@ -370,7 +370,7 @@ class RatingSystem(callbacks.Plugin):
         """
         data = self.db.get(nick)
         if len(data) == 0:
-            irc.error("No such user in the database.")
+            irc.error("This user has not yet been rated.")
             return
         data = data[0]
         irc.reply("User %s, with hostmask %s, was created on %s, and has a cumulative rating of %s, "
