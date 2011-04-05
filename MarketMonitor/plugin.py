@@ -29,6 +29,7 @@
 
 ###
 
+import decimal
 import locale
 import socket
 import telnetlib
@@ -112,13 +113,15 @@ class MarketMonitor(callbacks.Plugin):
 
         try:
             d = json.loads(data)
-            market = re.match(r'[a-z]+', d['symbol']).group(0)
-            currency = re.search(r'[A-Z]+', d['symbol']).group(0)
-            ts = datetime.datetime.utcfromtimestamp(d['timestamp']).strftime('%Y-%m-%d %H:%M:%S %Y UTC')
-            out = "%s |%6s | %14s @ %s %s" % \
-                    (ts, market, d['volume'], d['price'], currency)
-            out = ircutils.bold(out)
-
+            for needed in "timestamp", "price", "volume", "symbol":
+                assert needed in d
+            market, currency = re.match(r"^([a-z]+)([A-Z]+)$", d["symbol"]).groups()
+            volume = decimal.Decimal(d["volume"])
+            price = decimal.Decimal(d["price"])
+            stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
+            out = "{time} {mkt:10} {vol:>25} @ {pr:>20} {cur}".format(time=stamp.strftime("%b%d %H:%M:%S"),
+                mkt=market, vol=moneyfmt(volume, places=4), pr=ircutils.bold(moneyfmt(price, places=8)),
+                cur=currency)
             self.data = ""
             return out
         except:
@@ -168,5 +171,54 @@ class MarketMonitor(callbacks.Plugin):
     stop = wrap(stop, ['owner'])
 
 Class = MarketMonitor
+
+def moneyfmt(value, places=2, curr='', sep=',', dp='.', pos='', neg='-',
+    trailneg=''):
+    """Convert Decimal to a money formatted string.
+
+    places:  required number of places after the decimal point
+    curr:    optional currency symbol before the sign (may be blank)
+    sep:     optional grouping separator (comma, period, space, or blank)
+    dp:      decimal point indicator (comma or period)
+             only specify as blank when places is zero
+    pos:     optional sign for positive numbers: '+', space or blank
+    neg:     optional sign for negative numbers: '-', '(', space or blank
+    trailneg:optional trailing minus indicator:  '-', ')', space or blank
+
+    >>> d = Decimal('-1234567.8901')
+    >>> moneyfmt(d, curr='$')
+    '-$1,234,567.89'
+    >>> moneyfmt(d, places=0, sep='.', dp='', neg='', trailneg='-')
+    '1.234.568-'
+    >>> moneyfmt(d, curr='$', neg='(', trailneg=')')
+    '($1,234,567.89)'
+    >>> moneyfmt(Decimal(123456789), sep=' ')
+    '123 456 789.00'
+    >>> moneyfmt(Decimal('-0.02'), neg='<', trailneg='>')
+    '<0.02>'
+
+    """
+    q = Decimal(10) ** -places      # 2 places --> '0.01'
+    sign, digits, exp = value.quantize(q).as_tuple()
+    result = []
+    digits = map(str, digits)
+    build, next = result.append, digits.pop
+    if sign:
+        build(trailneg)
+    for i in range(places):
+        build(next() if digits else '0')
+    build(dp)
+    if not digits:
+        build('0')
+    i = 0
+    while digits:
+        build(next())
+        i += 1
+        if i == 3 and digits:
+            i = 0
+            build(sep)
+    build(curr)
+    build(neg if sign else pos)
+    return ''.join(reversed(result))
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
