@@ -119,9 +119,14 @@ class MarketMonitor(callbacks.Plugin):
             volume = decimal.Decimal(d["volume"])
             price = decimal.Decimal(d["price"])
             stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
+            prfmt = moneyfmt(price, places=8)
+            match = re.search(r"0+$", prfmt)
+            if match is not None:
+                # pad off the 0s with spaces to retain justification
+                l = len(match.group(0))
+                prfmt = prfmt[:-l] + (" " * l)
             out = "{time} {mkt:10} {vol:>25} @ {pr:>20} {cur}".format(time=stamp.strftime("%b%d %H:%M:%S"),
-                mkt=market, vol=moneyfmt(volume, places=4), pr=ircutils.bold(moneyfmt(price, places=8)),
-                cur=currency)
+                mkt=market, vol=moneyfmt(volume, places=4), pr=ircutils.bold(prfmt), cur=currency)
             self.data = ""
             return out
         except:
@@ -198,7 +203,7 @@ def moneyfmt(value, places=2, curr='', sep=',', dp='.', pos='', neg='-',
     '<0.02>'
 
     """
-    q = Decimal(10) ** -places      # 2 places --> '0.01'
+    q = decimal.Decimal(10) ** -places      # 2 places --> '0.01'
     sign, digits, exp = value.quantize(q).as_tuple()
     result = []
     digits = map(str, digits)
