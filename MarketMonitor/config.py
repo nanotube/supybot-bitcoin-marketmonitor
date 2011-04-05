@@ -29,10 +29,16 @@ MarketMonitor = conf.registerPlugin('MarketMonitor')
 conf.registerGlobalValue(MarketMonitor, 'channels',
     CommaSeparatedListOfChannels("", """List of channels that should
     receive monitoring output."""))
+conf.registerGlobalValue(MarketMonitor, 'network',
+    registry.String("freenode", """Network that should
+    receive monitoring output."""))
 conf.registerGlobalValue(MarketMonitor, 'server',
-    registry.String("bitcoinmarket.com", """Server to connect to."""))
+    registry.String("bitcoincharts.com", """Server to connect to."""))
 conf.registerGlobalValue(MarketMonitor, 'port',
     registry.PositiveInteger(27007, """Port to connect to."""))
+conf.registerGlobalValue(MarketMonitor, 'autostart',
+    registry.Boolean(False, """If true, will autostart monitoring upon bot
+    startup."""))
 
 class Formats(registry.OnlySomeStrings):
     validStrings = ('raw', 'pretty')

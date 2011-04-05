@@ -35,6 +35,8 @@ import telnetlib
 import threading
 import time
 import re
+import json
+import datetime
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -46,28 +48,27 @@ from supybot import schedule
 from supybot import ircmsgs
 
 class MarketMonitor(callbacks.Plugin):
-    """Add the help for "@plugin help MarketMonitor" here
-    This should describe *how* to use this plugin."""
-    #threaded = True
-
+    """Monitor a telnet push server for bitcoin trade data."""
+    threaded = True
+    callAfter = ['Services']
     def __init__(self, irc):
         self.__parent = super(MarketMonitor, self)
         self.__parent.__init__(irc)
-        self.telnetBCM = telnetlib.Telnet()
+        self.conn = telnetlib.Telnet()
         self.e = threading.Event()
         self.started = threading.Event()
         self.data = ""
-#        channels = self.registryValue('channels')
-#        if channels:
-#            def f():
-#                self._autostart(irc)
-#            schedule.addEvent(
+
+    def __call__(self, irc, msg):
+        self.__parent.__call__(irc, msg)
+        if irc.network == self.registryValue('network') and self.registryValue('autostart') and not self.started.isSet():
+            self._start(irc)
 
     def _reconnect(self, repeat=True):
         while not self.e.isSet():
             try:
-                self.telnetBCM.close()
-                self.telnetBCM.open(self.registryValue('server'),
+                self.conn.close()
+                self.conn.open(self.registryValue('server'),
                                     self.registryValue('port'))
                 return True
             except Exception, e:
@@ -78,29 +79,24 @@ class MarketMonitor(callbacks.Plugin):
                     return False
                 time.sleep(5)
 
-    def _monitorBCM(self, irc):
+    def _monitor(self, irc):
         while not self.e.isSet():
             try:
-                linedata = self.telnetBCM.read_until('\n', 1)
+                linedata = self.conn.read_until('\n', 1)
             except Exception, e:
                 self.log.error('Error in MarketMonitor: %s: %s' % \
                             (e.__class__.__name__, str(e)))
                 self._reconnect()
                 continue
             if linedata:
-                output = self._parseBCM(irc, linedata)
+                output = self._parse(irc, linedata)
                 if output:
                     for chan in self.registryValue('channels'):
                         irc.queueMsg(ircmsgs.privmsg(chan, output))
         self.started.clear()
-        self.telnetBCM.close()
+        self.conn.close()
 
-    # http://code.activestate.com/recipes/473872-number-format-function-a-la-php/#c3
-    def _number_format(self, num, places=0):
-        locale.setlocale(locale.LC_NUMERIC, '')
-        return locale.format("%.*f", (places, num), True)
-
-    def _parseBCM(self, irc, msg):
+    def _parse(self, irc, msg):
         if not msg[-1] == '\n':
             self.data = self.data + msg
             return
@@ -108,61 +104,20 @@ class MarketMonitor(callbacks.Plugin):
 
         data = self.data
 
-        # New-Bid: ID:2478 Currency:PayPalUSD Price:0.0100 Quantity:1000
-        # Cancelled-Bid: ID:2468 Currency:PayPalUSD Price:0.0010 Quantity:100
-        # New-Trade: ID:692 Currency:PecunixGAU Price:0.001560 Quantity:1500
-        # Confirmed-Trade: ID:695 Currency:PecunixGAU Price:0.001700 Quantity:4000
-        # New-Bid, New-Ask, Cancelled-Bid, Cancelled-Ask, New-Trade, Cancelled-Trade, Confirmed-Trade
+        #{"timestamp": 1302015318, "price": "0.7000", "volume": "0.27", "currency": "USD", "symbol": "btcexUSD"}
 
         if self.registryValue('format') == 'raw':
             self.data = ""
             return data
 
-        if data.find("WELCOME TO BITCOIN MARKET STREAMING QUOTES") > -1:
-            self.data = ""
-            return
-
-        trans_type_dict = {'New-Bid':'NEW BID',
-                           'New-Ask':'NEW ASK',
-                           'Cancelled-Bid':'UNBID',
-                           'Cancelled-Ask':'UNASK',
-                           'New-Trade':'NEW TRD',
-                           'Cancelled-Trade':'UNTRD',
-                           'Confirmed-Trade':'CONF TRD'}
-
-        currency_name_dict = {'LibertyReserveUSD':'LRUSD',
-                              'MoneyBookersUSD':'MBUSD',
-                              'PayPalUSD':'PPUSD',
-                              'PecunixGAU':'PXGAU'}
-
-        currency_sym_dict = {'LibertyReserveUSD':'$',
-                              'MoneyBookersUSD':'$',
-                              'PayPalUSD':'$',
-                              'PecunixGAU':'GAU'}
-
         try:
-            m_type = re.search(r'(' + '|'.join(trans_type_dict.keys()) + ')', data)
-            trans_type = m_type.group(1)
-
-            m_curr = re.search(r'(' + '|'.join(currency_name_dict.keys()) + ')', data)
-            trans_curr = m_curr.group(1)
-
-            m_quant = re.search(r'Quantity:([\d\.]+)', data)
-            trans_quant = m_quant.group(1)
-
-            m_price = re.search(r'Price:([\d\.]+)', data)
-            trans_price = m_price.group(1)
-
-            m_id = re.search(r'ID:(\d+)', data)
-            trans_id = m_id.group(1)
-
-            out = "BCM|%10s|%5s %21s @ %s" % \
-                  (trans_type_dict[trans_type],
-                   currency_name_dict[trans_curr],
-                   self._number_format(float(trans_quant)),
-                   currency_sym_dict[trans_curr] + trans_price)
-            if trans_type == 'Confirmed-Trade':
-                out = ircutils.bold(out)
+            d = json.loads(data)
+            market = re.match(r'[a-z]+', d['symbol']).group(0)
+            currency = re.search(r'[A-Z]+', d['symbol']).group(0)
+            ts = datetime.datetime.utcfromtimestamp(d['timestamp']).strftime('%Y-%m-%d %H:%M:%S %Y UTC')
+            out = "%s |%6s | %14s @ %s %s" % \
+                    (ts, market, d['volume'], d['price'], currency)
+            out = ircutils.bold(out)
 
             self.data = ""
             return out
@@ -174,48 +129,43 @@ class MarketMonitor(callbacks.Plugin):
 
     def die(self):
         self.e.set()
-        self.telnetBCM.close()
+        self.conn.close()
         self.__parent.die()
 
-    def restart(self, irc, msg, args):
-        self.stop(self, irc, msg, args)
-        self.start(self, irc, msg, args)
-    restart = wrap(restart)
-
-    def _autostart(self, irc):
-        self.e.clear()
-        success = self._reconnect(repeat=False)
-        if success:
-            t = threading.Thread(target=self._monitorBCM, kwargs={'irc':irc})
-            t.start()
+    def _start(self, irc):
+        if not self.started.isSet():
+            self.e.clear()
+            self.started.set()
+            success = self._reconnect(repeat=False)
+            if success:
+                t = threading.Thread(target=self._monitor, name='MarketMonitor',
+                                     kwargs={'irc':irc})
+                t.start()
+                if hasattr(irc, 'reply'):
+                    irc.reply("Monitoring start successful. Now monitoring market data.")
+            else:
+                if hasattr(irc, 'error'):
+                     irc.error("Error connecting to server. See log for details.")
+        else:
+            irc.error("Monitoring already started.")
 
     def start(self, irc, msg, args):
         """takes no arguments
 
         Starts monitoring market data
         """
-        if not self.started.isSet():
-            self.e.clear()
-            self.started.set()
-            success = self._reconnect(repeat=False)
-            if success:
-                t = threading.Thread(target=self._monitorBCM, kwargs={'irc':irc})
-                t.start()
-                irc.reply("Connection successful. Now monitoring for activity.")
-            else:
-                irc.error("Error connecting to server. See log for details.")
-        else:
-            irc.error("Monitoring already started.")
-    start = wrap(start)
+        irc.reply("Starting market monitoring.")
+        self._start(irc)
+    start = wrap(start, ['owner'])
 
     def stop(self, irc, msg, args):
         """takes no arguments
 
         Stops monitoring market data
         """
-        irc.reply("Stopping BCM monitoring.")
+        irc.reply("Stopping market monitoring.")
         self.e.set()
-    stop = wrap(stop)
+    stop = wrap(stop, ['owner'])
 
 Class = MarketMonitor
 
