@@ -58,7 +58,7 @@ else {
 	else {
 		$queryfilter = "";
 	}
-	$sql = 'SELECT * FROM users ' . $queryfilter . 'ORDER BY ' . sqlite_escape_string($sortby) . ' ' . sqlite_escape_string($sortorder);
+	$sql = 'SELECT * FROM users ' . $queryfilter . 'ORDER BY ' . sqlite_escape_string($sortby) . ' COLLATE NOCASE ' . sqlite_escape_string($sortorder);
 	if (!$query = $db->Query($sql))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {

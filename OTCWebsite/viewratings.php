@@ -65,7 +65,7 @@ Web of Trust Data
 ?>
    </tr>
 <?php
-	if (!$query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' ' . $sortorder))
+	if (!$query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		//$resultrow = 0;

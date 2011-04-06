@@ -151,7 +151,7 @@ foreach ($sortorders as $by => $order) {
    else {
      $queryfilter = "";
    }
-   $sql = 'SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ' . $queryfilter . ' ORDER BY ' . sqlite_escape_string($sortby) . ' ' . sqlite_escape_string($sortorder);
+   $sql = 'SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ' . $queryfilter . ' ORDER BY ' . sqlite_escape_string($sortby) . ' COLLATE NOCASE ' . sqlite_escape_string($sortorder);
    if (!$query = $db->Query($sql))
      echo "   <tr><td>No outstanding orders found</td></tr>\n";
    else {
