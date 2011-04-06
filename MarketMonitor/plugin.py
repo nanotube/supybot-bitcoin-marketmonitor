@@ -61,7 +61,7 @@ class MarketMonitor(callbacks.Plugin):
 
     def __call__(self, irc, msg):
         self.__parent.__call__(irc, msg)
-        if irc.network == self.registryValue('network') and self.registryValue('autostart') and not self.started.isSet():
+        if not self.started.isSet() and irc.network == self.registryValue('network') and self.registryValue('autostart'):
             self._start(irc)
 
     def _reconnect(self, repeat=True):
@@ -88,11 +88,16 @@ class MarketMonitor(callbacks.Plugin):
                             (e.__class__.__name__, str(e)))
                 self._reconnect()
                 continue
-            if linedata:
-                output = self._parse(irc, linedata)
-                if output:
-                    for chan in self.registryValue('channels'):
-                        irc.queueMsg(ircmsgs.privmsg(chan, output))
+            try:
+                if irc.getCallback('Services').identified and linedata:
+                    output = self._parse(irc, linedata)
+                    if output:
+                        for chan in self.registryValue('channels'):
+                            irc.queueMsg(ircmsgs.privmsg(chan, output))
+            except Exception, e:
+                self.log.error('Error in MarketMonitor: %s: %s' % \
+                            (e.__class__.__name__, str(e)))
+                continue # keep going no matter what
         self.started.clear()
         self.conn.close()
 
@@ -119,20 +124,21 @@ class MarketMonitor(callbacks.Plugin):
             price = decimal.Decimal(d["price"])
             stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
             prfmt = self._moneyfmt(price, places=8)
-            match = re.search(r"0+$", prfmt)
+            match = re.search(r"\.\d{2}[0-9]*?(0+)$", prfmt)
             if match is not None:
-                # pad off the 0s with spaces to retain justification
-                l = len(match.group(0))
-                prfmt = prfmt[:-l] + (" " * l)
-            out = "{time} {mkt:8} {vol:>10} @ {pr:>16} {cur}".format(time=stamp.strftime("%b%d %H:%M:%S"),
-                mkt=market, vol=self._moneyfmt(volume, places=4), pr=ircutils.bold(prfmt), cur=currency)
+                # pad off the trailing 0s with spaces to retain justification
+                numzeros = len(match.group(1))
+                prfmt = prfmt[:-numzeros] + (" " * numzeros)
+            # don't forget to count irc bold marker character on both ends of bolded items
+            out = "{time} {mkt:10} {vol:>10} @ {pr:>16} {cur}".format(time=stamp.strftime("%b%d %H:%M:%S"),
+                mkt=ircutils.bold(market), vol=self._moneyfmt(volume, places=4), pr=ircutils.bold(prfmt), cur=currency)
             self.data = ""
             return out
         except:
             # we really want to keep going no matter what data we get
             self.log.error('MarketMonitor: Unrecognized data: %s' % data)
             self.data = ""
-            return data
+            return False
 
     def die(self):
         self.e.set()
