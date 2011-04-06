@@ -120,7 +120,7 @@ class MarketMonitor(callbacks.Plugin):
             price = decimal.Decimal(d["price"])
             stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
             prfmt = moneyfmt(price, places=8)
-            match = re.search(r"\.\d{2}[1-9]*(0+)$", prfmt)
+            match = re.search(r"\.\d{2}\d*?(0+)$", prfmt)
             if match is not None:
                 # pad off the 0s with spaces to retain justification
                 l = len(match.group(1))
