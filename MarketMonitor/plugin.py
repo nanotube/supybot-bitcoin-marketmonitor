@@ -120,10 +120,10 @@ class MarketMonitor(callbacks.Plugin):
             price = decimal.Decimal(d["price"])
             stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
             prfmt = moneyfmt(price, places=8)
-            match = re.search(r"0+$", prfmt)
+            match = re.search(r"\.\d{2}[1-9]*(0+)$", prfmt)
             if match is not None:
                 # pad off the 0s with spaces to retain justification
-                l = len(match.group(0))
+                l = len(match.group(1))
                 prfmt = prfmt[:-l] + (" " * l)
             out = "{time} {mkt:10} {vol:>25} @ {pr:>20} {cur}".format(time=stamp.strftime("%b%d %H:%M:%S"),
                 mkt=market, vol=moneyfmt(volume, places=4), pr=ircutils.bold(prfmt), cur=currency)
