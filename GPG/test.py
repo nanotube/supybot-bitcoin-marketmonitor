@@ -46,6 +46,7 @@ class GPGTestCase(PluginTestCase):
         
         chan = irclib.ChannelState()
         chan.addUser('test')
+        chan.addUser('authedguy2')
         self.irc.state.channels['#test'] = chan
 
         #preseed the GPG db with a GPG registration and auth with some users
@@ -143,6 +144,20 @@ class GPGTestCase(PluginTestCase):
                 'changed your nick from authedguy2 to mycoolnewnick')
         self.assertRegexp('gpg ident authedguy2', 'identified as user mycoolnewnick')
         self.assertRegexp('gpg info mycoolnewnick', "User 'mycoolnewnick'.* registered on")
+
+    def testChangekey(self):
+        self.assertError('gpg changekey AAAAAAAAAAAAAAA1') #not authed
+        self.prefix = 'authedguy2!stuff@123.345.234.34'
+        self.assertRegexp('gpg ident', 'are identified')
+        m = self.getMsg('gpg changekey %s' % (self.testkeyid,))
+        print str(m)
+        self.failUnless('Request successful' in str(m))
+        challenge = str(m).split('is: ')[1]
+        sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
+        pasteid = self.s.pastes.newPaste('text',sd.data)
+        self.assertRegexp('verify http://paste.pocoo.org/raw/%s/' % (pasteid,), 
+                    'Successfully changed key.*You are now authenticated')
+        self.assertRegexp('gpg ident', 'You are identified.*key id %s' % (self.testkeyid,))
 
     def testNick(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'

@@ -98,6 +98,13 @@ class GPGDB(object):
                         (newnick, oldnick,))
         self.db.commit()
 
+    def changekey(self, oldkeyid, newkeyid, newkeyfingerprint):
+        cursor = self.db.cursor()
+        cursor.execute("""UPDATE users SET keyid = ?, fingerprint = ?
+                        WHERE keyid = ?""",
+                        (newkeyid, newkeyfingerprint, oldkeyid,))
+        self.db.commit()
+
 def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
     v = args[0]
     m = re.search(r'^(0x)?([0-9A-Fa-f]{16})$', v)
@@ -206,7 +213,7 @@ class GPG(callbacks.Plugin):
         challenge = hashlib.sha256(os.urandom(128)).hexdigest()
         request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
-                            'registration':True, 'fingerprint':fingerprint,
+                            'type':'register', 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
         irc.reply("Request successful for user %s. Your challenge string is: %s" %\
@@ -232,7 +239,7 @@ class GPG(callbacks.Plugin):
         challenge = hashlib.sha256(os.urandom(128)).hexdigest()
         request = {msg.prefix: {'nick':userdata[0][4],
                                 'expiry':time.time(), 'keyid':keyid,
-                                'registration':False, 'challenge':challenge,
+                                'type':'auth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
         self.pending_auth.update(request)
         irc.reply("Request successful for user %s. Your challenge string is: %s" %\
@@ -311,13 +318,24 @@ class GPG(callbacks.Plugin):
             irc.error("Authentication failed. Please try again.")
             return
         response = ""
-        if authrequest['registration']:
+        if authrequest['type'] == 'register':
             if self.db.getByNick(authrequest['nick']) or self.db.getByKey(authrequest['keyid']):
                 irc.error("Username or key already in the database.")
                 return
             self.db.register(authrequest['keyid'], authrequest['fingerprint'],
                         time.time(), authrequest['nick'])
             response = "Registration successful. "
+        elif authrequest['type'] == 'changekey':
+            gpgauth = self._ident(msg.prefix)
+            if gpgauth is None:
+                irc.error("You must be authenticated in order to change your registered key.")
+                return
+            if self.db.getByKey(authrequest['keyid']):
+                irc.error("This key id already registered. Try a different key.")
+                return
+            self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
+            response = "Successfully changed key for user %s from %s to %s." %\
+                (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
         self.authed_users[msg.prefix] = {'timestamp':time.time(),
                     'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
                     'fingerprint':authrequest['fingerprint']}
@@ -345,6 +363,50 @@ class GPG(callbacks.Plugin):
         gpgauth['nick'] = newnick
         irc.reply("Successfully changed your nick from %s to %s." % (oldnick, newnick,))
     changenick = wrap(changenick, ['something'])
+
+    def changekey(self, irc, msg, args, keyid, keyserver):
+        """<keyid> [<keyserver>]
+        
+        Changes your GPG registered key to <keyid>.
+        You must be authenticated in order to use this command.
+        """
+        self._removeExpiredRequests()
+        gpgauth = self._ident(msg.prefix)
+        if gpgauth is None:
+            irc.error("You must be authenticated in order to change your registered key.")
+            return
+        if self.db.getByKey(keyid):
+            irc.error("This key id already registered. Try a different key.")
+            return
+
+        keyservers = []
+        if keyserver:
+            keyservers.extend([keyserver])
+        else:
+            keyservers.extend(self.registryValue('keyservers').split(','))
+        try:
+            for ks in keyservers:
+                result = self.gpg.recv_keys(ks, keyid)
+                if result.results[0].has_key('ok'):
+                    fingerprint = result.results[0]['fingerprint']
+                    break
+            else:
+                raise
+        except:
+            irc.error("Could not retrieve your key from keyserver. "
+                    "Either it isn't there, or it is invalid.")
+            self.log.info("GPG changekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
+                    (keyid, keyservers, result.stderr,))
+            return
+        challenge = hashlib.sha256(os.urandom(128)).hexdigest()
+        request = {msg.prefix: {'keyid':keyid,
+                            'nick':gpgauth['nick'], 'expiry':time.time(),
+                            'type':'changekey', 'fingerprint':fingerprint,
+                            'challenge':challenge}}
+        self.pending_auth.update(request)
+        irc.reply("Request successful for user %s. Your challenge string is: %s" %\
+                (gpgauth['nick'], challenge,))
+    changekey = wrap(changekey, ['keyid', optional('keyserver')])
 
     def ident(self, irc, msg, args, nick):
         """[<nick>]
