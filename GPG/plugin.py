@@ -368,6 +368,11 @@ class GPG(callbacks.Plugin):
         """<keyid> [<keyserver>]
         
         Changes your GPG registered key to <keyid>.
+        <keyid> is a 16 digit key id, with or without the '0x' prefix.
+        Optional <keyserver> argument tells us where to get your public key.
+        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        You will be given a random passphrase to clearsign with your key, and
+        submit to the bot with the 'verify' command.
         You must be authenticated in order to use this command.
         """
         self._removeExpiredRequests()
