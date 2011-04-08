@@ -158,7 +158,7 @@ class GPG(callbacks.Plugin):
         for hostmask,auth in pending_auth_copy.iteritems():
             try:
                 if time.time() - auth['expiry'] > self.registryValue('authRequestTimeout'):
-                    if auth['registration'] and not self.db.getByKey(auth['keyid']):
+                    if auth['type'] == 'register' and not self.db.getByKey(auth['keyid']):
                         try:
                             gpg.delete_keys(auth['fingerprint'])
                         except:
