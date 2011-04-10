@@ -329,7 +329,7 @@ class OTCOrderBook(callbacks.Plugin):
         if rv is not False:
             irc.reply("Order refresh successful, %s orders refreshed." % rv)
         else:
-            irc.error("No orders found to refresh. Try the 'view' command to"
+            irc.error("No orders found to refresh. Try the 'view' command to "
                       "view your open orders.")
     refresh = wrap(refresh, [optional('int')])
 
@@ -349,7 +349,7 @@ class OTCOrderBook(callbacks.Plugin):
         if rv is not False:
             irc.reply("Order remove successful, %s orders removed." % rv)
         else:
-            irc.error("No orders found to remove. Try the 'view' command to"
+            irc.error("No orders found to remove. Try the 'view' command to "
                       "view your open orders.")
     remove = wrap(remove, [optional('int')])
 
@@ -427,8 +427,8 @@ class OTCOrderBook(callbacks.Plugin):
             return
         if len(results) > self.registryValue('maxOrdersInBookList'):
             irc.error("Too many orders to list on channel. Visit the web "
-                      "order book, http://bitcoin-otc.com/vieworderbook.php "
-                      "to see the complete order book.")
+                      "order book, http://bitcoin-otc.com/vieworderbook.php?eitherthing=%s "
+                      "to see list of orders for this item." % (thing,))
             return
         self._getMtgoxQuote()
         L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
