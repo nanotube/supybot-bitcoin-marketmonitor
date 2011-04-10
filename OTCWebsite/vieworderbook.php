@@ -23,9 +23,24 @@
   $nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
   $notesfilter = isset($_GET["notes"]) ? $_GET["notes"] : "";
   include("somefunctions.php");
+  
+  $queryfilter = array();
+  if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . sqlite_escape_string($typefilter) . "'";
+  if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . sqlite_escape_string($thingfilter) . "'";
+  if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
+  if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
+  if ($eitherthingfilter != "") $queryfilter[] = "(thing LIKE '" . sqlite_escape_string($eitherthingfilter) . "' OR otherthing LIKE '" . sqlite_escape_string($eitherthingfilter) . "')";
+  if ($notesfilter != "") $queryfilter[] = "notes LIKE '%" . sqlite_escape_string($notesfilter) . "%'";
+
 ?>
 
 <h2>OTC Order Book</h2>
+
+<?php
+if (sizeof($queryfilter) != 0) {
+  echo '<div class="filter">Filtered results. <a href="vieworderbook.php">Clear filter</a></div>';
+}
+?>
 
 <table class="datadisplay" style="width: 100%;">
 <tr>
@@ -66,16 +81,18 @@
 <input type="hidden" name="sortby" value="<?php echo $sortby; ?>">
 <input type="hidden" name="sortorder" value="<?php echo $sortorder; ?>">
 <select name="type">
-<option label="--type--" value="" selected>--type--</option>
-<option value="BUY">BUY</option>
-<option value="SELL">SELL</option>
+<option label="--type--" value="" <?php if (strcasecmp($typefilter, "") == 0) {echo "selected";} ?>>--type--</option>
+<option value="BUY" <?php if (strcasecmp($typefilter, "buy") == 0) {echo "selected";} ?>>BUY</option>
+<option value="SELL" <?php if (strcasecmp($typefilter, "sell") == 0) {echo "selected";} ?>>SELL</option>
 </select>
 <select name="nick">
 <option label="--nick--" value="" selected>--nick--</option>
 <?php
 if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE NOCASE ASC')){
   while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . $entry['nick'] . '">' . $entry['nick'] . "</option>\n";
+    echo '<option value="' . $entry['nick'] . '"';
+    if (strcasecmp($nickfilter, $entry['nick']) == 0) {echo " selected";}
+    echo '>' . $entry['nick'] . "</option>\n";
   }
 }
 ?>
@@ -86,7 +103,9 @@ if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE 
 if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDER BY uthing ASC')){
   $thingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
   foreach ($thingdata as $thing) {
-    echo '<option value="' . $thing . '">' . $thing . "</option>\n";
+    echo '<option value="' . $thing . '"';
+    if (strcasecmp($thingfilter, $thing) == 0) {echo " selected";}
+    echo '>' . $thing . "</option>\n";
   }
 }
 ?>
@@ -97,7 +116,9 @@ if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDE
 if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM orders ORDER BY uotherthing ASC')){
   $otherthingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
   foreach ($otherthingdata as $otherthing) {
-    echo '<option value="' . $otherthing . '">' . $otherthing . "</option>\n";
+    echo '<option value="' . $otherthing . '"';
+    if (strcasecmp($otherthingfilter, $otherthing) == 0) {echo " selected";}
+    echo '>' . $otherthing . "</option>\n";
   }
 }
 ?>
@@ -109,11 +130,13 @@ $eitherthingdata = array_merge($thingdata, $otherthingdata);
 sort($eitherthingdata, SORT_STRING);
 $eitherthingdata = array_unique($eitherthingdata);
 foreach ($eitherthingdata as $eitherthing) {
-  echo '<option value="' . $eitherthing . '">' . $eitherthing . "</option>\n";
+  echo '<option value="' . $eitherthing . '"';
+  if (strcasecmp($eitherthingfilter, $eitherthing) == 0) {echo " selected";}
+  echo '>' . $eitherthing . "</option>\n";
 }
 ?>
 </select>
-<label>Search notes: <input type="text" name="notes" /></label>
+<label>Search notes: <input type="text" name="notes" <?php if ($notesfilter != "") {echo 'value="' . $notesfilter . '"';} ?> /></label>
 <input type="submit" value="Filter" />
 </form>
 </td></tr>
@@ -138,13 +161,6 @@ foreach ($sortorders as $by => $order) {
 }
 ?>   </tr>
 <?php
-   $queryfilter = array();
-   if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . sqlite_escape_string($typefilter) . "'";
-   if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . sqlite_escape_string($thingfilter) . "'";
-   if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
-   if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
-   if ($eitherthingfilter != "") $queryfilter[] = "(thing LIKE '" . sqlite_escape_string($eitherthingfilter) . "' OR otherthing LIKE '" . sqlite_escape_string($eitherthingfilter) . "')";
-   if ($notesfilter != "") $queryfilter[] = "notes LIKE '%" . sqlite_escape_string($notesfilter) . "%'";
    if (sizeof($queryfilter) != 0) {
      $queryfilter = " WHERE " . join(' AND ', $queryfilter);
    }
