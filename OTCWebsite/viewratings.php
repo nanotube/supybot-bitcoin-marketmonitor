@@ -6,7 +6,7 @@
 
 <?php
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "total_rating";
-	$validkeys = array('id', 'nick', 'created_at', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
+	$validkeys = array('id', 'nick', 'created_at', 'keyid', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
 	if (!in_array($sortby, $validkeys)) $sortby = "total_rating";
 
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
@@ -65,7 +65,8 @@ Web of Trust Data
 ?>
    </tr>
 <?php
-	if (!$query = $db->Query('SELECT * FROM users ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
+	$query = $db->Query("attach database './otc/GPG.db' as gpg");
+	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick = gpg.users.nick ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		//$resultrow = 0;
@@ -78,6 +79,7 @@ Web of Trust Data
     <td><?php echo $entry['id']; ?></td>
     <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
+	<td><a href="viewgpg.php?nick=<?php echo $entry['nick']; ?>"><?php echo $entry['keyid']; ?></a></td>
     <td><?php echo $entry['total_rating']; ?></td>
     <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=RECV"><?php echo $entry['pos_rating_recv_count']; ?></a></td>
     <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=RECV"><?php echo $entry['neg_rating_recv_count']; ?></a></td>
