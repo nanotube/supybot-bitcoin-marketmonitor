@@ -164,7 +164,7 @@ class GPGExt(callbacks.Plugin):
 
         # ebay special: process ebay page
         parser = etree.HTMLParser()
-        tree = etree.parse('http://myworld.ebay.com/mndrix', parser)
+        tree = etree.parse(url, parser)
         context = etree.iterwalk(tree, tag='div')
         for _, element in context:
             for item in element.items():
