@@ -122,20 +122,20 @@ class RatingSystemTestCase(PluginTestCase):
             self.prefix = 'authedguy!stuff@123.345.234.34'
             self.assertNotError('rate authedguy2 3')
             self.assertRegexp('gettrust nanotube authedguy2', 
-                        'second-level trust from user nanotube to user authedguy2 is 3')
+                        'Level 2: 3 via 1 connections')
             self.assertNotError('rate authedguy2 7')
             self.assertRegexp('gettrust nanotube authedguy2', 
-                        'second-level trust from user nanotube to user authedguy2 is 5')
+                        'Level 2: 5 via 1 connections')
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertRegexp('gettrust authedguy2', 
-                        'second-level trust from user nanotube to user authedguy2 is 5.*via 1.*level one rating is None')
+                        'Level 1: 0, Level 2: 5 via 1 connections')
             self.assertNotError('rate authedguy -1')
             self.assertNotError('rate authedguy2 7')
             self.assertRegexp('gettrust authedguy2', 
-                        'second-level trust from user nanotube to user authedguy2 is -1.*via 1.*level one rating is 7')
-            self.assertRegexp('gettrust nobody nobody2', 'nobody2 is None.*rating is None')
+                        'Level 1: 7, Level 2: -1 via 1 connections')
+            self.assertRegexp('gettrust nobody nobody2', 'Level 1: 0, Level 2: 0 via 0 connections')
             self.prefix = 'randomguy!stuff@stuff/somecloak'
-            self.assertRegexp('gettrust authedguy2', 'authedguy2 is None.*rating is None')
+            self.assertRegexp('gettrust authedguy2', 'Level 1: 0, Level 2: 0 via 0 connections')
         finally:
             self.prefix = origuser
 

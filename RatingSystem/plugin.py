@@ -116,7 +116,7 @@ class RatingSystemDB(object):
         if len(sumratings) > 0:
             return sumratings[0]
         else:
-            return [0,0]
+            return (0,0,)
 
     def getExistingRating(self, sourceid, targetid):
         cursor = self.db.cursor()
@@ -389,6 +389,23 @@ class RatingSystem(callbacks.Plugin):
                    data[6]))
     getrating = wrap(getrating, ['something'])
 
+    def _gettrust(self, sourcenick, destnick):
+        """Get a list of tuples for l1,l2... trust levels and number of associated
+        connections. To be used from other plugins for trust checks.
+        """
+        result = []
+        l1 = self.db.getRatingDetail(sourcenick, destnick)
+        if len(l1) > 0:
+            result.append((l1[0][1], 1,))
+        else:
+            result.append((0, 0,))
+        l2 = self.db.getLevel2Ratings(sourcenick, destnick)
+        if l2[0] is None:
+            result.append((0,0,))
+        else:
+            result.append(l2)
+        return result
+
     def gettrust(self, irc, msg, args, sourcenick, destnick):
         """[<sourcenick>] <destnick>
         
@@ -405,15 +422,10 @@ class RatingSystem(callbacks.Plugin):
         if destnick is None:
             destnick = sourcenick
             sourcenick = sn
-        sum_l2_ratings = self.db.getLevel2Ratings(sourcenick, destnick)
-        l1_rating = self.db.getRatingDetail(sourcenick, destnick)
-        if len(l1_rating) > 0:
-            l1_rating = l1_rating[0][1]
-        else:
-            l1_rating = None
-        irc.reply("The second-level trust from user %s to user %s is %s, via %s connections. "
-                        "The direct level one rating is %s." % \
-                        (sourcenick, destnick, sum_l2_ratings[0], sum_l2_ratings[1], l1_rating,))
+        trust = self._gettrust(sourcenick, destnick)
+        irc.reply("Trust relationship from user %s to user %s: "
+                        "Level 1: %s, Level 2: %s via %s connections." % \
+                        (sourcenick, destnick, trust[0][0], trust[1][0], trust[1][1],))
     gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):
