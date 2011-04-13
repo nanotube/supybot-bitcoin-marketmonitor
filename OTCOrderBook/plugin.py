@@ -108,7 +108,7 @@ class OTCOrderDB(object):
                        (thing, thing))
         return cursor.fetchall()
 
-    def buy(self, nick, host, amount, thing, price, otherthing, notes):
+    def buy(self, nick, host, amount, thing, price, otherthing, notes, extratime=0):
         cursor = self.db.cursor()
         timestamp = time.time()
         cursor.execute("""INSERT INTO orders VALUES
@@ -118,7 +118,7 @@ class OTCOrderDB(object):
         self.db.commit()
         return cursor.lastrowid
 
-    def sell(self, nick, host, amount, thing, price, otherthing, notes):
+    def sell(self, nick, host, amount, thing, price, otherthing, notes, extratime=0):
         cursor = self.db.cursor()
         timestamp = time.time()
         cursor.execute("""INSERT INTO orders VALUES
@@ -128,7 +128,7 @@ class OTCOrderDB(object):
         self.db.commit()
         return cursor.lastrowid
 
-    def refresh(self, nick, id=None):
+    def refresh(self, nick, id=None, extratime=0):
         results = self.get(nick, id)
         if len(results) != 0:
             cursor = self.db.cursor()
@@ -224,6 +224,9 @@ class OTCOrderBook(callbacks.Plugin):
     def _checkGPGAuth(self, irc, prefix):
         return irc.getCallback('GPG')._ident(prefix)
 
+    def _getTrust(self, irc, sourcenick, destnick):
+        return irc.getCallback('RatingSystem')._gettrust(sourcenick, destnick)
+
     def _getMtgoxQuote(self):
         try:
             ticker = utils.web.getUrl('http://mtgox.com/code/ticker.php')
@@ -259,8 +262,8 @@ class OTCOrderBook(callbacks.Plugin):
         except:
             return '"' + rawprice + '"'
 
-    def buy(self, irc, msg, args, amount, thing, price, otherthing, notes):
-        """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
+    def buy(self, irc, msg, args, optlist, amount, thing, price, otherthing, notes):
+        """[--long] <amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
 
         Logs a buy order for <amount> units of <thing>, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
@@ -268,6 +271,8 @@ class OTCOrderBook(callbacks.Plugin):
         and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
+        If '--long' option is given, puts in a longer-duration order, but this is only
+        allowed if you have a sufficient trust rating.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
@@ -280,13 +285,22 @@ class OTCOrderBook(callbacks.Plugin):
             irc.error("You may not have more than %s outstanding open orders." % \
                       self.registryValue('maxUserOpenOrders'))
             return
-
-        orderid = self.db.buy(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes)
+        extratime = 0
+        if dict(optlist).has_key('long'):
+            extratime = self.registryValue('longOrderDuration')
+            trust = self._getTrust(irc, 'nanotube', gpgauth['nick'])
+            sumtrust = sum([t for t,n in trust])
+            if sumtrust < self.registryValue('minTrustForLongOrders'):
+                irc.error("You must have a minimum of %s cumulative trust at "
+                        "level 1 and level 2 from nanotube to "
+                        "to place long orders." % (self.registryValue('minTrustForLongOrders'),))
+                return
+        orderid = self.db.buy(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes, extratime)
         irc.reply("Order id %s created." % (orderid,))
-    buy = wrap(buy, ['positiveFloat','something','at','indexedPrice','something',
-                     optional('text')])
+    buy = wrap(buy, [getopts({'long': '',}), 'positiveFloat', 'something',
+            'at', 'indexedPrice', 'something', optional('text')])
 
-    def sell(self, irc, msg, args, amount, thing, price, otherthing, notes):
+    def sell(self, irc, msg, args, optlist, amount, thing, price, otherthing, notes):
         """<amount> <thing> [at|@] <priceperunit> <otherthing> [<notes>]
 
         Logs a sell order for <amount> units of <thing, at a price of <price>
@@ -295,6 +309,8 @@ class OTCOrderBook(callbacks.Plugin):
         and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
+        If '--long' option is given, puts in a longer-duration order, but this is only
+        allowed if you have a sufficient trust rating.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
@@ -307,17 +323,28 @@ class OTCOrderBook(callbacks.Plugin):
             irc.error("You may not have more than %s outstanding open orders." % \
                       self.registryValue('maxUserOpenOrders'))
             return
-
-        orderid = self.db.sell(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes)
+        extratime = 0
+        if dict(optlist).has_key('long'):
+            extratime = self.registryValue('longOrderDuration')
+            trust = self._getTrust(irc, 'nanotube', gpgauth['nick'])
+            sumtrust = sum([t for t,n in trust])
+            if sumtrust < self.registryValue('minTrustForLongOrders'):
+                irc.error("You must have a minimum of %s cumulative trust at "
+                        "level 1 and level 2 from nanotube to "
+                        "to place long orders." % (self.registryValue('minTrustForLongOrders'),))
+                return
+        orderid = self.db.sell(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes, extratime)
         irc.reply("Order id %s created." % (orderid,))
-    sell = wrap(sell, ['positiveFloat','something','at','indexedPrice','something',
-                     optional('text')])
+    sell = wrap(sell, [getopts({'long': '',}), 'positiveFloat', 'something',
+            'at', 'indexedPrice', 'something', optional('text')])
 
-    def refresh(self, irc, msg, args, orderid):
+    def refresh(self, irc, msg, args, optlist, orderid):
         """[<orderid>]
 
         Refresh the timestamps on your outstanding orders. If optional
         <orderid> argument present, only refreshes that particular order.
+        If '--long' option is given, refreshes for a longer duration, but this is only
+        allowed if you have a sufficient trust rating.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
@@ -325,13 +352,23 @@ class OTCOrderBook(callbacks.Plugin):
             irc.error("For identification purposes, you must be identified via GPG "
                       "to use the order book.")
             return
-        rv = self.db.refresh(gpgauth['nick'], orderid)
+        extratime = 0
+        if dict(optlist).has_key('long'):
+            extratime = self.registryValue('longOrderDuration')
+            trust = self._getTrust(irc, 'nanotube', gpgauth['nick'])
+            sumtrust = sum([t for t,n in trust])
+            if sumtrust < self.registryValue('minTrustForLongOrders'):
+                irc.error("You must have a minimum of %s cumulative trust at "
+                        "level 1 and level 2 from nanotube to "
+                        "to place long orders." % (self.registryValue('minTrustForLongOrders'),))
+                return
+        rv = self.db.refresh(gpgauth['nick'], orderid, extratime)
         if rv is not False:
             irc.reply("Order refresh successful, %s orders refreshed." % rv)
         else:
             irc.error("No orders found to refresh. Try the 'view' command to "
                       "view your open orders.")
-    refresh = wrap(refresh, [optional('int')])
+    refresh = wrap(refresh, [getopts({'long': '',}), optional('int')])
 
     def remove(self, irc, msg, args, orderid):
         """[<orderid>]

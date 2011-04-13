@@ -51,13 +51,21 @@ conf.registerGlobalValue(OTCOrderBook, 'orderExpiry',
     expiry. It's a good idea to have this set to avoid seeing your database
     overgrow with old cruft."""))
 
+conf.registerGlobalValue(OTCOrderBook, 'minTrustForLongOrders',
+    registry.NonNegativeInteger(15, """Minimum total level 1 and level 2
+    trust from nanotube to be able to place long duration orders."""))
+
+conf.registerGlobalValue(OTCOrderBook, 'longOrderDuration',
+    registry.NonNegativeInteger(7776000, """Extra time on top of standard
+    order expiry, allotted to long-duration orders. Time in seconds."""))
+
 conf.registerGlobalValue(OTCOrderBook, 'maxUserOpenOrders',
     registry.NonNegativeInteger(4, """Only allow this many open orders per user.
     It's a good idea to have this on, to avoid order flooding from a rogue
     user."""))
 
 conf.registerGlobalValue(OTCOrderBook, 'maxOrdersInBookList',
-    registry.NonNegativeInteger(8, """Only allow this many orders in a currency
+    registry.NonNegativeInteger(4, """Only allow this many orders in a currency
     order book to be spit out to channel. If more than that exist, suggest to
     visit the nice website."""))
 

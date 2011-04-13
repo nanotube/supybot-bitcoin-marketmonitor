@@ -33,7 +33,7 @@ from supybot.test import *
 import sqlite3
 
 class OTCOrderBookTestCase(PluginTestCase):
-    plugins = ('OTCOrderBook','GPG')
+    plugins = ('OTCOrderBook','GPG','RatingSystem')
 
     def setUp(self):
         PluginTestCase.setUp(self)
@@ -52,6 +52,29 @@ class OTCOrderBookTestCase(PluginTestCase):
                     time.time(), 'authedguy2')
         gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2'}
 
+        # pre-seed the rating db with some ratings, for testing long orders
+        cb = self.irc.getCallback('RatingSystem')
+        cursor = cb.db.db.cursor()
+        cursor.execute("""INSERT INTO users VALUES
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
+        cursor.execute("""INSERT INTO users VALUES
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'authedguy','stuff/somecloak'))
+        cursor.execute("""INSERT INTO users VALUES
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'authedguy2','stuff/somecloak'))
+        cursor.execute("""INSERT INTO ratings VALUES
+                          (NULL, ?, ?, ?, ?, ?)""",
+                       (2,1, time.time(), 10, 'great guy'))
+        cursor.execute("""INSERT INTO ratings VALUES
+                          (NULL, ?, ?, ?, ?, ?)""",
+                       (3,2, time.time(), 10, 'great guy'))
+        cursor.execute("""INSERT INTO ratings VALUES
+                          (NULL, ?, ?, ?, ?, ?)""",
+                       (3,1, time.time(), 10, 'great guy'))
+        cb.db.db.commit()
+
     def testBuy(self):
         # no gpg auth
         self.assertError('buy 1000 btc at 0.06 LRUSD really nice offer!')
@@ -66,6 +89,11 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertRegexp('view 1', 'BUY 1000')
             self.assertError('buy 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
+            self.assertNotError('remove')
+            self.assertError('buy --long 5000 btc at 0.06 USD this is a long order') #not enough trust
+            self.prefix = 'authedguy2!stuff@123.345.234.34'
+            self.assertNotError('buy --long 5000 btc at 0.06 USD this is a long order') #now we have 20 total trust
+            self.assertRegexp('view', '5000')
         finally:
             self.prefix = origuser
 
@@ -82,6 +110,11 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('view')
             self.assertError('sell 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
+            self.assertNotError('remove')
+            self.assertError('sell --long 5000 btc at 0.06 USD this is a long order') #not enough trust
+            self.prefix = 'authedguy2!stuff@123.345.234.34'
+            self.assertNotError('sell --long 5000 btc at 0.06 USD this is a long order') #now we have 20 total trust
+            self.assertRegexp('view', '5000')
         finally:
             self.prefix = origuser
 
@@ -93,6 +126,10 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('refresh')
             self.assertNotError('refresh 1')
             self.assertRegexp('view', '1000')
+            self.assertError('refresh --long') #not enough trust
+            self.prefix = 'authedguy2!stuff@123.345.234.34' #now we have 20 total trust
+            self.assertNotError('buy 5000 btc at 0.06 USD this is a long order') 
+            self.assertNotError('refresh --long')
         finally:
             self.prefix = origuser
 
