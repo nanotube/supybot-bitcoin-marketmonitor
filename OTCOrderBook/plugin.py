@@ -113,7 +113,7 @@ class OTCOrderDB(object):
         timestamp = time.time()
         cursor.execute("""INSERT INTO orders VALUES
                        (NULL, ?, ?, "BUY", ?, ?, ?, ?, ?, ?, ?)""",
-                       (timestamp, timestamp, nick, host, amount, thing, price,
+                       (timestamp, timestamp+extratime, nick, host, amount, thing, price,
                         otherthing, notes))
         self.db.commit()
         return cursor.lastrowid
@@ -123,7 +123,7 @@ class OTCOrderDB(object):
         timestamp = time.time()
         cursor.execute("""INSERT INTO orders VALUES
                        (NULL, ?, ?, "SELL", ?, ?, ?, ?, ?, ?, ?)""",
-                       (timestamp, timestamp, nick, host, amount, thing, price,
+                       (timestamp, timestamp+extratime, nick, host, amount, thing, price,
                         otherthing, notes))
         self.db.commit()
         return cursor.lastrowid
@@ -135,7 +135,7 @@ class OTCOrderDB(object):
             timestamp = time.time()
             for row in results:
                 cursor.execute("""UPDATE orders SET refreshed_at=?
-                               WHERE id=?""", (timestamp, row[0]))
+                               WHERE id=?""", (timestamp+extratime, row[0]))
             self.db.commit()
             return len(results)
         return False
