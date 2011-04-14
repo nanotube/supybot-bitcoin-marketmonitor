@@ -48,7 +48,7 @@ class OTCOrderDB(object):
         self.db = db
         cursor = self.db.cursor()
         cursor.execute("""CREATE TABLE orders (
-                          id INTEGER PRIMARY KEY,
+                          id INTEGER PRIMARY KEY AUTOINCREMENT,
                           created_at INTEGER,
                           refreshed_at INTEGER,
                           buysell TEXT,
