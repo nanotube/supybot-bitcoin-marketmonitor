@@ -66,7 +66,7 @@ Web of Trust Data
    </tr>
 <?php
 	$query = $db->Query("attach database './otc/GPG.db' as gpg");
-	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick = gpg.users.nick ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
+	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick LIKE gpg.users.nick ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		//$resultrow = 0;
