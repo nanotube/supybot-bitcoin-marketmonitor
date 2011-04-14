@@ -76,7 +76,7 @@ Rating for <?php echo $nick; ?>
 <?php
 	if ($sortby == 'id') $sortby = "ratings.id";
 	if ($sortby == 'created_at') $sortby = "ratings.created_at";
-	$typequeries = array('RECV' => 'users2.nick = ? AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id', 'SENT' => 'users.nick = ? AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id');
+	$typequeries = array('RECV' => 'users2.nick LIKE ? AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id', 'SENT' => 'users.nick LIKE ? AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id');
 	$sql = "SELECT ratings.id as id, users.nick as rater_nick, users2.nick as rated_nick, ratings.created_at as created_at, ratings.rating as rating, ratings.notes as notes from users, users as users2, ratings WHERE " . $typequeries[$type] . $signqueries[$sign] . " ORDER BY " . $sortby . " " . $sortorder;
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 	$sth->execute(array($nick));
