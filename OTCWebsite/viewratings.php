@@ -10,7 +10,7 @@
 	if (!in_array($sortby, $validkeys)) $sortby = "total_rating";
 
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	if (! isset($_GET[$var]) && $sortby == "total_rating" ) $sortorder = "DESC";
+	if (! isset($_GET["sortby"]) && $sortby == "total_rating" ) $sortorder = "DESC";
 	$validorders = array("ASC","DESC");
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 ?>
@@ -65,8 +65,12 @@ Web of Trust Data
 ?>
    </tr>
 <?php
+	$sortby_full = $sortby;
+	if ($sortby != 'keyid'){
+		$sortby_full = "rsusers." . $sortby;
+	}
 	$query = $db->Query("attach database './otc/GPG.db' as gpg");
-	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick LIKE gpg.users.nick ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
+	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick LIKE gpg.users.nick ORDER BY ' . $sortby_full . ' COLLATE NOCASE ' . $sortorder))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		//$resultrow = 0;
