@@ -25,7 +25,7 @@ import os
 import time
 
 class Quote:
-    def __init__(self, rawbids, rawasks, currency, mtgox_ticker):
+    def __init__(self, rawbids, rawasks, btcbidsinverse, btcasksinverse, currency, mtgox_ticker):
         self.currency = currency
         self.ticker = mtgox_ticker
         self.bids = []
@@ -39,6 +39,14 @@ class Quote:
                 self.bids.append(bid)
         for item in rawasks:
             ask = self._getIndexedValue(item[0])
+            if ask is not None:
+                self.asks.append(ask)
+        for item in btcbidsinverse:
+            bid = self._getIndexedValue(item[0], inverse=True)
+            if bid is not None:
+                self.bids.append(bid)
+        for item in btcasksinverse:
+            ask = self._getIndexedValue(item[0], inverse=True)
             if ask is not None:
                 self.asks.append(ask)
 
@@ -66,7 +74,7 @@ class Quote:
             raise ValueError, googlerate['error']
         return googlerate['rhs'].split()[0]
 
-    def _getIndexedValue(self, rawprice):
+    def _getIndexedValue(self, rawprice, inverse=False):
         try:
             if self.ticker is not None:
                 indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
@@ -75,6 +83,8 @@ class Quote:
             else:
                 indexedprice = rawprice
             indexedprice = self._getCurrencyConversion(indexedprice)
+            if inverse:
+                indexedprice = 1. / indexedprice
             return "%.5g" % eval(indexedprice)
         except:
             return None
@@ -125,17 +135,25 @@ class QuoteCreator:
         cursor = self.db1.cursor()
         for code in self.currency_codes:
             sql = """SELECT price FROM orders WHERE
-                    (buysell = 'BUY' AND thing LIKE 'BTC' AND otherthing LIKE ?) OR
-                    (buysell = 'SELL' AND thing LIKE ? AND otherthing LIKE 'BTC')"""
-            cursor.execute(sql, (code, code,))
+                    (buysell = 'BUY' AND thing LIKE 'BTC' AND otherthing LIKE ?)"""
+            cursor.execute(sql, (code,))
             btcbids = cursor.fetchall()
             sql = """SELECT price FROM orders WHERE
-                    (buysell = 'SELL' AND thing LIKE 'BTC' AND otherthing LIKE ?) OR
-                    (buysell = 'BUY' AND thing LIKE ? AND otherthing LIKE 'BTC')"""
-            cursor.execute(sql, (code, code,))
+                    (buysell = 'SELL' AND thing LIKE ? AND otherthing LIKE 'BTC')"""
+            cursor.execute(sql, (code,))
+            btcbidsinverse = cursor.fetchall()
+
+            sql = """SELECT price FROM orders WHERE
+                    (buysell = 'SELL' AND thing LIKE 'BTC' AND otherthing LIKE ?)"""
+            cursor.execute(sql, (code,))
             btcasks = cursor.fetchall()
+            sql = """SELECT price FROM orders WHERE
+                    (buysell = 'BUY' AND thing LIKE ? AND otherthing LIKE 'BTC')"""
+            cursor.execute(sql, (code,))
+            btcasksinverse = cursor.fetchall()
+
             if len(btcasks) != 0 or len(btcbids) != 0:
-                quote = Quote(btcbids, btcasks, code, self.mtgox_ticker)
+                quote = Quote(btcbids, btcasks, btcbidsinverse, btcasksinverse, code, self.mtgox_ticker)
                 self.quotes.append(quote)
 
     def write_quotedb(self):
