@@ -68,13 +68,16 @@ class Quote:
 
     def _getIndexedValue(self, rawprice):
         try:
-            indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
-            indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], indexedprice)
-            indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last'], indexedprice)
+            if self.ticker is not None:
+                indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
+                indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], indexedprice)
+                indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last'], indexedprice)
+            else:
+                indexedprice = rawprice
             indexedprice = self._getCurrencyConversion(indexedprice)
             return "%.5g" % eval(indexedprice)
         except:
-            raise
+            return None
 
     def json(self):
         js = {self.currency: {'bid': self.bestbid, 'ask': self.bestask}}
@@ -108,7 +111,7 @@ class QuoteCreator:
         try:
             self.get_mtgox_quote()
         except:
-            return
+            self.mtgox_ticker = None
         self.create_quotes()
         self.write_quotedb()
         self.write_json()
