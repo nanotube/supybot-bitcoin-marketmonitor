@@ -28,6 +28,7 @@ import supybot.callbacks as callbacks
 import sqlite3
 import re
 import os
+import errno
 import hashlib
 import time
 import copy
@@ -136,6 +137,11 @@ class GPG(callbacks.Plugin):
         self.filename = conf.supybot.directories.data.dirize('GPG.db')
         self.db = GPGDB(self.filename)
         self.db.open()
+        try:
+            os.makedirs(conf.supybot.directories.data.dirize('otps'))
+        except OSError, e:
+            if e.errno != errno.EEXIST:
+                raise
         self.gpg = gnupg.GPG(gnupghome = conf.supybot.directories.data.dirize('GPGkeyring'))
         try: #restore auth dicts, if we're reloading the plugin
             self.authed_users = utils.gpg_authed_users
@@ -176,7 +182,7 @@ class GPG(callbacks.Plugin):
         By default we look on pgp.mit.edu and pgp.surfnet.nl.
         You will be given a random passphrase to clearsign with your key, and
         submit to the bot with the 'verify' command.
-        Your passphrase will expire within 5 minutes.
+        Your passphrase will expire in 10 minutes.
         """
         self._removeExpiredRequests()
         if self.db.getByNick(nick):
@@ -220,6 +226,73 @@ class GPG(callbacks.Plugin):
                 (nick, challenge,))
     register = wrap(register, ['something', 'keyid', optional('keyserver')])
 
+    def eregister(self, irc, msg, args, nick, keyid, keyserver):
+        """<nick> <keyid> [<keyserver>]
+
+        Register your GPG identity, associating GPG key <keyid> with <nick>.
+        <keyid> is a 16 digit key id, with or without the '0x' prefix.
+        Optional <keyserver> argument tells us where to get your public key.
+        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        You will be given a link to a page which contains a one time password
+        encrypted with your key. Decrypt, and use the 'everify' command with it.
+        Your passphrase will expire in 10 minutes.
+        """
+        self._removeExpiredRequests()
+        if self.db.getByNick(nick):
+            irc.error("Username already registered. Try a different username.")
+            return
+        if self.db.getByKey(keyid):
+            irc.error("This key already registered in the database.")
+            return
+        rs = irc.getCallback('RatingSystem')
+        rsdata = rs.db.get(nick)
+        if len(rsdata) != 0 and rsdata[0][8] != msg.host:
+            irc.error("This username is reserved for the existing member of the "
+                    "web of trust, with host '%s'." % (rsdata[0][8],))
+            return
+        keyservers = []
+        if keyserver:
+            keyservers.extend([keyserver])
+        else:
+            keyservers.extend(self.registryValue('keyservers').split(','))
+        try:
+            for ks in keyservers:
+                result = self.gpg.recv_keys(ks, keyid)
+                if result.results[0].has_key('ok'):
+                    fingerprint = result.results[0]['fingerprint']
+                    break
+            else:
+                raise
+        except:
+            irc.error("Could not retrieve your key from keyserver. "
+                    "Either it isn't there, or it is invalid.")
+            self.log.info("GPG eregister: failed to retrieve key %s from keyservers %s. Details: %s" % \
+                    (keyid, keyservers, result.stderr,))
+            return
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
+        try:
+            data = self.gpg.encrypt(challenge, keyid, always_trust=True)
+            if data.status != "encryption ok":
+                raise ValueError, "problem encrypting otp"
+            otpfn = conf.supybot.directories.data.dirize('otps/%s' % (keyid,))
+            f = open(otpfn, 'w')
+            f.write(data.data)
+            f.close()
+        except Exception, e:
+            irc.error("Problem creating encrypted OTP file.")
+            self.log.info("GPG eregister: key %s, otp creation %s, exception %s" % \
+                    keyid, data.stderr, e)
+            return
+        request = {msg.prefix: {'keyid':keyid,
+                            'nick':nick, 'expiry':time.time(),
+                            'type':'eregister', 'fingerprint':fingerprint,
+                            'challenge':challenge}}
+        self.pending_auth.update(request)
+
+        irc.reply("Request successful for user %s. Get your encrypted OTP from %s" %\
+                (nick, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
+    eregister = wrap(eregister, ['something', 'keyid', optional('keyserver')])
+
     def auth(self, irc, msg, args, nick):
         """<nick>
 
@@ -227,7 +300,7 @@ class GPG(callbacks.Plugin):
         You must have registered a GPG key with the bot for this to work.
         You will be given a random passphrase to clearsign with your key, and
         submit to the bot with the 'verify' command.
-        Your passphrase will expire within 5 minutes.
+        Your passphrase will expire within 10 minutes.
         """
         self._removeExpiredRequests()
         userdata = self.db.getByNick(nick)
@@ -245,6 +318,45 @@ class GPG(callbacks.Plugin):
         irc.reply("Request successful for user %s. Your challenge string is: %s" %\
                 (nick, challenge,))
     auth = wrap(auth, ['something'])
+
+    def eauth(self, irc, msg, args, nick):
+        """<nick>
+
+        Initiate authentication for user <nick>.
+        You must have registered a GPG key with the bot for this to work.
+        You will be given a link to a page which contains a one time password
+        encrypted with your key. Decrypt, and use the 'everify' command with it.
+        Your passphrase will expire in 10 minutes.
+        """
+        self._removeExpiredRequests()
+        userdata = self.db.getByNick(nick)
+        if len(userdata) == 0:
+            irc.error("This nick is not registered. Please register.")
+            return
+        keyid = userdata[0][1]
+        fingerprint = userdata[0][2]
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
+        try:
+            data = self.gpg.encrypt(challenge, keyid, always_trust=True)
+            if data.status != "encryption ok":
+                raise ValueError, "problem encrypting otp"
+            otpfn = conf.supybot.directories.data.dirize('otps/%s' % (keyid,))
+            f = open(otpfn, 'w')
+            f.write(data.data)
+            f.close()
+        except Exception, e:
+            irc.error("Problem creating encrypted OTP file.")
+            self.log.info("GPG eregister: key %s, otp creation %s, exception %s" % \
+                    keyid, data.stderr, e)
+            return
+        request = {msg.prefix: {'nick':userdata[0][4],
+                                'expiry':time.time(), 'keyid':keyid,
+                                'type':'eauth', 'challenge':challenge,
+                                'fingerprint':fingerprint}}
+        self.pending_auth.update(request)
+        irc.reply("Request successful for user %s. Get your encrypted OTP from %s" %\
+                (nick, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
+    eauth = wrap(eauth, ['something'])
 
     def _unauth(self, hostmask):
         try:
@@ -293,6 +405,9 @@ class GPG(callbacks.Plugin):
         except KeyError:
             irc.error("Could not find a pending authentication request from your hostmask. "
                         "Either it expired, or you changed hostmask, or you haven't made one.")
+            return
+        if authrequest['type'] not in ['register','auth','changekey']:
+            irc.error("No outstanding signature-based request found.")
             return
         try:
             rawdata = utils.web.getUrl(url)
@@ -343,6 +458,59 @@ class GPG(callbacks.Plugin):
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     verify = wrap(verify, ['httpUrl'])
+
+    def everify(self, irc, msg, args, otp):
+        """<otp>
+
+        Verify the latest encrypt-authentication request by providing your decrypted
+        one-time password.
+        If verified, you'll be authenticated for the duration of the bot's
+        or your IRC session on channel (whichever is shorter).
+        """
+        self._removeExpiredRequests()
+        if not self._testPresenceInChannels(irc, msg.nick):
+            irc.error("In order to authenticate, you must be present in one "
+                    "of the following channels: %s" % (self.registryValue('channels'),))
+            return
+        try:
+            authrequest = self.pending_auth[msg.prefix]
+        except KeyError:
+            irc.error("Could not find a pending authentication request from your hostmask. "
+                        "Either it expired, or you changed hostmask, or you haven't made one.")
+            return
+        if authrequest['type'] not in ['eregister','eauth','echangekey']:
+            irc.error("No outstanding encryption-based request found.")
+            return
+        if authrequest['challenge'] != otp:
+            irc.error("Incorrect one-time password. Try again.")
+            return
+
+        response = ""
+        if authrequest['type'] == 'eregister':
+            if self.db.getByNick(authrequest['nick']) or self.db.getByKey(authrequest['keyid']):
+                irc.error("Username or key already in the database.")
+                return
+            self.db.register(authrequest['keyid'], authrequest['fingerprint'],
+                        time.time(), authrequest['nick'])
+            response = "Registration successful. "
+        elif authrequest['type'] == 'echangekey':
+            gpgauth = self._ident(msg.prefix)
+            if gpgauth is None:
+                irc.error("You must be authenticated in order to change your registered key.")
+                return
+            if self.db.getByKey(authrequest['keyid']):
+                irc.error("This key id already registered. Try a different key.")
+                return
+            self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
+            response = "Successfully changed key for user %s from %s to %s." %\
+                (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
+        self.authed_users[msg.prefix] = {'timestamp':time.time(),
+                    'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
+                    'fingerprint':authrequest['fingerprint']}
+        del self.pending_auth[msg.prefix]
+        irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
+                        (authrequest['nick'], authrequest['keyid']))
+    everify = wrap(everify, ['something'])
 
     def changenick(self, irc, msg, args, newnick):
         """<newnick>

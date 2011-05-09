@@ -31,6 +31,8 @@ except ImportError:
 
 from xmlrpclib import ServerProxy
 import shutil
+import os, os.path
+import time
 
 class GPGTestCase(PluginTestCase):
     plugins = ('GPG','RatingSystem')
@@ -106,6 +108,33 @@ class GPGTestCase(PluginTestCase):
         self.assertError('register someone BBBBBBBBCCCCDDDD') # dupe username
         self.assertError('register newguy %s' % (self.testkeyid,)) #dupe keyid
 
+    def testEregister(self):
+        # default test user hostmask: test!user@host.domain.tld
+        self.assertRegexp('gpg ident', 'not identified')
+        self.assertError('eregister someone 0xBADKEY')
+        self.assertError('eregister someone 0x23420982') # bad length
+        self.assertError('eregister someone 0xAAAABBBBCCCCDDDD') #doesn't exist
+        self.assertRegexp('register someone 0xAAAABBBBCCCCDDDD "bad key server arg"', 'given a random passphrase') #badly formed keyserver
+        #self.cb.gpg.list_keys()
+        m = self.getMsg('eregister someone %s hkp://pgp.surfnet.nl:11371' % (self.testkeyid,)) #test url keyserver arg
+        self.failUnless('Request successful' in str(m))
+        m = self.getMsg('eregister someone %s pgp.surfnet.nl' % (self.testkeyid,)) #test domain keyserver arg
+        self.failUnless('Request successful' in str(m))
+        m = self.getMsg('eregister someone %s' % (self.testkeyid,)) #test without keyserver arg
+        self.failUnless('Request successful' in str(m))
+        encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
+        decrypted = self.cb.gpg.decrypt(encrypteddata)
+        self.assertRegexp('everify %s' % (decrypted.data,), 
+                    'Registration successful. You are now authenticated')
+
+        #are we identified?
+        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident test', 'is identified')
+
+        #duplicate nick/key registrations
+        self.assertError('eregister someone BBBBBBBBCCCCDDDD') # dupe username
+        self.assertError('eregister newguy %s' % (self.testkeyid,)) #dupe keyid
+
     def testIdent(self):
         self.prefix = 'authedguy!stuff@123.345.234.34'
         self.assertRegexp('gpg ident', 'You are identified')
@@ -136,6 +165,19 @@ class GPGTestCase(PluginTestCase):
                     'You are now authenticated')
         self.assertRegexp('gpg ident', 'You are identified')
 
+    def testEauth(self):
+        self.assertNotError('gpg register bla %s' % (self.testkeyid,)) # just to get the pubkey into the keyring
+        gpg = self.irc.getCallback('GPG')
+        gpg.db.register(self.testkeyid, self.testkeyfingerprint,
+                    time.time(), 'someone')
+        self.assertNotError('eauth someone')
+        m = self.getMsg('eauth someone')
+        self.failUnless('Request successful' in str(m))
+        encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
+        decrypted = self.cb.gpg.decrypt(encrypteddata)
+        self.assertRegexp('everify %s' % (decrypted.data,), 'You are now authenticated')
+        self.assertRegexp('gpg ident', 'You are identified')
+
     def testChangenick(self):
         self.assertError('gpg changenick somethingnew') #not authed
         self.prefix = 'authedguy2!stuff@123.345.234.34'
@@ -150,7 +192,6 @@ class GPGTestCase(PluginTestCase):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
         self.assertRegexp('gpg ident', 'are identified')
         m = self.getMsg('gpg changekey %s' % (self.testkeyid,))
-        print str(m)
         self.failUnless('Request successful' in str(m))
         challenge = str(m).split('is: ')[1]
         sd = self.cb.gpg.sign(challenge, keyid = self.testkeyid)
