@@ -119,7 +119,7 @@ class MarketMonitor(callbacks.Plugin):
             d = json.loads(data)
             for needed in "timestamp", "price", "volume", "symbol":
                 assert needed in d
-            market, currency = re.match(r"^([a-z]+)([A-Z]+)$", d["symbol"]).groups()
+            market, currency = re.match(r"^([a-z0-9]+)([A-Z]+)$", d["symbol"]).groups()
             volume = decimal.Decimal(d["volume"])
             price = decimal.Decimal(d["price"])
             stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
