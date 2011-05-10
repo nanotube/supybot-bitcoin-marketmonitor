@@ -124,7 +124,7 @@ class GPGTestCase(PluginTestCase):
         self.failUnless('Request successful' in str(m))
         encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
         decrypted = self.cb.gpg.decrypt(encrypteddata)
-        self.assertRegexp('everify %s' % (decrypted.data,), 
+        self.assertRegexp('everify %s' % (decrypted.data.strip(),), 
                     'Registration successful. You are now authenticated')
 
         #are we identified?
@@ -175,7 +175,7 @@ class GPGTestCase(PluginTestCase):
         self.failUnless('Request successful' in str(m))
         encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
         decrypted = self.cb.gpg.decrypt(encrypteddata)
-        self.assertRegexp('everify %s' % (decrypted.data,), 'You are now authenticated')
+        self.assertRegexp('everify %s' % (decrypted.data.strip(),), 'You are now authenticated')
         self.assertRegexp('gpg ident', 'You are identified')
 
     def testChangenick(self):

@@ -271,7 +271,7 @@ class GPG(callbacks.Plugin):
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
         try:
-            data = self.gpg.encrypt(challenge, keyid, always_trust=True)
+            data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
                 raise ValueError, "problem encrypting otp"
             otpfn = conf.supybot.directories.data.dirize('otps/%s' % (keyid,))
@@ -337,7 +337,7 @@ class GPG(callbacks.Plugin):
         fingerprint = userdata[0][2]
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
         try:
-            data = self.gpg.encrypt(challenge, keyid, always_trust=True)
+            data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
                 raise ValueError, "problem encrypting otp"
             otpfn = conf.supybot.directories.data.dirize('otps/%s' % (keyid,))
