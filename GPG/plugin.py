@@ -222,8 +222,8 @@ class GPG(callbacks.Plugin):
                             'type':'register', 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
-        irc.reply("Request successful for user %s. Your challenge string is: %s" %\
-                (nick, challenge,))
+        irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
+                (nick, msg.prefix, challenge,))
     register = wrap(register, ['something', 'keyid', optional('keyserver')])
 
     def eregister(self, irc, msg, args, nick, keyid, keyserver):
@@ -289,8 +289,8 @@ class GPG(callbacks.Plugin):
                             'challenge':challenge}}
         self.pending_auth.update(request)
 
-        irc.reply("Request successful for user %s. Get your encrypted OTP from %s" %\
-                (nick, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
+        irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
+                (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
     eregister = wrap(eregister, ['something', 'keyid', optional('keyserver')])
 
     def auth(self, irc, msg, args, nick):
@@ -315,8 +315,8 @@ class GPG(callbacks.Plugin):
                                 'type':'auth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
         self.pending_auth.update(request)
-        irc.reply("Request successful for user %s. Your challenge string is: %s" %\
-                (nick, challenge,))
+        irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
+                (nick, msg.prefix, challenge,))
     auth = wrap(auth, ['something'])
 
     def eauth(self, irc, msg, args, nick):
@@ -354,8 +354,8 @@ class GPG(callbacks.Plugin):
                                 'type':'eauth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
         self.pending_auth.update(request)
-        irc.reply("Request successful for user %s. Get your encrypted OTP from %s" %\
-                (nick, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
+        irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
+                (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
     eauth = wrap(eauth, ['something'])
 
     def _unauth(self, hostmask):
@@ -577,8 +577,8 @@ class GPG(callbacks.Plugin):
                             'type':'changekey', 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
-        irc.reply("Request successful for user %s. Your challenge string is: %s" %\
-                (gpgauth['nick'], challenge,))
+        irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
+                (gpgauth['nick'], msg.prefix, challenge,))
     changekey = wrap(changekey, ['keyid', optional('keyserver')])
 
     def ident(self, irc, msg, args, nick):
