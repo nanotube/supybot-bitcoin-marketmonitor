@@ -281,7 +281,7 @@ class GPG(callbacks.Plugin):
         except Exception, e:
             irc.error("Problem creating encrypted OTP file.")
             self.log.info("GPG eregister: key %s, otp creation %s, exception %s" % \
-                    keyid, data.stderr, e)
+                    (keyid, data.stderr, e,))
             return
         request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
@@ -347,7 +347,7 @@ class GPG(callbacks.Plugin):
         except Exception, e:
             irc.error("Problem creating encrypted OTP file.")
             self.log.info("GPG eregister: key %s, otp creation %s, exception %s" % \
-                    keyid, data.stderr, e)
+                    (keyid, data.stderr, e,))
             return
         request = {msg.prefix: {'nick':userdata[0][4],
                                 'expiry':time.time(), 'keyid':keyid,
