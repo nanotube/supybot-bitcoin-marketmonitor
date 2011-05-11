@@ -216,7 +216,7 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG register: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, result.stderr,))
             return
-        challenge = hashlib.sha256(os.urandom(128)).hexdigest()
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
         request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
                             'type':'register', 'fingerprint':fingerprint,
@@ -309,7 +309,7 @@ class GPG(callbacks.Plugin):
             return
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
-        challenge = hashlib.sha256(os.urandom(128)).hexdigest()
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
         request = {msg.prefix: {'nick':userdata[0][4],
                                 'expiry':time.time(), 'keyid':keyid,
                                 'type':'auth', 'challenge':challenge,
@@ -512,25 +512,25 @@ class GPG(callbacks.Plugin):
                         (authrequest['nick'], authrequest['keyid']))
     everify = wrap(everify, ['something'])
 
-    def changenick(self, irc, msg, args, newnick):
-        """<newnick>
+    #~ def changenick(self, irc, msg, args, newnick):
+        #~ """<newnick>
         
-        Changes your GPG registered username to <newnick>.
-        You must be authenticated in order to use this command.
-        """
-        self._removeExpiredRequests()
-        gpgauth = self._ident(msg.prefix)
-        if gpgauth is None:
-            irc.error("You must be authenticated in order to change your registered username.")
-            return
-        if self.db.getByNick(newnick):
-            irc.error("Username already registered. Try a different username.")
-            return
-        oldnick = gpgauth['nick']
-        self.db.changenick(oldnick, newnick)
-        gpgauth['nick'] = newnick
-        irc.reply("Successfully changed your nick from %s to %s." % (oldnick, newnick,))
-    changenick = wrap(changenick, ['something'])
+        #~ Changes your GPG registered username to <newnick>.
+        #~ You must be authenticated in order to use this command.
+        #~ """
+        #~ self._removeExpiredRequests()
+        #~ gpgauth = self._ident(msg.prefix)
+        #~ if gpgauth is None:
+            #~ irc.error("You must be authenticated in order to change your registered username.")
+            #~ return
+        #~ if self.db.getByNick(newnick):
+            #~ irc.error("Username already registered. Try a different username.")
+            #~ return
+        #~ oldnick = gpgauth['nick']
+        #~ self.db.changenick(oldnick, newnick)
+        #~ gpgauth['nick'] = newnick
+        #~ irc.reply("Successfully changed your nick from %s to %s." % (oldnick, newnick,))
+    #~ changenick = wrap(changenick, ['something'])
 
     def changekey(self, irc, msg, args, keyid, keyserver):
         """<keyid> [<keyserver>]
@@ -571,7 +571,7 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG changekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, result.stderr,))
             return
-        challenge = hashlib.sha256(os.urandom(128)).hexdigest()
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()
         request = {msg.prefix: {'keyid':keyid,
                             'nick':gpgauth['nick'], 'expiry':time.time(),
                             'type':'changekey', 'fingerprint':fingerprint,
