@@ -32,7 +32,8 @@ using terms from application "Colloquy"
 			
 			# Get challenge string
 			set AppleScript's text item delimiters to challengeQuery
-			set challenge to text item 2 of messageText
+			set challengeHTML to text item 2 of messageText
+			set challenge to (do shell script "echo " & quoted form of challengeHTML & "| sed 's/<[^>]*>//g'")
 			
 			# Get the passphrase
 			if gpgPassphrase is null then
