@@ -35,7 +35,7 @@ import os, os.path
 import time
 
 class GPGTestCase(PluginTestCase):
-    plugins = ('GPG','RatingSystem')
+    plugins = ('GPG','RatingSystem','Utilities')
 
     def setUp(self):
         PluginTestCase.setUp(self)
@@ -139,6 +139,7 @@ class GPGTestCase(PluginTestCase):
         self.prefix = 'authedguy!stuff@123.345.234.34'
         self.assertRegexp('gpg ident', 'You are identified')
         self.assertRegexp('gpg ident authedguy', 'is identified')
+        self.assertResponse('echo [gpg ident]', 'authedguy')
 
     def testStats(self):
         self.assertRegexp('gpg stats', '4 registered users.*3 currently authenticated.*0 pending auth')
