@@ -1,6 +1,6 @@
 ###
 # Copyright (c) 2011, remote
-# All rights reserved.
+# Copyright (c) 2011, nanotube
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -34,84 +34,113 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
-import sys
 import json
-
-from time import sleep
 from urllib2 import urlopen
 
-def getMarketDepth():
-    json_data = urlopen("http://mtgox.com/code/data/getDepth.php").read()
-    mdepth = json.loads(json_data)
+def getNonNegativeFloat(irc, msg, args, state, type=' floating point number'):
+    try:
+        v = float(args[0])
+        if v < 0:
+            raise ValueError, "only non-negative numbers allowed."
+        state.args.append(v)
+        del args[0]
+    except ValueError:
+        state.errorInvalid(type, args[0])
 
-    return mdepth
+addConverter('nonNegativeFloat', getNonNegativeFloat)
 
 class Market(callbacks.Plugin):
     """Add the help for "@plugin help Market" here
     This should describe *how* to use this plugin."""
     threaded = True
 
-    def calcBitcoinAsksUnder(self, irc, msg, args, value):
-        """
-        Calculate the amount of bitcoins for sale under PRICE VALUE along with their total value.
-        """
-        mdepth = getMarketDepth()
+    def _getMarketDepth(self):
+        json_data = urlopen("http://mtgox.com/code/data/getDepth.php").read()
+        mdepth = json.loads(json_data)
+        return mdepth
+
+    def _getTicker(self):
+        json_data = urlopen("http://mtgox.com/code/data/ticker.php").read()
+        ticker = json.loads(json_data)
+        return ticker['ticker']
+
+    def asks(self, irc, msg, args, optlist, pricetarget):
+        """[--over] <pricetarget>
         
+        Calculate the amount of bitcoins for sale at or under <pricetarget>.
+        If '--over' option is given, find coins or at or over <pricetarget>.
+        """
+        try:
+            mdepth = self._getMarketDepth()
+        except:
+            irc.error("Failure to retrieve order book data. Try again later.")
+            return
+        response = "under"
+        if dict(optlist).has_key('over'):
+            f = lambda price,pricetarget: price >= pricetarget
+            response = "over"
+        else:
+            f = lambda price,pricetarget: price <= pricetarget
         n_coins = 0.0
         total = 0.0
         asks = mdepth['asks']
         for ask in asks:
             (price, amount) = ask
-            if price < value:
+            if f(price, pricetarget):
                 n_coins += amount
                 total += (amount * price)
 
-        irc.reply("There are currently %s bitcoins for trade under $%s USD worth $%s in total." % (n_coins, 
-                                                                                                   value,
-                                                                                                   int(total)))
-    askunder = wrap(calcBitcoinAsksUnder, ['float'])
+        irc.reply("There are currently %.8g bitcoins offered at "
+                "or %s %s USD, worth %s USD in total." % (n_coins, 
+                        response, pricetarget, total))
+    asks = wrap(asks, [getopts({'over': '',}), 'nonNegativeFloat'])
 
-    def calcBitcoinAsksOver(self, irc, msg, args, value):
-        """
-        Calculate the amount of bitcoins for sale over PRICE VALUE along with their total value.
-        """
-        mdepth = getMarketDepth()
+    def bids(self, irc, msg, args, optlist, pricetarget):
+        """[--under] <pricetarget>
         
+        Calculate the amount of bitcoin demanded at or over <pricetarget>.
+        If '--under' option is given, find coins or at or under <pricetarget>.
+        """
+        try:
+            mdepth = self._getMarketDepth()
+        except:
+            irc.error("Failure to retrieve order book data. Try again later.")
+            return
+        response = "over"
+        if dict(optlist).has_key('under'):
+            f = lambda price,pricetarget: price <= pricetarget
+            response = "under"
+        else:
+            f = lambda price,pricetarget: price >= pricetarget
         n_coins = 0.0
         total = 0.0
-        asks = mdepth['asks']
-        for ask in asks:
-            (price, amount) = ask
-            if price > value:
-                n_coins += amount
-                total += (amount * price)
-
-        irc.reply("There are currently %s bitcoins for trade over $%s USD worth $%s in total." % (n_coins, 
-                                                                                                   value,
-                                                                                                   int(total)))
-    askover = wrap(calcBitcoinAsksOver, ['float'])
-
-    def calcBitcoinBidsOver(self, irc, msg, args, value):
-        """
-        Calculate the amount of bitcoins that will be sold before bid price reaches `value' and their total value.
-        
-        returns a tuple in format: (amount, value)
-        """
-        mdepth = getMarketDepth()
-        
-        n_coins = 0
-        total = 0
         bids = mdepth['bids']
         for bid in bids:
             (price, amount) = bid
-            if price > value:
+            if f(price, pricetarget):
                 n_coins += amount
                 total += (amount * price)
+
+        irc.reply("There are currently %.8g bitcoins demanded at "
+                "or %s %s USD, worth %s USD in total." % (n_coins, 
+                        response, pricetarget, total))
+    bids = wrap(bids, [getopts({'under': '',}), 'nonNegativeFloat'])
+
+    def ticker(self, irc, msg, args):
+        """takes no arguments
         
-        irc.reply("There are currently %s bitcoins bids offered over $%s USD worth $%s in total." % (n_coins, 
-                                                                                                     value,
-                                                                                                     int(total)))
-    bidover = wrap(calcBitcoinBidsOver, ['float'])
+        Return pretty-printed mtgox ticker.
+        """
+        try:
+            ticker = self._getTicker()
+        except:
+            irc.error("Failure to retrieve ticker. Try again later.")
+            return
+        irc.reply("Best bid: %s, Best ask: %s, Last trade: %s, "
+                "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s" % \
+                (ticker['buy'], ticker['sell'], ticker['last'], ticker['vol'],
+                ticker['low'], ticker['high']))
+    ticker = wrap(ticker)
 
 Class = Market
 

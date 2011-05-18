@@ -33,5 +33,17 @@ from supybot.test import *
 class MarketTestCase(PluginTestCase):
     plugins = ('Market',)
 
+    def testAsks(self):
+        self.assertError('asks blabla')
+        self.assertRegexp('asks 0', 'There are currently 0 bitcoins offered at or under 0')
+        self.assertRegexp('asks --over 5.5', 'There are currently .* bitcoins offered at or over 5')
+
+    def testBids(self):
+        self.assertError('bids blabla')
+        self.assertRegexp('bids 10000000', 'There are currently 0 bitcoins demanded at or over 1')
+        self.assertRegexp('bids --under 5.5', 'There are currently .* bitcoins demanded at or under 5')
+
+    def testTicker(self):
+        self.assertNotError('ticker')
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
