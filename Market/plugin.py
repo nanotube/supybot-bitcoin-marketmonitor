@@ -136,10 +136,10 @@ class Market(callbacks.Plugin):
         except:
             irc.error("Failure to retrieve ticker. Try again later.")
             return
-        irc.reply("Best bid: %s, Best ask: %s, Last trade: %s, "
+        irc.reply("Best bid: %s, Best ask: %s, Bid-ask spread: %s, Last trade: %s, "
                 "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s" % \
-                (ticker['buy'], ticker['sell'], ticker['last'], ticker['vol'],
-                ticker['low'], ticker['high']))
+                (ticker['buy'], ticker['sell'], ticker['sell'] - ticker['buy'], ticker['last'], 
+                ticker['vol'], ticker['low'], ticker['high']))
     ticker = wrap(ticker)
 
 Class = Market
