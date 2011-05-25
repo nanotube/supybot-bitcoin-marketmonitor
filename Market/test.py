@@ -44,6 +44,12 @@ class MarketTestCase(PluginTestCase):
         self.assertRegexp('bids --under 5.5', 'There are currently .* bitcoins demanded at or under 5')
 
     def testTicker(self):
-        self.assertNotError('ticker')
+        self.assertRegexp('ticker', 'Best bid')
+        self.assertRegexp('ticker --bid', '[\d\.]+')
+        self.assertRegexp('ticker --ask', '[\d\.]+')
+        self.assertRegexp('ticker --last', '[\d\.]+')
+        self.assertRegexp('ticker --high', '[\d\.]+')
+        self.assertRegexp('ticker --low', '[\d\.]+')
+        self.assertError('ticker --last --bid')
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

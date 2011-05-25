@@ -126,21 +126,32 @@ class Market(callbacks.Plugin):
                         response, pricetarget, total))
     bids = wrap(bids, [getopts({'under': '',}), 'nonNegativeFloat'])
 
-    def ticker(self, irc, msg, args):
-        """takes no arguments
+    def ticker(self, irc, msg, args, optlist):
+        """[--bid|--ask|--last|--high|--low]
         
-        Return pretty-printed mtgox ticker.
+        Return pretty-printed mtgox ticker. 
+        If one of the options is given, returns only that numeric result
+        (useful for nesting in calculations).
         """
         try:
             ticker = self._getTicker()
         except:
             irc.error("Failure to retrieve ticker. Try again later.")
             return
-        irc.reply("Best bid: %s, Best ask: %s, Bid-ask spread: %s, Last trade: %s, "
+        od = dict(optlist)
+        if len(od) > 1:
+            irc.error("Please only choose one option at a time.")
+            return
+        if len(od) == 0:
+            irc.reply("Best bid: %s, Best ask: %s, Bid-ask spread: %s, Last trade: %s, "
                 "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s" % \
                 (ticker['buy'], ticker['sell'], ticker['sell'] - ticker['buy'], ticker['last'], 
                 ticker['vol'], ticker['low'], ticker['high']))
-    ticker = wrap(ticker)
+        else:
+            key = od.keys()[0]
+            key = {'bid':'buy', 'ask':'sell'}.setdefault(key, key)
+            irc.reply(ticker[key])
+    ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '','low': '',})])
 
 Class = Market
 
