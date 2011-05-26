@@ -216,7 +216,7 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG register: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, result.stderr,))
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-6]
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
                             'type':'register', 'fingerprint':fingerprint,
@@ -269,7 +269,7 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG eregister: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, result.stderr,))
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-6]
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
@@ -309,7 +309,7 @@ class GPG(callbacks.Plugin):
             return
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-6]
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'nick':userdata[0][4],
                                 'expiry':time.time(), 'keyid':keyid,
                                 'type':'auth', 'challenge':challenge,
@@ -335,7 +335,7 @@ class GPG(callbacks.Plugin):
             return
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-6]
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
@@ -571,7 +571,7 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG changekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, result.stderr,))
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-6]
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'keyid':keyid,
                             'nick':gpgauth['nick'], 'expiry':time.time(),
                             'type':'changekey', 'fingerprint':fingerprint,
