@@ -22,8 +22,10 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+from supybot import ircmsgs
 from supybot import conf
 from supybot import ircdb
+from supybot import world
 
 import sqlite3
 import time
@@ -297,6 +299,15 @@ class OTCOrderBook(callbacks.Plugin):
                 return
         orderid = self.db.buy(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes, extratime)
         irc.reply("Order id %s created." % (orderid,))
+        if not world.testing:
+            print "moo"
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ticker",
+                    "#%s BUY %s %s @ %s %s || %s" % (orderid,
+                            amount,
+                            thing,
+                            self._getIndexedValue(price),
+                            otherthing,
+                            notes,)))
     buy = wrap(buy, [getopts({'long': '',}), 'positiveFloat', 'something',
             'at', 'indexedPrice', 'something', optional('text')])
 
@@ -335,6 +346,15 @@ class OTCOrderBook(callbacks.Plugin):
                 return
         orderid = self.db.sell(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes, extratime)
         irc.reply("Order id %s created." % (orderid,))
+        if not world.testing:
+            print "moo"
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ticker",
+                    "#%s SELL %s %s @ %s %s || %s" % (orderid,
+                            amount,
+                            thing,
+                            self._getIndexedValue(price),
+                            otherthing,
+                            notes,)))
     sell = wrap(sell, [getopts({'long': '',}), 'positiveFloat', 'something',
             'at', 'indexedPrice', 'something', optional('text')])
 
