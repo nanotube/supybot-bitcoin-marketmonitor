@@ -51,7 +51,7 @@ Rating for <?php echo $nick; ?>
 
 	try { $db = new PDO('sqlite:./otc/RatingSystem.db'); }
 	catch (PDOException $e) { die($e->getMessage()); }
-	$sql = "SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM users, ratings WHERE users.nick = ? AND " . $typequeries[$type] . $signqueries[$sign];
+	$sql = "SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM users, ratings WHERE users.nick LIKE ? AND " . $typequeries[$type] . $signqueries[$sign];
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 	if (!$sth->execute(array($nick))) echo "<li>No positive ratings found</li>\n";
 	else {
