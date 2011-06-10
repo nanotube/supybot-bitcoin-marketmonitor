@@ -94,7 +94,7 @@ Rating for <?php echo $nick; ?>
     <td><a href="viewratingdetail.php?nick=<?php echo $entry['rated_nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['rated_nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
     <td><?php echo $entry['rating']; ?></td>
-    <td><?php echo $entry['notes']; ?></td>
+    <td><?php echo htmlspecialchars($entry['notes']); ?></td>
    </tr>
 <?
 		}
