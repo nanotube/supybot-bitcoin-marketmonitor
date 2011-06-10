@@ -1,5 +1,9 @@
 # Thanks to pnicholson for this script!
 
+#
+# If you are having problems with this script, try not using a PassPhrase for the gpg key !!
+# 
+
 using terms from application "Colloquy"
 	
 	# Your nickname on #bitcoin-otc
