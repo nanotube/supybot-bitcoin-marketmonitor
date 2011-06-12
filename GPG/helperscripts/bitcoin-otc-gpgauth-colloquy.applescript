@@ -1,3 +1,5 @@
+# Thanks to M4v3R for this script!
+
 # Your nickname on #bitcoin-otc
 property theNickname : "YOUR_NICKNAME"
 
