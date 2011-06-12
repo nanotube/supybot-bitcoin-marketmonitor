@@ -12,6 +12,8 @@
 </td>
 <td style="text-align: right;">
 <a class="header" href="http://bitcoin-otc.com/">Home</a> |
+<a class="header" href="http://bitcoin-otc.com/viewratings.php">Web of Trust</a> |
+<a class="header" href="http://bitcoin-otc.com/vieworderbook.php">Order Book</a> |
 <a class="header" href="http://wiki.bitcoin-otc.com/">Wiki</a> |
 <a class="header" href="http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc">Help</a> |
 <a class="header" href="contact.php">Contact</a>
