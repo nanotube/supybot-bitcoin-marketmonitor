@@ -363,7 +363,7 @@ class RatingSystem(callbacks.Plugin):
         irc.reply("Successfully removed your rating for %s." % nick)
     unrate = wrap(unrate, ['something'])
 
-    def _getrating(nick):
+    def _getrating(self, nick):
         """Get cumulative rating for user. For use from other plugins."""
         data = self.db.get(nick)
         if len(data) == 0:
