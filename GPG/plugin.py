@@ -692,16 +692,15 @@ class GPG(callbacks.Plugin):
         """Kill the authentication when user gets kicked."""
         channels = self.registryValue('channels').split(';')
         if msg.args[0] in channels and irc.network == self.registryValue('network'):
-            (channel, nicks) = msg.args[:2]
-            if ircutils.toLower(irc.nick) in ircutils.toLower(nicks).split(','):
+            (channel, nick) = msg.args[:2]
+            if ircutils.toLower(irc.nick) in ircutils.toLower(nick):
                 self.authed_users.clear()
             else:
-                for nick in nicks:
-                    try:
-                        hostmask = irc.state.nickToHostmask(nick)
-                        self._unauth(hostmask)
-                    except KeyError:
-                        pass
+                try:
+                    hostmask = irc.state.nickToHostmask(nick)
+                    self._unauth(hostmask)
+                except KeyError:
+                    pass
 
     def doNick(self, irc, msg):
         if msg.prefix in self.authed_users.keys():
