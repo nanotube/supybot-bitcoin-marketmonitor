@@ -613,6 +613,14 @@ class GPG(callbacks.Plugin):
         irc.reply(response)
     ident = wrap(ident, [optional('something')])
 
+    def _info(nick):
+        """Return info on registered user. For use from other plugins."""
+        result = self.db.getByNick(nick)
+        if len(result) == 0:
+            return None
+        else:
+            return result[0]
+
     def info(self, irc, msg, args, optlist, nick):
         """[--key] <nick>
 
