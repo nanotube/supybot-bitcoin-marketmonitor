@@ -675,13 +675,17 @@ class GPG(callbacks.Plugin):
             self._unauth(msg.prefix)
 
     def doPart(self, irc, msg):
-        """Kill the authentication when user parts channel."""
+        """Kill the authentication when user parts all channels."""
         channels = self.registryValue('channels').split(';')
         if msg.args[0] in channels and irc.network == self.registryValue('network'):
-            if ircutils.strEqual(msg.nick, irc.nick): #we're parting
-                self.authed_users.clear()
+            for channel in channels:
+                if msg.nick in irc.state.channels[channel].users:
+                    break
             else:
-                self._unauth(msg.prefix)
+                if ircutils.strEqual(msg.nick, irc.nick): #we're parting
+                    self.authed_users.clear()
+                else:
+                    self._unauth(msg.prefix)
 
     def doError(self, irc, msg):
         """Reset the auth dict when bot gets disconnected."""
