@@ -55,12 +55,12 @@ class Market(callbacks.Plugin):
     threaded = True
 
     def _getMarketDepth(self):
-        json_data = urlopen("http://mtgox.com/code/data/getDepth.php").read()
+        json_data = urlopen("https://mtgox.com/code/data/getDepth.php").read()
         mdepth = json.loads(json_data)
         return mdepth
 
     def _getTicker(self):
-        json_data = urlopen("http://mtgox.com/code/data/ticker.php").read()
+        json_data = urlopen("https://mtgox.com/code/data/ticker.php").read()
         ticker = json.loads(json_data)
         return ticker['ticker']
 
