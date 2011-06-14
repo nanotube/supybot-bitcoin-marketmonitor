@@ -120,8 +120,8 @@ class MarketMonitor(callbacks.Plugin):
             for needed in "timestamp", "price", "volume", "symbol":
                 assert needed in d
             market, currency = re.match(r"^([a-z0-9]+)([A-Z]+)$", d["symbol"]).groups()
-            volume = decimal.Decimal(d["volume"])
-            price = decimal.Decimal(d["price"])
+            volume = decimal.Decimal(str(d["volume"]))
+            price = decimal.Decimal(str(d["price"]))
             stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
             prfmt = self._moneyfmt(price, places=8)
             match = re.search(r"\.\d{2}[0-9]*?(0+)$", prfmt)
