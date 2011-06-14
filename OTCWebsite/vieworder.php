@@ -49,7 +49,7 @@ Order <?php echo $id; ?>
    </tr>
    <tr>
     <th>nick</th>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>"><?php echo htmlentities($entry["nick"]); ?></a></td>
    </tr>
    <tr>
     <th>host</th>
@@ -61,7 +61,7 @@ Order <?php echo $id; ?>
    </tr>
    <tr>
     <th>thing</th>
-    <td><?php echo htmlspecialchars($entry["thing"]); ?></td>
+    <td><?php echo htmlentities($entry["thing"]); ?></td>
    </tr>
    <tr>
     <th>price</th>
@@ -73,11 +73,11 @@ Order <?php echo $id; ?>
    </tr>
    <tr>
     <th>other thing</th>
-    <td><?php echo $entry["otherthing"]; ?></td>
+    <td><?php echo htmlentities($entry["otherthing"]); ?></td>
    </tr>
    <tr>
     <th>notes</th>
-    <td><?php echo $entry["notes"]; ?></td>
+    <td><?php echo htmlentities($entry["notes"]); ?></td>
    </tr>
 <?
   }

@@ -15,6 +15,7 @@
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 	
 	$nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
+	$nickfilter = html_entity_decode($nickfilter)
 ?>
 
 <div class="breadcrumbs">
@@ -68,7 +69,7 @@ else {
 ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['registered_at']); ?></td>
     <td><?php echo $entry['keyid']; ?></td>
 	<td><?php echo $entry['fingerprint']; ?></td>

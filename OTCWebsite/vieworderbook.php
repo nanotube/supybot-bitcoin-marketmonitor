@@ -18,10 +18,15 @@
 
   $typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
   $thingfilter = isset($_GET["thing"]) ? $_GET["thing"] : "";
+  $thingfilter = html_entity_decode($thingfilter);
   $otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
+  $otherthingfilter = html_entity_decode($otherthingfilter);
   $eitherthingfilter = isset($_GET["eitherthing"]) ? $_GET["eitherthing"] : "";
+  $eitherthingfilter = html_entity_decode($eitherthingfilter);
   $nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
+  $nickfilter = html_entity_decode($nickfilter);
   $notesfilter = isset($_GET["notes"]) ? $_GET["notes"] : "";
+  $notesfilter = html_entity_decode($notesfilter);
   include("somefunctions.php");
   
   $queryfilter = array();
@@ -90,9 +95,9 @@ if (sizeof($queryfilter) != 0) {
 <?php
 if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE NOCASE ASC')){
   while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . $entry['nick'] . '"';
+    echo '<option value="' . htmlentities($entry['nick']) . '"';
     if (strcasecmp($nickfilter, $entry['nick']) == 0) {echo " selected";}
-    echo '>' . $entry['nick'] . "</option>\n";
+    echo '>' . htmlentities($entry['nick']) . "</option>\n";
   }
 }
 ?>
@@ -103,9 +108,9 @@ if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE 
 if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDER BY uthing ASC')){
   $thingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
   foreach ($thingdata as $thing) {
-    echo '<option value="' . $thing . '"';
+    echo '<option value="' . htmlentities($thing) . '"';
     if (strcasecmp($thingfilter, $thing) == 0) {echo " selected";}
-    echo '>' . $thing . "</option>\n";
+    echo '>' . htmlentities($thing) . "</option>\n";
   }
 }
 ?>
@@ -116,9 +121,9 @@ if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDE
 if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM orders ORDER BY uotherthing ASC')){
   $otherthingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
   foreach ($otherthingdata as $otherthing) {
-    echo '<option value="' . $otherthing . '"';
+    echo '<option value="' . htmlentities($otherthing) . '"';
     if (strcasecmp($otherthingfilter, $otherthing) == 0) {echo " selected";}
-    echo '>' . $otherthing . "</option>\n";
+    echo '>' . htmlentities($otherthing) . "</option>\n";
   }
 }
 ?>
@@ -130,13 +135,13 @@ $eitherthingdata = array_merge($thingdata, $otherthingdata);
 sort($eitherthingdata, SORT_STRING);
 $eitherthingdata = array_unique($eitherthingdata);
 foreach ($eitherthingdata as $eitherthing) {
-  echo '<option value="' . $eitherthing . '"';
+  echo '<option value="' . htmlentities($eitherthing) . '"';
   if (strcasecmp($eitherthingfilter, $eitherthing) == 0) {echo " selected";}
-  echo '>' . $eitherthing . "</option>\n";
+  echo '>' . htmlentities($eitherthing) . "</option>\n";
 }
 ?>
 </select>
-<label>Search notes: <input type="text" name="notes" <?php if ($notesfilter != "") {echo 'value="' . $notesfilter . '"';} ?> /></label>
+<label>Search notes: <input type="text" name="notes" <?php if ($notesfilter != "") {echo 'value="' . htmlentities($notesfilter) . '"';} ?> /></label>
 <input type="submit" value="Filter" />
 </form>
 </td></tr>
@@ -153,10 +158,10 @@ $sortorders["thing"]["linktext"] = "thing";
 $sortorders["otherthing"]["linktext"] = "otherthing";
 foreach ($sortorders as $by => $order) {
   if ($order["linktext"] != "notes"){
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter&notes=$notesfilter" . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=$typefilter&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
   else {
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=$typefilter&nick=$nickfilter&thing=$thingfilter&otherthing=$otherthingfilter&eitherthing=$eitherthingfilter&notes=$notesfilter" ."\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=$typefilter&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
 }
 ?>   </tr>
@@ -178,12 +183,12 @@ foreach ($sortorders as $by => $order) {
    <tr class="<?php echo $class; ?>"> 
     <td><a href="vieworder.php?id=<?php echo $entry["id"]; ?>"><?php echo $entry["id"]; ?></a></td>
     <td class="type"><?php echo $entry["buysell"]; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>"><?php echo htmlentities($entry["nick"]); ?></a></td>
     <td><?php echo $entry["amount"]; ?></td>
-    <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
+    <td class="currency"><?php echo htmlentities($entry["thing"]); ?></td>
     <td class="price"><?php $indp = index_prices($entry["price"]); if (is_numeric($indp)) {printf("%.5g", $indp);} else {echo $indp; } ?></td>
-    <td class="currency"><?php echo htmlspecialchars($entry["otherthing"]); ?></td>
-    <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
+    <td class="currency"><?php echo htmlentities($entry["otherthing"]); ?></td>
+    <td><?php echo htmlentities($entry["notes"]); ?></td>
    </tr>
 <?
      }

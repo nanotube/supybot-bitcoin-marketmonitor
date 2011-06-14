@@ -15,10 +15,11 @@
 	$validvalues = array("RECV","SENT");
 	if (!in_array($type, $validvalues)) $type = "RECV";
 	$nick = isset($_GET["nick"]) ? $_GET["nick"] : "";
+	$nick = html_entity_decode($nick);
 ?>
 
 <?php
- $pagetitle = "Rating Details for User '" . $nick . "'";
+ $pagetitle = "Rating Details for User '" . htmlentities($nick) . "'";
  include("header.php");
 ?>
 
@@ -26,24 +27,24 @@
 <a href="/">Home</a> &rsaquo;
 <a href="trust.php">Web of Trust</a> &rsaquo;
 <a href="viewratings.php">Web of Trust Data</a> &rsaquo;
-Rating for <?php echo $nick; ?>
+Rating for <?php echo htmlentities($nick); ?>
 </div>
 
 <?php
 	$types = array('RECV' => 'received', 'SENT' => 'sent');
 	$signs = array('ANY' => 'all', 'POS' => 'positive', 'NEG' => 'negative');
 ?>
-  <p>You are currently viewing <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> by user <?php echo $nick; ?>.</p>
+  <p>You are currently viewing <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> by user <?php echo htmlentities($nick); ?>.</p>
   <p>
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&sign=<?php echo $sign; ?>&type=RECV">view received</a>] ||
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&sign=<?php echo $sign; ?>&type=SENT">view sent</a>]
+   [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&sign=<?php echo $sign; ?>&type=RECV">view received</a>] ||
+   [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&sign=<?php echo $sign; ?>&type=SENT">view sent</a>]
   </p>
   <p>
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=POS">view positive</a>] ||
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=NEG">view negative</a>] ||
-   [<a href="viewratingdetail.php?nick=<?php echo $nick; ?>&type=<?php echo $type; ?>&sign=ANY">view all</a>]
+   [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&type=<?php echo $type; ?>&sign=POS">view positive</a>] ||
+   [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&type=<?php echo $type; ?>&sign=NEG">view negative</a>] ||
+   [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&type=<?php echo $type; ?>&sign=ANY">view all</a>]
   </p>
-  <h3>About <?php echo $nick; ?></h3>
+  <h3>About <?php echo htmlentities($nick); ?></h3>
   <ul>
 <?php
 	$typequeries = array('RECV' => 'users.id = ratings.rated_user_id', 'SENT' => 'users.id = ratings.rater_user_id');
@@ -69,7 +70,7 @@ Rating for <?php echo $nick; ?>
 	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
 	$sortorders["created_at"]["othertext"] = "(UTC)";
 	foreach ($sortorders as $by => $order) {
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratingdetail.php?nick=$nick&sign=$sign&type=$type&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratingdetail.php?nick=" . htmlentities($nick) . "&sign=$sign&type=$type&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
@@ -90,11 +91,11 @@ Rating for <?php echo $nick; ?>
 ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['rater_nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['rater_nick']); ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['rated_nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['rated_nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['rater_nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['rater_nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['rated_nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['rated_nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
     <td><?php echo $entry['rating']; ?></td>
-    <td><?php echo htmlspecialchars($entry['notes']); ?></td>
+    <td><?php echo htmlentities($entry['notes']); ?></td>
    </tr>
 <?
 		}

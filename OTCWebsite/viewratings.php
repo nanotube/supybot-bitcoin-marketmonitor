@@ -81,14 +81,14 @@ Web of Trust Data
 ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
-	<td><a href="viewgpg.php?nick=<?php echo $entry['nick']; ?>"><?php echo $entry['keyid']; ?></a></td>
+	<td><a href="viewgpg.php?nick=<?php echo htmlentities($entry['nick']); ?>"><?php echo $entry['keyid']; ?></a></td>
     <td><?php echo $entry['total_rating']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=RECV"><?php echo $entry['pos_rating_recv_count']; ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=RECV"><?php echo $entry['neg_rating_recv_count']; ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=POS&type=SENT"><?php echo $entry['pos_rating_sent_count']; ?></a></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo $entry['nick']; ?>&sign=NEG&type=SENT"><?php echo $entry['neg_rating_sent_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=POS&type=RECV"><?php echo $entry['pos_rating_recv_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=NEG&type=RECV"><?php echo $entry['neg_rating_recv_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=POS&type=SENT"><?php echo $entry['pos_rating_sent_count']; ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=NEG&type=SENT"><?php echo $entry['neg_rating_sent_count']; ?></a></td>
    </tr>
 <?
 		}
