@@ -17,6 +17,7 @@
   if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 
   $typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
+  $typefilter = html_entity_decode($typefilter);
   $thingfilter = isset($_GET["thing"]) ? $_GET["thing"] : "";
   $thingfilter = html_entity_decode($thingfilter);
   $otherthingfilter = isset($_GET["otherthing"]) ? $_GET["otherthing"] : "";
@@ -158,10 +159,10 @@ $sortorders["thing"]["linktext"] = "thing";
 $sortorders["otherthing"]["linktext"] = "otherthing";
 foreach ($sortorders as $by => $order) {
   if ($order["linktext"] != "notes"){
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=$typefilter&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=" . htmlentities($typefilter) . "&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
   else {
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=$typefilter&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=" . htmlentities)$typefilter) . "&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
   }
 }
 ?>   </tr>

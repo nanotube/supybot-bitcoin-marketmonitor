@@ -53,7 +53,7 @@ Order <?php echo $id; ?>
    </tr>
    <tr>
     <th>host</th>
-    <td><?php echo $entry["host"]; ?></td>
+    <td><?php echo htmlentities($entry["host"]); ?></td>
    </tr>
    <tr>
     <th>amount</th>
