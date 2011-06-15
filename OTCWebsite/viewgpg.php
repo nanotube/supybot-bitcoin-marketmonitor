@@ -24,7 +24,7 @@
 <?php
 if ($nickfilter != ""){
 	echo '<a href="viewgpg.php">GPG Key database</a> &rsaquo;';
-	echo "GPG Key for $nickfilter";
+	echo "GPG Key for " . htmlentities($nickfilter);
 }
 else {
 	echo "GPG Key database";
@@ -32,7 +32,7 @@ else {
 ?>
 </div>
 
-  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user $nickfilter";} ?></h3>
+  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user " . htmlentities($nickfilter) ;} ?></h3>
   <table class="datadisplay">
    <tr>
 
@@ -46,7 +46,7 @@ else {
 	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
 	$sortorders["registered_at"]["othertext"] = "(UTC)";
 	foreach ($sortorders as $by => $order) {
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewgpg.php?nick=$nickfilter&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewgpg.php?nick=" . htmlentities($nickfilter) . "&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
