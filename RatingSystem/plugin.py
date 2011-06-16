@@ -72,18 +72,20 @@ class RatingSystemDB(object):
 
     def get(self, nick):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM users WHERE nick LIKE ?""", (nick,))
+        nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
+        cursor.execute("""SELECT * FROM users WHERE nick LIKE ? ESCAPE '|'""", (nick,))
         return cursor.fetchall()
 
     def getReceivedRatings(self, nick, sign=None):
         # sign can be "> 0" or "< 0", None means all
         cursor = self.db.cursor()
+        nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
         if sign is None:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ? ESCAPE '|'
                               AND ratings.rated_user_id = users.id""",
                            (nick,))
         else:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ? ESCAPE '|'
                               AND ratings.rated_user_id = users.id AND
                               ratings.rating %s""" % sign,
                            (nick,))
@@ -92,12 +94,13 @@ class RatingSystemDB(object):
     def getSentRatings(self, nick, sign=None):
         # sign can be "> 0" or "< 0", None means all
         cursor = self.db.cursor()
+        nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
         if sign is None:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ? ESCAPE '|'
                               AND ratings.rater_user_id = users.id""",
                            (nick,))
         else:
-            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ?
+            cursor.execute("""SELECT * FROM users, ratings WHERE users.nick LIKE ? ESCAPE '|'
                               AND ratings.rater_user_id = users.id AND
                               ratings.rating %s""" % sign,
                            (nick,))
@@ -105,11 +108,13 @@ class RatingSystemDB(object):
 
     def getLevel2Ratings(self, sourcenick, destnick):
         cursor = self.db.cursor()
+        sourcenick = sourcenick.replace('|','||').replace('_','|_').replace('%','|%')
+        destnick = destnick.replace('|','||').replace('_','|_').replace('%','|%')
         cursor.execute("""SELECT sum(min(ratings1.rating, ratings2.rating)), count(ratings1.rating)
                     FROM users as users1, users as users2, ratings as ratings1, ratings as ratings2 WHERE
-                    users1.nick LIKE ? AND
+                    users1.nick LIKE ? ESCAPE '|' AND
                     ratings1.rater_user_id = users1.id AND
-                    users2.nick LIKE ? AND
+                    users2.nick LIKE ? ESCAPE '|' AND
                     ratings2.rated_user_id = users2.id AND
                     ratings2.rater_user_id = ratings1.rated_user_id""", (sourcenick,destnick,))
         sumratings = cursor.fetchall()
@@ -128,10 +133,12 @@ class RatingSystemDB(object):
 
     def getRatingDetail(self, sourcenick, targetnick):
         cursor = self.db.cursor()
+        sourcenick = sourcenick.replace('|','||').replace('_','|_').replace('%','|%')
+        targetnick = targetnick.replace('|','||').replace('_','|_').replace('%','|%')
         cursor.execute("""SELECT ratings.created_at, ratings.rating, ratings.notes
                           FROM ratings, users, users as users2 WHERE
-                          users.nick LIKE ? AND
-                          users2.nick LIKE ? AND
+                          users.nick LIKE ? ESCAPE '|' AND
+                          users2.nick LIKE ? ESCAPE '|' AND
                           ratings.rater_user_id = users.id AND
                           ratings.rated_user_id = users2.id""",
                        (sourcenick, targetnick))
@@ -139,8 +146,9 @@ class RatingSystemDB(object):
 
     def getConnections(self, nick):
         cursor = self.db.cursor()
+        nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
         cursor.execute("""SELECT * FROM users, ratings
-                          WHERE users.nick LIKE ? AND
+                          WHERE users.nick LIKE ? ESCAPE '|' AND
                           (ratings.rater_user_id = users.id OR
                           ratings.rated_user_id = users.id)""",
                        (nick,))
@@ -181,6 +189,7 @@ class RatingSystemDB(object):
         oldtotal is none if target user is new
         replacementflag is true if this user is updating a preexisting rating of his
         """
+        targetnick_escaped = targetnick.replace('|','||').replace('_','|_').replace('%','|%')
         cursor = self.db.cursor()
         timestamp = time.time()
         if targetid is None:
@@ -189,7 +198,7 @@ class RatingSystemDB(object):
                            (rating, timestamp, 0, 0, 0, 0, targetnick, targethost))
             self.db.commit()
             cursor.execute("""SELECT id FROM users
-                              WHERE nick LIKE ?""", (targetnick,))
+                              WHERE nick LIKE ? ESCAPE '|'""", (targetnick_escaped,))
             targetid = cursor.fetchall()[0][0]
         if not replacementflag:
             cursor.execute("""INSERT INTO ratings VALUES
@@ -204,6 +213,7 @@ class RatingSystemDB(object):
         self.update_counts(sourcenick, sourceid, targetnick, targetid)
 
     def unrate(self, sourcenick, sourceid, targetnick, targetid):
+        targetnick_escaped = targetnick.replace('|','||').replace('_','|_').replace('%','|%')
         cursor = self.db.cursor()
         cursor.execute("""DELETE FROM ratings
                           WHERE rated_user_id = ? AND
@@ -213,7 +223,7 @@ class RatingSystemDB(object):
         connections = self.getConnections(targetnick)
         if len(connections) == 0:
             cursor.execute("""DELETE FROM users
-                              WHERE nick LIKE ?""", (targetnick,))
+                              WHERE nick LIKE ? ESCAPE '|'""", (targetnick_escaped,))
             self.db.commit()
         self.update_counts(sourcenick, sourceid, targetnick, targetid)
 
