@@ -679,8 +679,11 @@ class GPG(callbacks.Plugin):
         channels = self.registryValue('channels').split(';')
         if msg.args[0] in channels and irc.network == self.registryValue('network'):
             for channel in channels:
-                if msg.nick in irc.state.channels[channel].users:
-                    break
+                try:
+                    if msg.nick in irc.state.channels[channel].users:
+                        break
+                except KeyError:
+                    pass #oh well, we're not in one of our monitored channels
             else:
                 if ircutils.strEqual(msg.nick, irc.nick): #we're parting
                     self.authed_users.clear()
