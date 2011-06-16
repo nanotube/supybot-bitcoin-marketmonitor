@@ -67,6 +67,11 @@ class GPGTestCase(PluginTestCase):
                     time.time(), 'authedguy2')
         gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2',
                 'keyid':'AAAAAAAAAAAAAAA4', 'fingerprint':'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4'}
+        gpg.db.register('AAAAAAAAAAAAAAA5', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA5',
+                    time.time(), 'registered_guy')
+        gpg.db.register('AAAAAAAAAAAAAAA6', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA6',
+                    time.time(), 'registe%redguy')
+
 
         #set config to match test environment
         ocn = conf.supybot.plugins.GPG.network()
@@ -142,9 +147,9 @@ class GPGTestCase(PluginTestCase):
         self.assertResponse('echo [gpg ident]', 'authedguy')
 
     def testStats(self):
-        self.assertRegexp('gpg stats', '4 registered users.*3 currently authenticated.*0 pending auth')
+        self.assertRegexp('gpg stats', '6 registered users.*3 currently authenticated.*0 pending auth')
         self.assertNotError('gpg auth nanotube')
-        self.assertRegexp('gpg stats', '4 registered users.*3 currently authenticated.*1 pending auth')
+        self.assertRegexp('gpg stats', '6 registered users.*3 currently authenticated.*1 pending auth')
 
     def testUnauth(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
@@ -236,5 +241,9 @@ class GPGTestCase(PluginTestCase):
         self.assertRegexp('gpg info authEDguY', "User 'authedguy'.*registered on")
         self.assertRegexp('gpg info AAAAAAAAAAAAAAA1', "No such user registered")
         self.assertRegexp('gpg info --key AAAAAAAAAAAAAAA1', "User 'nanotube'.*registered on")
+        self.assertError('gpg info authedgu_')
+        self.assertError('gpg info authed%')
+        self.assertRegexp('gpg info registered_guy', "User 'registered_guy'")
+        self.assertRegexp('gpg info registe%redguy', "User 'registe%redguy'")
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

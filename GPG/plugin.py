@@ -73,7 +73,8 @@ class GPGDB(object):
 
     def getByNick(self, nick):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM users WHERE nick LIKE ?""", (nick,))
+        nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
+        cursor.execute("""SELECT * FROM users WHERE nick LIKE ? ESCAPE '|'""", (nick,))
         return cursor.fetchall()
 
     def getByKey(self, keyid):
