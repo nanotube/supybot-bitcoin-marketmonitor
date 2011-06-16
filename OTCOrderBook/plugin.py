@@ -300,9 +300,9 @@ class OTCOrderBook(callbacks.Plugin):
         orderid = self.db.buy(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes, extratime)
         irc.reply("Order id %s created." % (orderid,))
         if not world.testing:
-            print "moo"
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ticker",
-                    "#%s BUY %s %s @ %s %s || %s" % (orderid,
+                    "#%s || %s || BUY %s %s @ %s %s || %s" % (orderid,
+                            gpgauth['nick'],
                             amount,
                             thing,
                             self._getIndexedValue(price),
@@ -347,9 +347,9 @@ class OTCOrderBook(callbacks.Plugin):
         orderid = self.db.sell(gpgauth['nick'], msg.host, amount, thing, price, otherthing, notes, extratime)
         irc.reply("Order id %s created." % (orderid,))
         if not world.testing:
-            print "moo"
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ticker",
-                    "#%s SELL %s %s @ %s %s || %s" % (orderid,
+                    "#%s || %s || SELL %s %s @ %s %s || %s" % (orderid,
+                            gpgauth['nick'],
                             amount,
                             thing,
                             self._getIndexedValue(price),
