@@ -110,18 +110,25 @@ class RatingSystemDB(object):
         cursor = self.db.cursor()
         sourcenick = sourcenick.replace('|','||').replace('_','|_').replace('%','|%')
         destnick = destnick.replace('|','||').replace('_','|_').replace('%','|%')
-        cursor.execute("""SELECT sum(min(ratings1.rating, ratings2.rating)), count(ratings1.rating)
+        cursor.execute("""SELECT ratings1.rating, ratings2.rating
                     FROM users as users1, users as users2, ratings as ratings1, ratings as ratings2 WHERE
                     users1.nick LIKE ? ESCAPE '|' AND
                     ratings1.rater_user_id = users1.id AND
                     users2.nick LIKE ? ESCAPE '|' AND
                     ratings2.rated_user_id = users2.id AND
                     ratings2.rater_user_id = ratings1.rated_user_id""", (sourcenick,destnick,))
-        sumratings = cursor.fetchall()
-        if len(sumratings) > 0:
-            return sumratings[0]
-        else:
+        l2ratings = cursor.fetchall()
+        if len(l2ratings) == 0:
             return (0,0,)
+        trustlinks = []
+        for row in l2ratings:
+            if row[0] > 0 and row[1] > 0:
+                trustlinks.append(min(row))
+            elif row[0] > 0 and row[1] < 0:
+                trustlinks.append(-min(row[0],abs(row[1])))
+            elif row[0] < 0:
+                trustlinks.append(0)
+        return (sum(trustlinks), len(trustlinks),)
 
     def getExistingRating(self, sourceid, targetid):
         cursor = self.db.cursor()
@@ -442,8 +449,9 @@ class RatingSystem(callbacks.Plugin):
             sourcenick = sn
         trust = self._gettrust(sourcenick, destnick)
         irc.reply("Trust relationship from user %s to user %s: "
-                        "Level 1: %s, Level 2: %s via %s connections." % \
-                        (sourcenick, destnick, trust[0][0], trust[1][0], trust[1][1],))
+                        "Level 1: %s, Level 2: %s via %s connections. "
+                        "Graph: http://serajewelks.bitcoin-otc.com/trustgraph.php?source=%s&dest=%s" % \
+                        (sourcenick, destnick, trust[0][0], trust[1][0], trust[1][1], sourcenick, destnick,))
     gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):

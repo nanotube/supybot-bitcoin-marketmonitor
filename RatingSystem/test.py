@@ -132,7 +132,12 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertNotError('rate authedguy -1')
             self.assertNotError('rate authedguy2 7')
             self.assertRegexp('gettrust authedguy2', 
-                        'Level 1: 7, Level 2: -1 via 1 connections')
+                        'Level 1: 7, Level 2: 0 via 1 connections')
+            self.assertNotError('rate authedguy 3')
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('rate authedguy2 -10')
+            self.assertRegexp('gettrust nanotube authedguy2', 
+                        'Level 2: -3 via 1 connections')
             self.assertRegexp('gettrust nobody nobody2', 'Level 1: 0, Level 2: 0 via 0 connections')
             self.prefix = 'randomguy!stuff@stuff/somecloak'
             self.assertRegexp('gettrust authedguy2', 'Level 1: 0, Level 2: 0 via 0 connections')
