@@ -3,7 +3,7 @@
 error_reporting(E_ALL & ~ E_NOTICE & ~E_WARNING);
 
 try {
-	$f = fopen("http://mtgox.com/code/ticker.php", "r");
+	$f = fopen("https://mtgox.com/code/ticker.php", "r");
 	$ticker = fread($f, 1024);
 	fclose($f);
 	$ticker = json_decode($ticker, true);

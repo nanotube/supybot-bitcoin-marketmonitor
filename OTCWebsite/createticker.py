@@ -127,7 +127,7 @@ class QuoteCreator:
         self.write_json()
 
     def get_mtgox_quote(self):
-        mtgox_ticker = urllib2.urlopen('http://mtgox.com/code/ticker.php').read()
+        mtgox_ticker = urllib2.urlopen('https://mtgox.com/code/ticker.php').read()
         self.mtgox_ticker = json.loads(mtgox_ticker, parse_float=str, parse_int=str)
         self.mtgox_ticker = self.mtgox_ticker['ticker']
 
