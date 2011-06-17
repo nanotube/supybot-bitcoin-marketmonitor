@@ -20,6 +20,7 @@ Web of Trust
    <li><a href="viewratings.php">Web view of the rating system</a>. You can view the aggregate ratings, as well as explore the detailed ratings sent and received by any given individual.
    <li><a href="http://wiki.bitcoin-otc.com/wiki/OTC_Rating_System">A guide to using the OTC web of trust</a>. A must-read for all users: how to send/update/retract ratings, and guidelines for trust levels.
    <li><a href="viewgpg.php">Registered user GPG keys</a>.
+   <li><a href="http://serajewelks.bitcoin-otc.com/trustgraph.php">Trust graphs</a>.
   </ul>
   <h2>Disclaimers</h2>
   <p>Do not rely on the ratings blindly - since the cost of entry into the web of trust is only one positive rating, it is not impossible for a scammer to infiltrate the system, and then create a bunch of bogus accounts who all inter-rate each other. Talk to people on #bitcoin-otc first, make sure they are familiar with the person you're about to trade with, have traded with him successfully in the past, etc.</p>
