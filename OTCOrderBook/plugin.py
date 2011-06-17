@@ -231,7 +231,7 @@ class OTCOrderBook(callbacks.Plugin):
 
     def _getMtgoxQuote(self):
         try:
-            ticker = utils.web.getUrl('http://mtgox.com/code/ticker.php')
+            ticker = utils.web.getUrl('https://mtgox.com/code/ticker.php')
             self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
             self.ticker = self.ticker['ticker']
         except:
