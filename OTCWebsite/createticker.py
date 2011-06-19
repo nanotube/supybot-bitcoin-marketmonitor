@@ -115,7 +115,6 @@ class QuoteCreator:
             'SEK', 'SGD', 'SKK', 'SLL', 'SVC', 'THB', 'TND', 'TRY', 'TTD',
             'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VEF', 'VND',
             'XOF', 'YER', 'ZAR', 'ZMK', 'ZWR',]
-        self.currency_rates = {}
         self.db1 = sqlite3.connect(orderbook_db_path)
 
     def run(self):
@@ -156,7 +155,6 @@ class QuoteCreator:
             if len(btcasks) != 0 or len(btcbids) != 0:
                 quote = Quote(btcbids, btcasks, btcbidsinverse, btcasksinverse, code, self.mtgox_ticker)
                 self.quotes.append(quote)
-                self.currency_rates.update(quote.currency_rates)
 
     def write_quotedb(self):
         try:
@@ -182,9 +180,6 @@ class QuoteCreator:
         json_dict = {'ticker': json_dict, 'timestamp': time.time()}
         f = open(self.json_path, 'w')
         f.write(json.dumps(json_dict))
-        f.close()
-        f = open('exchangerates.json', 'w')
-        f.write(json.dumps(self.currency_rates))
         f.close()
 
 if __name__ == '__main__':
