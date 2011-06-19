@@ -8,6 +8,10 @@ try {
 	fclose($f);
 	$ticker = json_decode($ticker, true);
 	$ticker = $ticker['ticker'];
+	$f = fopen("exchangerates.json", "r");
+	$rates = fread($f, 4096);
+	fclose($f);
+	$rates = json_decode($rates, true);
 } catch (Exception $e) {
 }
 function get_currency_conversion($rawprice){
@@ -19,18 +23,25 @@ function get_currency_conversion($rawprice){
 	return($indexedprice);
 }
 
+//~ function query_google_rate($cur1, $cur2){
+	//~ $f = fopen("http://www.google.com/ig/calculator?hl=en&q=1" . $cur1 . "=?" . $cur2, "r");
+	//~ $result = fread($f, 1024);
+	//~ fclose($f);
+	//~ $result	= preg_replace("/(\w+):/", "\"\\1\":", $result); //missing quotes in google json
+	//~ $googlerate = json_decode($result, true);
+	//~ if($googlerate['error'] != ""){
+		//~ throw new Exception('google error');
+	//~ }
+	//~ $googlerate = explode(" ", $googlerate['rhs']);
+	//~ $googlerate = $googlerate[0];
+	//~ return($googlerate);
+//~ }
+
 function query_google_rate($cur1, $cur2){
-	$f = fopen("http://www.google.com/ig/calculator?hl=en&q=1" . $cur1 . "=?" . $cur2, "r");
-	$result = fread($f, 1024);
-	fclose($f);
-	$result	= preg_replace("/(\w+):/", "\"\\1\":", $result); //missing quotes in google json
-	$googlerate = json_decode($result, true);
-	if($googlerate['error'] != ""){
-		throw new Exception('google error');
-	}
-	$googlerate = explode(" ", $googlerate['rhs']);
-	$googlerate = $googlerate[0];
-	return($googlerate);
+	global $rates;
+	$conv = '{' . strtolower($cur1) . ' in ' . strtolower($cur2) . '}';
+	$rate = $rates[$conv];
+	return($rate);
 }
 
 function doNothing() { return(true); }
