@@ -50,6 +50,9 @@ class Gatekeeper(callbacks.Plugin):
     def _getCumulativeRating(self, irc, nick):
         return irc.getCallback('RatingSystem')._getrating(nick)
 
+    def _gettrust(self, irc, sourcenick, destnick):
+        return irc.getCallback('RatingSystem')._gettrust(sourcenick, destnick)
+
     def letmein(self, irc, msg, args):
         """takes no arguments
         
@@ -66,17 +69,18 @@ class Gatekeeper(callbacks.Plugin):
             # this should not happen
             irc.error("No info on your user in the database.")
             return
-        rating = self._getCumulativeRating(irc, gpgauth['nick'])
-        if rating is None:
-            rating = 0
-        if rating >= self.registryValue('ratingThreshold') and \
+        trust_nanotube = self._gettrust(irc, 'nanotube', gpgauth['nick'])
+        trust_keefe = self._gettrust(irc, 'keefe', gpgauth['nick'])
+        mintrust = min(trust_nanotube[0][0] + trust_nanotube[1][0], 
+                trust_keefe[0][0] + trust_keefe[1][0])
+        if mintrust >= self.registryValue('ratingThreshold') and \
                 time.time() - regtimestamp > self.registryValue('accountAgeThreshold'):
                 irc.queueMsg(ircmsgs.voice('#bitcoin-otc-foyer', msg.nick))
                 irc.queueMsg(ircmsgs.invite(msg.nick, '#bitcoin-otc'))
                 irc.noReply()
             #voice, and invite
         else:
-            irc.error("Insufficient account age or rating. Required minimum account age is %s days, and required minimum rating is %s. Yours are %s days and %s, respectively." % (self.registryValue('accountAgeThreshold')/60/60/24, self.registryValue('ratingThreshold'),(time.time() - regtimestamp)/60/60/24, rating))
+            irc.error("Insufficient account age or rating. Required minimum account age is %s days, and required minimum trust is %s. Yours are %s days and %s, respectively." % (self.registryValue('accountAgeThreshold')/60/60/24, self.registryValue('ratingThreshold'),(time.time() - regtimestamp)/60/60/24, mintrust))
             return
     letmein = wrap(letmein)
 

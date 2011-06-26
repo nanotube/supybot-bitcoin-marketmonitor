@@ -43,14 +43,17 @@ class GatekeeperTestCase(PluginTestCase):
         gpg.authed_users['nanotube!stuff@stuff/somecloak'] = {'nick':'nanotube'}
         gpg.db.register('AAAAAAAAAAAAAAA2', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA2',
                     time.time(), 'registeredguy')
+        gpg.db.register('AAAAAAAAAAAAAAA7', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA7',
+                    time.time(), 'youngguy')
+        gpg.authed_users['youngguy!stuff@123.345.234.34'] = {'nick':'youngguy'}
         gpg.db.register('AAAAAAAAAAAAAAA3', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3',
-                    time.time(), 'authedguy')
+                    time.time() - 1000000, 'authedguy')
         gpg.authed_users['authedguy!stuff@123.345.234.34'] = {'nick':'authedguy'}
         gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
                     time.time() - 1000000, 'authedguy2')
         gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2'}
 
-        # pre-seed the rating db with some ratings, for testing long orders
+        # pre-seed the rating db with some ratings
         cb = self.irc.getCallback('RatingSystem')
         cursor = cb.db.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
@@ -58,22 +61,40 @@ class GatekeeperTestCase(PluginTestCase):
                        (10, time.time(), 1, 0, 0, 0, 'nanotube','stuff/somecloak'))
         cursor.execute("""INSERT INTO users VALUES
                           (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (10, time.time(), 1, 0, 0, 0, 'Keefe','stuff/somecloak'))
+        cursor.execute("""INSERT INTO users VALUES
+                          (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (10, time.time(), 1, 0, 0, 0, 'authedguy','stuff/somecloak'))
         cursor.execute("""INSERT INTO users VALUES
                           (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (-10, time.time(), 1, 0, 0, 0, 'authedguy2','stuff/somecloak'))
+        cursor.execute("""INSERT INTO ratings VALUES
+                        (NULL, ?, ?, ?, ?, ?)""",
+                        (3, 1, time.time(), 1, "some notes",)) # nanotube rates authedguy
+        cursor.execute("""INSERT INTO ratings VALUES
+                        (NULL, ?, ?, ?, ?, ?)""",
+                        (2, 1, time.time(), 9, "some notes",)) # nanotube rates keefe
+        cursor.execute("""INSERT INTO ratings VALUES
+                        (NULL, ?, ?, ?, ?, ?)""",
+                        (3, 2, time.time(), 2, "some notes",)) # keefe rates authedguy
+        cursor.execute("""INSERT INTO ratings VALUES
+                        (NULL, ?, ?, ?, ?, ?)""",
+                        (4, 2, time.time(), -5, "some notes",)) # keefe rates authedguy2
+
         cb.db.db.commit()
 
     def testLetmein(self):
         self.assertError('letmein') # not authed
         try:
             origuser = self.prefix
-            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.prefix = 'registeredguy!stuff@123.345.234.34'
+            self.assertError('letmein') # not authed
+            self.prefix = 'youngguy!stuff@123.345.234.34'
             self.assertError('letmein') # not enough account age
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertError('letmein') # negative rating
-            self.prefix = 'nanotube!stuff@stuff/somecloak'
-            self.assertNotError('letmein') # should be good.
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('letmein') # should be good
         finally:
             self.prefix = origuser
 
