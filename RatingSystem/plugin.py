@@ -402,7 +402,7 @@ class RatingSystem(callbacks.Plugin):
                   "from a total of %s ratings. "
                   "Of these, %s are positive and %s are negative. "
                   "This user has also sent %s positive ratings, and %s "
-                  "negative ratings to others." % \
+                  "negative ratings to others. Details: %s" % \
                   (data[7],
                    data[8],
                    time.ctime(data[2]),
@@ -411,7 +411,8 @@ class RatingSystem(callbacks.Plugin):
                    data[3],
                    data[4],
                    data[5],
-                   data[6]))
+                   data[6],
+                   "http://bitcoin-otc.com/viewratingdetail.php?nick=%s" % (data[7],)))
     getrating = wrap(getrating, ['something'])
 
     def _gettrust(self, sourcenick, destnick):
