@@ -237,7 +237,8 @@ class GPGTestCase(PluginTestCase):
         self.assertRegexp('gpg ident', 'not identified')
 
     def testInfo(self):
-        self.assertRegexp('gpg info authedguy', "User 'authedguy'.*registered on")
+        self.assertRegexp('gpg info registeredguy', "User 'registeredguy'.*registered on.*Currently not authenticated")
+        self.assertRegexp('gpg info authedguy', "User 'authedguy'.*registered on.*Currently authenticated")
         self.assertRegexp('gpg info authEDguY', "User 'authedguy'.*registered on")
         self.assertRegexp('gpg info AAAAAAAAAAAAAAA1', "No such user registered")
         self.assertRegexp('gpg info --key AAAAAAAAAAAAAAA1', "User 'nanotube'.*registered on")

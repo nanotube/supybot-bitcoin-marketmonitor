@@ -640,8 +640,14 @@ class GPG(callbacks.Plugin):
             irc.error("No such user registered.")
             return
         result = result[0]
-        irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s." %\
-                (result[4], result[1], result[2], time.ctime(result[3])))
+        for k,v in self.authed_users.iteritems():
+            if v['nick'] == result[4]:
+                authstatus = " Currently authenticated from hostmask %s" % (k,)
+                break
+        else:
+            authstatus = " Currently not authenticated."
+        irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s.%s" %\
+                (result[4], result[1], result[2], time.ctime(result[3]), authstatus))
     info = wrap(info, [getopts({'key': '',}),'something'])
 
     def stats(self, irc, msg, args):
