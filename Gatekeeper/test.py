@@ -29,9 +29,10 @@
 ###
 
 from supybot.test import *
+from supybot import ircmsgs
 
 class GatekeeperTestCase(PluginTestCase):
-    plugins = ('Gatekeeper','RatingSystem','GPG')
+    plugins = ('Gatekeeper','RatingSystem','GPG','Admin')
     
     def setUp(self):
         PluginTestCase.setUp(self)
@@ -84,18 +85,39 @@ class GatekeeperTestCase(PluginTestCase):
         cb.db.db.commit()
 
     def testLetmein(self):
-        self.assertError('letmein') # not authed
+        def getAfterJoinMessages():
+            m = self.irc.takeMsg()
+            self.assertEqual(m.command, 'MODE')
+            m = self.irc.takeMsg()
+            self.assertEqual(m.command, 'WHO')
+        self.irc.feedMsg(ircmsgs.join('#bitcoin-otc', prefix=self.prefix))
+        getAfterJoinMessages()
         try:
+            orignetwork = self.irc.network
+            self.irc.network = 'freenode'
             origuser = self.prefix
             self.prefix = 'registeredguy!stuff@123.345.234.34'
-            self.assertError('letmein') # not authed
+            self.assertNotError('letmein') # not authed
+            self.irc.feedMsg(ircmsgs.join('#bitcoin-otc', prefix=self.prefix))
+            self.irc.takeMsg()
+            self.assertTrue('registeredguy' not in self.irc.state.channels['#bitcoin-otc'].voices)
             self.prefix = 'youngguy!stuff@123.345.234.34'
-            self.assertError('letmein') # not enough account age
+            self.assertNotError('letmein') # not enough account age
+            self.irc.feedMsg(ircmsgs.join('#bitcoin-otc', prefix=self.prefix))
+            self.irc.takeMsg()
+            self.assertTrue('youngguy' not in self.irc.state.channels['#bitcoin-otc'].voices)
             self.prefix = 'authedguy2!stuff@123.345.234.34'
-            self.assertError('letmein') # negative rating
+            self.assertNotError('letmein') # negative rating
+            self.irc.feedMsg(ircmsgs.join('#bitcoin-otc', prefix=self.prefix))
+            self.irc.takeMsg()
+            self.assertTrue('authedguy2' not in self.irc.state.channels['#bitcoin-otc'].voices)
             self.prefix = 'authedguy!stuff@123.345.234.34'
             self.assertNotError('letmein') # should be good
+            self.irc.feedMsg(ircmsgs.join('#bitcoin-otc', prefix=self.prefix))
+            self.irc.takeMsg()
+            self.assertTrue('authedguy' in self.irc.state.channels['#bitcoin-otc'].voices)
         finally:
+            self.irc.network = orignetwork
             self.prefix = origuser
 
 

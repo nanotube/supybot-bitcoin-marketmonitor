@@ -56,11 +56,17 @@ class Gatekeeper(callbacks.Plugin):
     def letmein(self, irc, msg, args):
         """takes no arguments
         
-        invites you to the main #bitcoin-otc channel, if you qualify.
+        invites you to the main #bitcoin-otc channel.
+        Gives you voice there if you qualify.
         """
+        if msg.nick not in irc.state.channels['#bitcoin-otc'].users:
+            irc.queueMsg(ircmsgs.invite(msg.nick, '#bitcoin-otc'))
+            irc.noReply()
+            return
+        
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            irc.error("You must authenticate via GPG to enter.")
+            irc.error("You must authenticate via GPG to get voice.")
             return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
@@ -75,14 +81,33 @@ class Gatekeeper(callbacks.Plugin):
                 trust_keefe[0][0] + trust_keefe[1][0])
         if mintrust >= self.registryValue('ratingThreshold') and \
                 time.time() - regtimestamp > self.registryValue('accountAgeThreshold'):
-                irc.queueMsg(ircmsgs.voice('#bitcoin-otc-foyer', msg.nick))
-                irc.queueMsg(ircmsgs.invite(msg.nick, '#bitcoin-otc'))
+                irc.queueMsg(ircmsgs.voice('#bitcoin-otc', msg.nick))
                 irc.noReply()
-            #voice, and invite
         else:
             irc.error("Insufficient account age or rating. Required minimum account age is %s days, and required minimum trust is %s. Yours are %s days and %s, respectively." % (self.registryValue('accountAgeThreshold')/60/60/24, self.registryValue('ratingThreshold'),(time.time() - regtimestamp)/60/60/24, mintrust))
-            return
     letmein = wrap(letmein)
+
+    def doJoin(self, irc, msg):
+        """give voice to users that join and meet requirements."""
+        if msg.args[0] != '#bitcoin-otc' or irc.network != 'freenode':
+            return
+
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+            return
+        info = self._getGPGInfo(irc, gpgauth['nick'])
+        if info is not None:
+            regtimestamp = info[3]
+        else:
+            # this should not happen
+            return
+        trust_nanotube = self._gettrust(irc, 'nanotube', gpgauth['nick'])
+        trust_keefe = self._gettrust(irc, 'keefe', gpgauth['nick'])
+        mintrust = min(trust_nanotube[0][0] + trust_nanotube[1][0], 
+                trust_keefe[0][0] + trust_keefe[1][0])
+        if mintrust >= self.registryValue('ratingThreshold') and \
+                time.time() - regtimestamp > self.registryValue('accountAgeThreshold'):
+            irc.queueMsg(ircmsgs.voice('#bitcoin-otc', msg.nick))
 
 Class = Gatekeeper
 
