@@ -61,7 +61,7 @@ class Gatekeeper(callbacks.Plugin):
         """
         if msg.nick not in irc.state.channels['#bitcoin-otc'].users:
             irc.queueMsg(ircmsgs.invite(msg.nick, '#bitcoin-otc'))
-            irc.noReply()
+            irc.reply("You have been invited to #bitcoin-otc. Type '/j #bitcoin-otc' to enter the channel.")
             return
         
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
