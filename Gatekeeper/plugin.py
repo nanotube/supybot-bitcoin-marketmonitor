@@ -56,14 +56,8 @@ class Gatekeeper(callbacks.Plugin):
     def letmein(self, irc, msg, args):
         """takes no arguments
         
-        invites you to the main #bitcoin-otc channel.
-        Gives you voice there if you qualify.
+        Gives you voice on #bitcoin-otc if you qualify.
         """
-        if msg.nick not in irc.state.channels['#bitcoin-otc'].users:
-            irc.queueMsg(ircmsgs.invite(msg.nick, '#bitcoin-otc'))
-            irc.reply("You have been invited to #bitcoin-otc. Type '/j #bitcoin-otc' to enter the channel.")
-            return
-        
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("You must authenticate via GPG to get voice.")
@@ -86,6 +80,7 @@ class Gatekeeper(callbacks.Plugin):
         else:
             irc.error("Insufficient account age or rating. Required minimum account age is %s days, and required minimum trust is %s. Yours are %s days and %s, respectively." % (self.registryValue('accountAgeThreshold')/60/60/24, self.registryValue('ratingThreshold'),(time.time() - regtimestamp)/60/60/24, mintrust))
     letmein = wrap(letmein)
+    voiceme = letmein
 
     def doJoin(self, irc, msg):
         """give voice to users that join and meet requirements."""
@@ -94,6 +89,8 @@ class Gatekeeper(callbacks.Plugin):
 
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
+            if msg.nick not in irc.state.channels['#bitcoin-otc-foyer'].users:
+                irc.queueMsg(ircmsgs.privmsg(msg.nick, "Join #bitcoin-otc-foyer and see channel topic for instructions on getting voice on #bitcoin-otc."))
             return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
