@@ -403,14 +403,14 @@ class RatingSystem(callbacks.Plugin):
             authstatus = " Currently not authenticated."
         data = self.db.get(nick)
         if len(data) == 0:
-            irc.error("This user has not yet been rated.")
+            irc.error("This user has not yet been rated." + authstatus)
             return
         data = data[0]
-        irc.reply("User %s was created on %s, and has a cumulative rating of %s, "
-                  "from a total of %s ratings. "
-                  "Of these, %s are positive and %s are negative. "
-                  "This user has also sent %s positive ratings, and %s "
-                  "negative ratings to others. Details: %s %s" % \
+        irc.reply("User %s, created on %s. "
+                  "Cumulative rating %s, from %s total ratings."
+                  "Received ratings: %s positive, %s negative. "
+                  "Sent ratings: %s positive, %s negative. "
+                  "Details: %s %s" % \
                   (data[7],
                    time.ctime(data[2]),
                    data[1],

@@ -69,34 +69,34 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('rate nanOtube 10') #can't self-rate
             self.assertError('rate unknownguy 4') #user not in db and not authed
             self.assertRegexp('rate registeredguy 4', 'rating of 4 for user registeredguy has been recorded')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 4.*viewratingdetail.php\?nick=registeredguy')
-            self.assertRegexp('getrating registeredguy', 'a total of 1')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 4.*viewratingdetail.php\?nick=registeredguy')
+            self.assertRegexp('getrating registeredguy', '1 total ratings')
             self.assertRegexp('rate registeredguy 6', 'changed from 4 to 6')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 6.*Currently not authenticated')
-            self.assertRegexp('getrating registeredguy', 'a total of 1')
-            self.assertRegexp('getrating nanotube', 'sent 1 positive')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 6.*Currently not authenticated')
+            self.assertRegexp('getrating registeredguy', '1 total ratings')
+            self.assertRegexp('getrating nanotube', 'Sent ratings: 1 positive')
             self.assertError('rate registeredguy 0') # rating must be in bounds, and no zeros
             self.assertError('rate registeredguy -20')
             self.assertError('rate registeredguy 30')
             self.assertNotError('rate registeredguy -10')
             self.assertNotError('rate authedguy 5')
-            self.assertRegexp('getrating authedguy', 'cumulative rating of 5.*Currently authenticated')
+            self.assertRegexp('getrating authedguy', 'Cumulative rating 5.*Currently authenticated')
             self.assertNotError('rate authedguy2 -1')
-            self.assertRegexp('getrating nanotube', 'sent 1 positive ratings, and 2 negative')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of -10')
+            self.assertRegexp('getrating nanotube', 'Sent ratings: 1 positive, 2 negative')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating -10')
             self.prefix = 'authedguy!stuff@123.345.234.34'
             self.assertNotError('rate registeredguy 9')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of -1')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating -1')
             self.prefix = 'registeredguy!stuff@stuff/somecloak'
             self.assertError('rate nanotube 2') # unauthed, can't rate
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertError('rate nanotube 2') # rated -1, can't rate
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('unrate registeredguy')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 9')
-            self.assertRegexp('getrating nanotube', 'and 1 negative ratings to others')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 9')
+            self.assertRegexp('getrating nanotube', 'Sent ratings.*1 negative')
             self.assertNotError('rate registeredGUY 5')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 14')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 14')
             self.assertError('rated nobody')
             self.assertRegexp('rated registeredguy', 'You rated user registeredguy .* giving him a rating of 5')
         finally:
@@ -109,7 +109,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('unrate someguy') #haven't rated him before
             self.assertError('unrate registeredguy') #haven't rated him before
             self.assertNotError('rate registeredguy 4')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 4')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 4')
             self.assertNotError('unrate regISTEredguy')
             self.assertError('getrating registeredguy') # guy should be gone, having no connections.
         finally:
@@ -150,7 +150,7 @@ class RatingSystemTestCase(PluginTestCase):
             origuser = self.prefix
             self.prefix = 'nanotube!stuff@stuff/somecloak'
             self.assertNotError('rate registeredguy 4')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 4')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 4')
             self.assertNotError('deleteuser registeredGUy')
             self.assertError('getrating registeredguy') # guy should be gone
         finally:
