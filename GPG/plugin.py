@@ -640,10 +640,9 @@ class GPG(callbacks.Plugin):
             irc.error("No such user registered.")
             return
         result = result[0]
-        for k,v in self.authed_users.iteritems():
-            if v['nick'] == result[4]:
-                authstatus = " Currently authenticated from hostmask %s" % (k,)
-                break
+        authhost = self._identByNick(result[4])
+        if authhost is not None:
+            authstatus = " Currently authenticated from hostmask %s" % (authhost,)
         else:
             authstatus = " Currently not authenticated."
         irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s.%s" %\
@@ -675,6 +674,12 @@ class GPG(callbacks.Plugin):
             return self.authed_users[hostmask]
         except KeyError:
             return None
+
+    def _identByNick(self, nick):
+        for k,v in self.authed_users.iteritems():
+            if v['nick'] == nick:
+                return k
+        return None
 
     def doQuit(self, irc, msg):
         """Kill the authentication when user quits."""
