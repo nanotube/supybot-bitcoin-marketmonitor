@@ -80,7 +80,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('rate registeredguy 30')
             self.assertNotError('rate registeredguy -10')
             self.assertNotError('rate authedguy 5')
-            self.assertRegexp('getrating authedguy', 'Cumulative rating 5.*Currently authenticated')
+            self.assertRegexp('getrating autheDguy', 'Cumulative rating 5.*Currently authenticated')
             self.assertNotError('rate authedguy2 -1')
             self.assertRegexp('getrating nanotube', 'Sent ratings: 1 positive, 2 negative')
             self.assertRegexp('getrating registeredguy', 'Cumulative rating -10')

@@ -677,7 +677,7 @@ class GPG(callbacks.Plugin):
 
     def _identByNick(self, nick):
         for k,v in self.authed_users.iteritems():
-            if v['nick'] == nick:
+            if v['nick'].lower() == nick.lower():
                 return k
         return None
 
