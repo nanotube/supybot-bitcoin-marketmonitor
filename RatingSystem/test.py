@@ -72,7 +72,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertRegexp('getrating registeredguy', 'cumulative rating of 4.*viewratingdetail.php\?nick=registeredguy')
             self.assertRegexp('getrating registeredguy', 'a total of 1')
             self.assertRegexp('rate registeredguy 6', 'changed from 4 to 6')
-            self.assertRegexp('getrating registeredguy', 'cumulative rating of 6')
+            self.assertRegexp('getrating registeredguy', 'cumulative rating of 6.*Currently not authenticated')
             self.assertRegexp('getrating registeredguy', 'a total of 1')
             self.assertRegexp('getrating nanotube', 'sent 1 positive')
             self.assertError('rate registeredguy 0') # rating must be in bounds, and no zeros
@@ -80,6 +80,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('rate registeredguy 30')
             self.assertNotError('rate registeredguy -10')
             self.assertNotError('rate authedguy 5')
+            self.assertRegexp('getrating authedguy', 'cumulative rating of 5.*Currently authenticated')
             self.assertNotError('rate authedguy2 -1')
             self.assertRegexp('getrating nanotube', 'sent 1 positive ratings, and 2 negative')
             self.assertRegexp('getrating registeredguy', 'cumulative rating of -10')

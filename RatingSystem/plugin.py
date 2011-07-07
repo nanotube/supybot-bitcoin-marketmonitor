@@ -266,6 +266,9 @@ class RatingSystem(callbacks.Plugin):
     def _checkGPGAuth(self, irc, prefix):
         return irc.getCallback('GPG')._ident(prefix)
 
+    def _checkGPGAuthByNick(self, irc, nick):
+        return irc.getCallback('GPG')._identByNick(nick)
+
     def _ratingBoundsCheck(self, rating):
         if rating >= self.registryValue('ratingMin') and \
            rating <= self.registryValue('ratingMax'):
@@ -393,18 +396,22 @@ class RatingSystem(callbacks.Plugin):
 
         Get rating information for <nick>.
         """
+        authhost = self._checkGPGAuthByNick(irc, nick)
+        if authhost is not None:
+            authstatus = " Currently authenticated from hostmask %s" % (authhost,)
+        else:
+            authstatus = " Currently not authenticated."
         data = self.db.get(nick)
         if len(data) == 0:
             irc.error("This user has not yet been rated.")
             return
         data = data[0]
-        irc.reply("User %s, with hostmask %s, was created on %s, and has a cumulative rating of %s, "
+        irc.reply("User %s was created on %s, and has a cumulative rating of %s, "
                   "from a total of %s ratings. "
                   "Of these, %s are positive and %s are negative. "
                   "This user has also sent %s positive ratings, and %s "
-                  "negative ratings to others. Details: %s" % \
+                  "negative ratings to others. Details: %s %s" % \
                   (data[7],
-                   data[8],
                    time.ctime(data[2]),
                    data[1],
                    int(data[3]) + int(data[4]),
@@ -412,7 +419,8 @@ class RatingSystem(callbacks.Plugin):
                    data[4],
                    data[5],
                    data[6],
-                   "http://bitcoin-otc.com/viewratingdetail.php?nick=%s" % (data[7],)))
+                   "http://bitcoin-otc.com/viewratingdetail.php?nick=%s" % (data[7],),
+                   authstatus))
     getrating = wrap(getrating, ['something'])
 
     def _gettrust(self, sourcenick, destnick):
