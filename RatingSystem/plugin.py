@@ -407,7 +407,7 @@ class RatingSystem(callbacks.Plugin):
             return
         data = data[0]
         irc.reply("User %s, created on %s. "
-                  "Cumulative rating %s, from %s total ratings."
+                  "Cumulative rating %s, from %s total ratings. "
                   "Received ratings: %s positive, %s negative. "
                   "Sent ratings: %s positive, %s negative. "
                   "Details: %s %s" % \
