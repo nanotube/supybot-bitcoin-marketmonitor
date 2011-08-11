@@ -39,6 +39,10 @@ conf.registerGlobalValue(MarketMonitor, 'port',
 conf.registerGlobalValue(MarketMonitor, 'autostart',
     registry.Boolean(False, """If true, will autostart monitoring upon bot
     startup."""))
+conf.registerGlobalValue(MarketMonitor, 'marketsWhitelist',
+    registry.SpaceSeparatedListOfStrings("", """Whitelist of markets you
+    want to monitor, space separated list of short market names. Leave
+    blank to include all."""))
 
 class Formats(registry.OnlySomeStrings):
     validStrings = ('raw', 'pretty')
