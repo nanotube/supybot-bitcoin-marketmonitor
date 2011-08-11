@@ -114,14 +114,13 @@ class MarketMonitorTicker(callbacks.Plugin):
             makeoutput = True
             
             colorlist = ['light gray',]
-            for item in ['buy','sell','last']:
+            for item in ['buy','sell','last','vol']:
                 if self.freshticker[item] > self.cachedticker[item]:
                     colorlist.append('green')
                 elif self.freshticker[item] < self.cachedticker[item]:
                     colorlist.append('red')
                 else:
                     colorlist.append('light gray')
-            colorlist.append('light gray')
 
         coloredlist = map(ircutils.mircColor, datalist, colorlist)
         
