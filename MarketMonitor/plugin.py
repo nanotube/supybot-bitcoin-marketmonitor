@@ -137,8 +137,10 @@ class MarketMonitor(callbacks.Plugin):
                 out = False
             self.data = ""
             return out
-        except:
+        except Exception, e:
             # we really want to keep going no matter what data we get
+            self.log.error('Error in MarketMonitor: %s: %s' % \
+                            (e.__class__.__name__, str(e)))
             self.log.error('MarketMonitor: Unrecognized data: %s' % data)
             self.data = ""
             return False
