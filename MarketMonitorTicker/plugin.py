@@ -101,6 +101,7 @@ class MarketMonitorTicker(callbacks.Plugin):
                     self.freshticker['sell'],
                     self.freshticker['last'],
                     self.freshticker['vol']]
+        colorlist = ['light gray'] * 5
         
         if self.cachedticker is None:
             self.cachedticker = self.freshticker
@@ -112,23 +113,22 @@ class MarketMonitorTicker(callbacks.Plugin):
             
             makeoutput = True
             
-            colorlist = ['black',]
+            colorlist = ['light gray',]
             for item in ['buy','sell','last']:
                 if self.freshticker[item] > self.cachedticker[item]:
                     colorlist.append('green')
                 elif self.freshticker[item] < self.cachedticker[item]:
                     colorlist.append('red')
                 else:
-                    colorlist.append('black')
-            colorlist.append('black')
-            coloredlist = map(ircutils.mircColor, datalist, colorlist)
-        else:
-            coloredlist = datalist
+                    colorlist.append('light gray')
+            colorlist.append('light gray')
+
+        coloredlist = map(ircutils.mircColor, datalist, colorlist)
         
         self.cachedticker = self.freshticker
         
         if makeoutput:
-            output = "{time} | Bid: {bid:<8} | Ask: {ask:<8} | Last: {last:<8} | Volume: {vol}".format(time=coloredlist[0],
+            output = "{time} | Bid: {bid:<12} | Ask: {ask:<12} | Last: {last:<12} | Volume: {vol}".format(time=coloredlist[0],
                     bid=coloredlist[1],
                     ask=coloredlist[2],
                     last=coloredlist[3],
