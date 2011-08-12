@@ -89,9 +89,12 @@ class Gatekeeper(callbacks.Plugin):
 
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            if msg.nick not in irc.state.channels['#bitcoin-otc-foyer'].users:
-                irc.queueMsg(ircmsgs.privmsg(msg.nick, "Join #bitcoin-otc-foyer and see channel topic for instructions on getting voice on #bitcoin-otc."))
-            return
+            try:
+                if msg.nick not in irc.state.channels['#bitcoin-otc-foyer'].users:
+                    irc.queueMsg(ircmsgs.privmsg(msg.nick, "Join #bitcoin-otc-foyer and see channel topic for instructions on getting voice on #bitcoin-otc."))
+                return
+            except KeyError:
+                return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
             regtimestamp = info[3]
