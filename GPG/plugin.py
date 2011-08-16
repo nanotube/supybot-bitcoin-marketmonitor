@@ -24,14 +24,17 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+import supybot.log
 
 import sqlite3
 import re
 import os
+import os.path
 import errno
 import hashlib
 import time
 import copy
+import logging
 
 try:
     gnupg = utils.python.universalImport('gnupg', 'local.gnupg')
@@ -152,6 +155,16 @@ class GPG(callbacks.Plugin):
         except AttributeError:
             self.pending_auth = {}
             self.authed_users = {}
+        authlogfilename = os.path.join(conf.supybot.directories.log(), 'gpgauthlog.log')
+        authlog = logging.getLogger('GPGauth')
+        authlog.setLevel(-1)
+        if len(authlog.handlers) == 0:
+            handler = supybot.log.BetterFileHandler(authlogfilename)
+            handler.setLevel(-1)
+            handler.setFormatter(supybot.log.pluginFormatter)
+            authlog.addHandler(handler)
+        self.authlog = authlog
+        self.authlog.info("***** loading GPG plugin. *****")
 
     def die(self):
         self.__parent.die()
@@ -159,6 +172,7 @@ class GPG(callbacks.Plugin):
         # save auth dicts, in case we're reloading the plugin
         utils.gpg_authed_users = self.authed_users
         utils.gpg_pending_auth = self.pending_auth
+        self.authlog.info("***** quitting or unloading GPG plugin. *****")
 
     def _removeExpiredRequests(self):
         pending_auth_copy = copy.deepcopy(self.pending_auth)
@@ -223,6 +237,8 @@ class GPG(callbacks.Plugin):
                             'type':'register', 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
+        self.authlog.info("register request from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
     register = wrap(register, ['something', 'keyid', optional('keyserver')])
@@ -289,7 +305,8 @@ class GPG(callbacks.Plugin):
                             'type':'eregister', 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
-
+        self.authlog.info("eregister request from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, nick, keyid,))
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
     eregister = wrap(eregister, ['something', 'keyid', optional('keyserver')])
@@ -316,6 +333,8 @@ class GPG(callbacks.Plugin):
                                 'type':'auth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
         self.pending_auth.update(request)
+        self.authlog.info("auth request from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
     auth = wrap(auth, ['something'])
@@ -355,12 +374,16 @@ class GPG(callbacks.Plugin):
                                 'type':'eauth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
         self.pending_auth.update(request)
+        self.authlog.info("eauth request from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
     eauth = wrap(eauth, ['something'])
 
     def _unauth(self, hostmask):
         try:
+            self.authlog.info("Terminating session for hostmask %s, authenticated to user %s, keyid %s" % \
+                    (hostmask, self.authed_users[hostmask]['nick'], self.authed_users[hostmask]['keyid'],))
             del self.authed_users[hostmask]
             return True
         except KeyError:
@@ -450,12 +473,14 @@ class GPG(callbacks.Plugin):
                 irc.error("This key id already registered. Try a different key.")
                 return
             self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
-            response = "Successfully changed key for user %s from %s to %s." %\
+            response = "Successfully changed key for user %s from %s to %s. " %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
         self.authed_users[msg.prefix] = {'timestamp':time.time(),
                     'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
                     'fingerprint':authrequest['fingerprint']}
         del self.pending_auth[msg.prefix]
+        self.authlog.info("verify success from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response)
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     verify = wrap(verify, ['httpUrl'])
@@ -509,6 +534,8 @@ class GPG(callbacks.Plugin):
                     'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
                     'fingerprint':authrequest['fingerprint']}
         del self.pending_auth[msg.prefix]
+        self.authlog.info("everify success from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response)
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     everify = wrap(everify, ['something'])
@@ -578,6 +605,8 @@ class GPG(callbacks.Plugin):
                             'type':'changekey', 'fingerprint':fingerprint,
                             'challenge':challenge}}
         self.pending_auth.update(request)
+        self.authlog.info("changekey request from hostmask %s for user %s, oldkeyid %s, newkeyid %s." %\
+                (msg.prefix, gpgauth['nick'], gpgauth['keyid'], keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (gpgauth['nick'], msg.prefix, challenge,))
     changekey = wrap(changekey, ['keyid', optional('keyserver')])
@@ -698,6 +727,7 @@ class GPG(callbacks.Plugin):
                     pass #oh well, we're not in one of our monitored channels
             else:
                 if ircutils.strEqual(msg.nick, irc.nick): #we're parting
+                    self.authlog.info("***** clearing authed_users due to self-part. *****")
                     self.authed_users.clear()
                 else:
                     self._unauth(msg.prefix)
@@ -705,6 +735,7 @@ class GPG(callbacks.Plugin):
     def doError(self, irc, msg):
         """Reset the auth dict when bot gets disconnected."""
         if irc.network == self.registryValue('network'):
+            self.authlog.info("***** clearing authed_users due to network error. *****")
             self.authed_users.clear()
 
     def doKick(self, irc, msg):
@@ -713,6 +744,7 @@ class GPG(callbacks.Plugin):
         if msg.args[0] in channels and irc.network == self.registryValue('network'):
             (channel, nick) = msg.args[:2]
             if ircutils.toLower(irc.nick) in ircutils.toLower(nick):
+                self.authlog.info("***** clearing authed_users due to self-kick. *****")
                 self.authed_users.clear()
             else:
                 try:
@@ -724,6 +756,8 @@ class GPG(callbacks.Plugin):
     def doNick(self, irc, msg):
         if msg.prefix in self.authed_users.keys():
             newprefix = msg.args[0] + '!' + msg.prefix.split('!',1)[1]
+            self.authlog.info("Attaching authentication for hostmask %s to new hostmask %s due to nick change." %\
+                    (msg.prefix, newprefix,))
             self.authed_users[newprefix] = self.authed_users[msg.prefix]
             self._unauth(msg.prefix)
 
