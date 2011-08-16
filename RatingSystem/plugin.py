@@ -24,6 +24,8 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import conf
 from supybot import ircdb
+from supybot import world
+from supybot import ircmsgs
 
 import sqlite3
 import time
@@ -308,7 +310,7 @@ class RatingSystem(callbacks.Plugin):
             return
 
         result = "Your rating of %s for user %s has been recorded." % (rating, nick,)
-        
+
         sourceid = userrating[0][0]
         targetuserdata = self.db.get(nick)
         if len(targetuserdata) == 0:
@@ -330,6 +332,14 @@ class RatingSystem(callbacks.Plugin):
                         (nick, priorrating[0][4], rating,)
         self.db.rate(gpgauth['nick'], sourceid, nick, targetid, rating,
                      replacementflag, notes)
+        if not world.testing:
+            if not replacementflag:
+                logmsg = "New rating | %s > %s > %s | %s" % (gpgauth['nick'],
+                        rating, nick, notes)
+            else:
+                logmsg = "Rating change | Old rating %s | New rating: %s > %s > %s | %s" % \
+                        (priorrating[0][4], gpgauth['nick'], rating, nick, notes,)
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ratings", logmsg))
         irc.reply("Rating entry successful. %s" % (result,))
     rate = wrap(rate, ['something', 'int', optional('text')])
 
@@ -380,6 +390,10 @@ class RatingSystem(callbacks.Plugin):
             irc.error("You have not given this nick a rating previously.")
             return
         self.db.unrate(gpgauth['nick'], sourceid, nick, targetid)
+        if not world.testing:
+            logmsg = "Rating removed | %s > %s > %s | %s" % (gpgauth['nick'],
+                    priorrating[0][4], nick, priorrating[0][5])
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ratings", logmsg))
         irc.reply("Successfully removed your rating for %s." % nick)
     unrate = wrap(unrate, ['something'])
 
