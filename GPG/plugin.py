@@ -536,7 +536,7 @@ class GPG(callbacks.Plugin):
         del self.pending_auth[msg.prefix]
         self.authlog.info("everify success from hostmask %s for user %s, keyid %s." %\
                 (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response)
-        irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
+        irc.reply(response + "You are now authenticated for user %s with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     everify = wrap(everify, ['something'])
 
