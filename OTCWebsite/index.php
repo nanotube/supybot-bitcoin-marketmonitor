@@ -9,9 +9,10 @@
 
   <div style="float: left; width: 180px; text-align: center;">
    <div style="padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">
-    Visit our sponsor:<br>
-
-    <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="http://bitcoin-otc.com/dragonstale.jpg" style="border-style: none;"></a>
+    Visit our sponsors:<br>
+    <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="dragonstale.jpg" style="border-style: none;"></a>
+    <hr style="width: 80%;">
+    <a href="http://www.btcontilt.com"><img src="btcontilt.jpg" style="border-style: none;"></a>
     <hr style="width: 80%;">
    </div>
   </div>
@@ -39,16 +40,15 @@
      <li><a href="viewgpg.php">Registered user GPG keys</a>
     </ul>
    </div>
-  </div>
 
-   <div style="padding-left: 200px; clear: both;">
-
+   <div style="float: left; margin-bottom: 20px;">
     <h2>Disclaimers</h2>
     <p>#bitcoin-otc is merely an aggregator of outstanding supply and demand. All transactions that may occur are conducted directly between counterparties, without any participation or intermediation from #bitcoin-otc. As such, it is each individual's responsibility to conduct due diligence on their counterparties, and otherwise act in a prudent way to avoid falling prey to fraudulent users. It is strongly recommended that all users review the <a href="http://wiki.bitcoin-otc.com/wiki/Using_bitcoin-otc">guide to using #bitcoin-otc</a>, which contains a non-exhaustive list of suggestions for safe conduct on #bitcoin-otc.</p>
     <p>The OTC web of trust is not foolproof. Do not rely on the ratings blindly - since the cost of entry into the web of trust is only one positive rating, it is not impossible for a scammer to infiltrate the system, and then create a bunch of bogus accounts who all inter-rate each other. Talk to people on #bitcoin-otc first, make sure they are familiar with the person you're about to trade with, have traded with him successfully in the past, etc.</p>
     <h2>Code</h2>
     The code for the order book IRC bot plugin, the OTC web of trust bot plugin, as well as this website is open. Feel free to grab it from <a href="http://github.com/nanotube/supybot-bitcoin-marketmonitor">this github git repository</a>. Improvements and contributions are welcome. If you would like to post questions or bug reports, please use the issues tracker on github for this repository.
     </div>
+   </div>
 <?php
  include("footer.php");
 ?>
