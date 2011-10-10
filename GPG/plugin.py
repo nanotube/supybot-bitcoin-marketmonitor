@@ -632,14 +632,15 @@ class GPG(callbacks.Plugin):
             response = "You are "
         try:
             authinfo = self.authed_users[hostmask]
-            response += ("identified as user %s, with GPG key id %s, " + \
-                    "and key fingerprint %s.") % (authinfo['nick'],
-                            authinfo['keyid'],
-                            authinfo['fingerprint'])
+            if irc.nested:
+                response = authinfo['nick']
+            else:
+                response += ("identified as user %s, with GPG key id %s, " + \
+                        "and key fingerprint %s.") % (authinfo['nick'],
+                                authinfo['keyid'],
+                                authinfo['fingerprint'])
         except KeyError:
             response += "not identified."
-        if irc.nested:
-            response = authinfo['nick']
         irc.reply(response)
     ident = wrap(ident, [optional('something')])
 
