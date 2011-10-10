@@ -1,7 +1,7 @@
 /*
 GPG authentication helper script for mIRC.
 
-Version 2011.09.24.0300
+Version 2011.10.10.0000
 
 Usage: /verify
 
@@ -23,7 +23,7 @@ TODO List:
 
 on *:load:{
   unset %otcgpg*
-  
+
 
   if ($isfile(C:\Program Files\GNU\GnuPG\gpg.exe)) {
     set %otcgpgpath "C:\Program Files\GNU\GnuPG\gpg.exe"
@@ -51,15 +51,15 @@ on *:load:{
     set %otcgpgbot gribble
     echo $color(info) -st * [OTCgpg]Using default GPG bot name of gribble.
   } 
-  
+
   while (%otcgpguser == $null) set %otcgpguser $input(What is your otc username?,eo,otc username)
   set %otcgpgpass $input(What is your gpg password?,po,gpg password)
-  
+
   echo $color(info) -st * [OTCgpg]OTCgpg Helper script successfully setup.  Use /verify to ident to %otcgpgbot and gain voice in -otc.
 }
 
 alias verify {
-  /msg %otcgpgbot ;;eauth $me
+  /msg %otcgpgbot ;;eauth %otcgpguser
 }
 
 alias otcgpg_decrypt {
