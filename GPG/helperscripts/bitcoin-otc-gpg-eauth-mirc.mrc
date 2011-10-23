@@ -67,7 +67,7 @@ alias otcgpg_decrypt {
   var %out = $scriptdir $+ stdout.txt
   var %cmd = cmd /C echo %otcgpgpass $+ $chr(124) %otcgpgpath --batch --yes --passphrase-fd 0 --decrypt %in > %out
   /run -n %cmd
-  .timer 1 10 /otcgpg_everify %out
+  .timer 1 3 /otcgpg_everify %out
 }
 
 alias otcgpg_everify {
