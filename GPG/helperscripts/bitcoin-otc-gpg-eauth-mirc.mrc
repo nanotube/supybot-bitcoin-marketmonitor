@@ -1,7 +1,7 @@
 /*
-OTCgpg helper script for #bitcoin-otc .01 
-originally by imsaguy et al.
-modified and improved by +ageis
+OTCgpg helper script for #bitcoin-otc
+By Ageis & imsaguy
+2011.11.01
 
 to install, type /load -rs <script_filename.mrc>
 
@@ -63,7 +63,7 @@ menu Nicklist {
 
 menu Channel {
   OTCgpg
-  .Authenticate:/verify
+  .Authenticate:/otcgpg_starteauth
   .Ticker:msg %otcgpgbot ;;ticker
   .Ident:msg %otcgpgbot ;;ident $$?="Enter username to identify:"
   .MtGox Live:url -an http://mtgoxlive.com/orders
@@ -143,7 +143,7 @@ menu Channel {
     echo $color(info) -st * [OTCgpg] Password cleared. You will be prompted for it in the future.
   }
 
-  ..Set GPG.exe location:/findgpg
+  ..Set GPG.exe location:/otcgpg_findgpg
   ..Set download method
   ...choose internal (default):{
     set %otcgpgdl true
@@ -182,7 +182,7 @@ on *:LOAD:{
   set %otcgpgchan #bitcoin-otc
   set %otcgpgdl true
 
-  /findgpg
+  /otcgpg_findgpg
 
   while (%otcgpguser == $null) set %otcgpguser $input(What is your %otcgpgchan username?,eo,Enter username:,$me)
 
@@ -199,11 +199,7 @@ on *:LOAD:{
   else {
     set %otcgpgauto false
   }
-  echo $color(info) -st * [OTCgpg] The script is now configured and ready. Use /verify to ident to %otcgpgbot and gain voice in %otcgpgchan .
-}
-
-alias verify {
-  /msg %otcgpgbot ;;eauth %otcgpguser
+  echo $color(info) -st * [OTCgpg] The script is now configured and ready. Use /otcgpg_starteauth to ident to %otcgpgbot and gain voice in %otcgpgchan .
 }
 
 on 1:JOIN:#: {
@@ -213,7 +209,79 @@ on 1:JOIN:#: {
   }
 }
 
-alias findGPG {
+on *:SOCKOPEN:otcdl.*:{
+  hadd -m ticks $sockname $ticks
+  var %file = $nopath($gettok($sock($sockname).mark,3,32))
+  var %fullfile = $+(",$scriptdir,%file,")
+  var %sckr = sockwrite -n $sockname, %^ = $gettok($sock($sockname).mark,3,32)
+  echo $color(info) -st * [OTCgpg] Connecting to OTP host. . .
+  write -c %fullfile
+  %sckr GET $iif(left(%^,1) != $chr(47),$chr(47) $+ %^,%^) HTTP/1.0
+  %sckr HOST: $gettok($sock($sockname).mark,2,32)
+  %sckr ACCEPT: *.*
+  %sckr $crlf
+}
+
+on *:SOCKREAD:otcdl.*:{
+  if ($sockerr) {
+    echo $color(info) -st * [OTCgpg] Error: $sock($sockname).wsmsg
+    return
+  }
+  var %a
+  :begin
+  if ($gettok($sock($sockname).mark,1,32) == head) {
+    sockread %a
+  }
+  else {
+    sockread &b
+  }
+  if ($sockbr) {
+    tokenize 32 $sock($sockname).mark
+    if ($1 == HEAD) {
+      if (%a) {
+        ; Catching the file size, avoiding the data header
+        if ($gettok(%a,1,32) == Content-Length:) { var %totsize = $gettok(%a,2,32) }
+      }
+      else {
+        ; When there are no vars, we now we have to start binary downloading
+        echo $color(info) -st * [OTCgpg] Downloading %totsize bytes. . .
+        sockmark $sockname GET $2- %totsize
+      }
+    }
+    elseif ($1 == GET) {
+      ; Downloading ...
+      var %file = $+(",$scriptdir,$nopath($3),"), %cursize = $file(%file).size
+      var %totsize = $gettok($sock($sockname).mark,4,32)
+      bwrite %file -1 &b
+    }
+    goto begin
+  }
+}
+
+on *:SOCKCLOSE:otcdl.*:{
+  var %ticks = $calc(($ticks - $hget(ticks,$sockname)) /1000)
+  var %filename = $nopath($gettok($sock($sockname).mark,3,32))
+  echo $color(info) -st * [OTCgpg] File %filename downloaded in : %ticks seconds. Beginning decryption.
+  /otcgpg_decrypt %filename
+}
+
+on *:TEXT:$(Request successful for user %otcgpguser $+ *):?:{
+  if ($nick == %otcgpgbot && %otcgpgdl == true) {
+    /otcgpg_download $wildtok($1-, http://*, 1, 32)
+  }
+  if ($nick == %otcgpgbot && %otcgpgdl == false) {
+    /otcgpg_wget $wildtok($1-, http://*, 1, 32)
+  }
+}
+
+on *:TEXT:$(You are now authenticated for user %otcgpguser $+ *):?: {
+  if ($nick == %otcgpgbot) {
+    /msg %otcgpgbot ;;voiceme
+    echo $color(info) -st * [OTCgpg] Successfully authenticated to %otcgpgbot . .
+  }
+}
+
+alias otcgpg_findgpg {
   if ($isfile(C:\Program Files\GNU\GnuPG\gpg.exe)) {
     set %otcgpgpath "C:\Program Files\GNU\GnuPG\gpg.exe"
     echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files\GNU\GnuPG\
@@ -283,81 +351,13 @@ alias otcgpg_download {
   }
 }
 
-on *:SOCKOPEN:otcdl.*:{
-  hadd -m ticks $sockname $ticks
-  var %file = $nopath($gettok($sock($sockname).mark,3,32))
-  var %fullfile = $+(",$scriptdir,%file,")
-  var %sckr = sockwrite -n $sockname, %^ = $gettok($sock($sockname).mark,3,32)
-  echo $color(info) -st * [OTCgpg] Connecting to OTP host. . .
-  write -c %fullfile
-  %sckr GET $iif(left(%^,1) != $chr(47),$chr(47) $+ %^,%^) HTTP/1.0
-  %sckr HOST: $gettok($sock($sockname).mark,2,32)
-  %sckr ACCEPT: *.*
-  %sckr $crlf
-}
-
-on *:SOCKREAD:otcdl.*:{
-  if ($sockerr) {
-    echo $color(info) -st * [OTCgpg] Error: $sock($sockname).wsmsg
-    return
-  }
-  var %a
-  :begin
-  if ($gettok($sock($sockname).mark,1,32) == head) {
-    sockread %a
-  }
-  else {
-    sockread &b
-  }
-  if ($sockbr) {
-    tokenize 32 $sock($sockname).mark
-    if ($1 == HEAD) {
-      if (%a) {
-        ; Catching the file size, avoiding the data header
-        if ($gettok(%a,1,32) == Content-Length:) { var %totsize = $gettok(%a,2,32) }
-      }
-      else {
-        ; When there are no vars, we now we have to start binary downloading
-        echo $color(info) -st * [OTCgpg] Downloading %totsize bytes. . .
-        sockmark $sockname GET $2- %totsize
-      }
-    }
-    elseif ($1 == GET) {
-      ; Downloading ...
-      var %file = $+(",$scriptdir,$nopath($3),"), %cursize = $file(%file).size
-      var %totsize = $gettok($sock($sockname).mark,4,32)
-      bwrite %file -1 &b
-    }
-    goto begin
-  }
-}
-
-on *:SOCKCLOSE:otcdl.*:{
-  var %ticks = $calc(($ticks - $hget(ticks,$sockname)) /1000)
-  var %filename = $nopath($gettok($sock($sockname).mark,3,32))
-  echo $color(info) -st * [OTCgpg] File %filename downloaded in : %ticks seconds. Beginning decryption.
-  /otcgpg_decrypt %filename
-}
-
-on *:TEXT:$(Request successful for user %otcgpguser $+ *):?:{
-  if ($nick == %otcgpgbot && %otcgpgdl == true) {
-    /otcgpg_download $wildtok($1-, http://*, 1, 32)
-  }
-  if ($nick == %otcgpgbot && %otcgpgdl == false) {
-    /otcgpg_wget $wildtok($1-, http://*, 1, 32)
-  }
+alias verify {
+  /msg %otcgpgbot ;;eauth %otcgpguser
 }
 
 alias otcgpg_wget {
   xrun -wnh cmd /C %otcgpgwgetpath -O $scriptdir $+ otcgpgkey.txt $1
   otcgpg_decrypt otcgpgkey.txt
-}
-
-on *:TEXT:$(You are now authenticated for user %otcgpguser $+ *):?: {
-  if ($nick == %otcgpgbot) {
-    /msg %otcgpgbot ;;voiceme
-    echo $color(info) -st * [OTCgpg] Successfully authenticated to %otcgpgbot . .
-  }
 }
 
 alias xrun {
