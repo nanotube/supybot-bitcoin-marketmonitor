@@ -237,9 +237,9 @@ alias findGPG {
   if ($isfile(%otcgpgpath)) {
     echo $color(info) -st * [OTCgpg] Using gpg.exe from %otcgpgpath . 
   }
-    else {
-      echo $color(info) -st * [OTCgpg] Unable to find GPG. Please try again, or re-load the script by typing /load -rs $script
-    }     
+  else {
+    echo $color(info) -st * [OTCgpg] Unable to find GPG. Please try again, or re-load the script by typing /load -rs $script
+  }     
 }
 
 alias otcgpg_decrypt {
