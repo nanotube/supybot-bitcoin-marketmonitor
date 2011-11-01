@@ -23,7 +23,7 @@ menu Nicklist {
   .GPG info:msg %otcgpgbot ;;gpg info $1
   .Get trust:msg %otcgpgbot ;;gettrust $1
   .Rate
-  ..Rate:msg %otcgpgbot ;;rate $1 $$?="Enter a rating (-10 to 10):" $$?="Comments:"
+  ..Rate:msg %otcgpgbot ;;rate $1 $$?="Enter a rating (-10 to 10):" $input("Would you like to leave a comment? (Type it below)",en)
   ..Unrate:msg %otcgpgbot ;;unrate $1 
   ..Rated?:msg %otcgpgbot ;;rated $1
   ..Get rating:msg %otcgpgbot ;;getrating $1
