@@ -143,20 +143,7 @@ menu Channel {
     echo $color(info) -st * [OTCgpg] Password cleared. You will be prompted for it in the future.
   }
 
-  ..Set GPG.exe location:{
-    set %otcgpgpath $qt($$?="Please specify the full path/location of gpg.exe:")
-    if ($isfile(%otcgpgpath)) {
-      echo $color(info) -st * [OTCgpg] Using gpg.exe from %otcgpgpath . 
-    }
-    else {
-      if ($input(Failed to find gpg.exe in that location. Would you like to locate it by reloading the script?,yi,Configuration)) { 
-        load -rs $script
-      }
-      else {
-        echo $color(info) -st * [OTCgpg] Unable to find GPG. Please try again, or re-load the script by typing /load -rs $script
-      }     
-    }
-  }
+  ..Set GPG.exe location:/findgpg
   ..Set download method
   ...choose internal (default):{
     set %otcgpgdl true
@@ -195,26 +182,7 @@ on *:LOAD:{
   set %otcgpgchan #bitcoin-otc
   set %otcgpgdl true
 
-  if ($isfile(C:\Program Files\GNU\GnuPG\gpg.exe)) {
-    set %otcgpgpath "C:\Program Files\GNU\GnuPG\gpg.exe"
-    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files\GNU\GnuPG\
-  }
-  elseif ($isfile(C:\Program Files\GNU\GnuPG\pub\gpg.exe)) {
-    set %otcgpgpath "C:\Program Files\GNU\GnuPG\pub\gpg.exe"
-    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files\GNU\GnuPG\pub\
-  }
-  elseif ($isfile(C:\Program Files (x86)\GNU\GnuPG\gpg.exe)) {
-    set %otcgpgpath "C:\Program Files (x86)\GNU\GnuPG\gpg.exe"
-    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files (x86)\GNU\GnuPG\
-  }
-  elseif ($isfile(C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe)) {
-    set %otcgpgpath "C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe"
-    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files (x86)\GNU\GnuPG\pub\
-  }
-  else {
-    set %otcgpgpath $$?="I can't find GPG! Please make sure GPG is installed and enter the path to the directory in which otcgpgexe resides:"
-    set %otcgpgpath $qt(%otcgpgpath)
-  }
+  /findgpg
 
   while (%otcgpguser == $null) set %otcgpguser $input(What is your %otcgpgchan username?,eo,Enter username:,$me)
 
@@ -243,6 +211,35 @@ on 1:JOIN:#: {
     echo $color(info) -st * [OTCgpg] Joined %otcgpgchan . Requesting authentication from %otcgpgbot . . .
     msg %otcgpgbot ;;eauth %otcgpguser
   }
+}
+
+alias findGPG {
+  if ($isfile(C:\Program Files\GNU\GnuPG\gpg.exe)) {
+    set %otcgpgpath "C:\Program Files\GNU\GnuPG\gpg.exe"
+    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files\GNU\GnuPG\
+  }
+  elseif ($isfile(C:\Program Files\GNU\GnuPG\pub\gpg.exe)) {
+    set %otcgpgpath "C:\Program Files\GNU\GnuPG\pub\gpg.exe"
+    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files\GNU\GnuPG\pub\
+  }
+  elseif ($isfile(C:\Program Files (x86)\GNU\GnuPG\gpg.exe)) {
+    set %otcgpgpath "C:\Program Files (x86)\GNU\GnuPG\gpg.exe"
+    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files (x86)\GNU\GnuPG\
+  }
+  elseif ($isfile(C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe)) {
+    set %otcgpgpath "C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe"
+    echo $color(info) -st * [OTCgpg] GPG found at C:\Program Files (x86)\GNU\GnuPG\pub\
+  }
+  else {
+    set %otcgpgpath $qt($$?="Please specify the full path/location of gpg.exe:")
+  }
+
+  if ($isfile(%otcgpgpath)) {
+    echo $color(info) -st * [OTCgpg] Using gpg.exe from %otcgpgpath . 
+  }
+    else {
+      echo $color(info) -st * [OTCgpg] Unable to find GPG. Please try again, or re-load the script by typing /load -rs $script
+    }     
 }
 
 alias otcgpg_decrypt {
