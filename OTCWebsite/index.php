@@ -10,9 +10,9 @@
   <div style="float: left; width: 180px; text-align: center;">
    <div style="padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">
     Visit our sponsors:<br>
-    <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="dragonstale.jpg" style="border-style: none;"></a>
+    <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="dragonstale.jpg" title="Dragon's Tale MMO" alt="Dragon's Tale Graphic" style="border-style: none;"></a>
     <hr style="width: 80%;">
-    <a href="http://www.btcontilt.com"><img src="btcontilt.jpg" style="border-style: none;"></a>
+    <a href="http://coinabul.com/?a=247"><img src="coinabul.jpg" title="Coinabul Bitcoin-to-Gold Dealer" alt="Coinabul Graphic" style="border-style: none;"></a>
     <hr style="width: 80%;">
    </div>
   </div>
