@@ -52,5 +52,8 @@ conf.registerGlobalValue(Gatekeeper, 'accountAgeThreshold',
     registry.PositiveInteger(604800, """Minimum account age, in seconds,
     to be allowed in."""))
 
+conf.registerGlobalValue(Gatekeeper, 'msgOnJoin',
+    registry.Boolean(False, """Should we send a pm with instructions to
+    unauthed joiners?"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

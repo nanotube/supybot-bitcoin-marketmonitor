@@ -89,6 +89,8 @@ class Gatekeeper(callbacks.Plugin):
 
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
+            if not self.registryValue('msgOnJoin'):
+                return
             try:
                 if msg.nick not in irc.state.channels['#bitcoin-otc-foyer'].users:
                     irc.queueMsg(ircmsgs.privmsg(msg.nick, "Join #bitcoin-otc-foyer and see channel topic for instructions on getting voice on #bitcoin-otc."))
