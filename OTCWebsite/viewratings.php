@@ -53,6 +53,7 @@ Web of Trust Data
 <?php
 	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
 	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
+	$sortorders["created_at"]["linktext"] = "first rated";
 	$sortorders["created_at"]["othertext"] = "(UTC)";
 	$sortorders["pos_rating_recv_count"]["linktext"] = "number of positive ratings received";
 	$sortorders["neg_rating_recv_count"]["linktext"] = "number of negative ratings received";
