@@ -46,6 +46,8 @@ import supybot.callbacks as callbacks
 import supybot.world as world
 from supybot import schedule
 from supybot import ircmsgs
+import supybot.conf as conf
+import supybot.schedule as schedule
 
 class MarketMonitor(callbacks.Plugin):
     """Monitor a telnet push server for bitcoin trade data."""
@@ -58,6 +60,12 @@ class MarketMonitor(callbacks.Plugin):
         self.e = threading.Event()
         self.started = threading.Event()
         self.data = ""
+
+        self.marketdata = {}
+        # Example: {("mtgox", "USD"): [(volume, price, timestamp),(volume, price, timestamp)], ("th", "USD"): [(volume, price, timestamp)]}
+        
+        self.raw = []
+        self.nextsend = 0 # Timestamp for when we can send next. Handling this manually allows better collapsing.
 
     def __call__(self, irc, msg):
         self.__parent.__call__(irc, msg)
@@ -82,68 +90,112 @@ class MarketMonitor(callbacks.Plugin):
     def _monitor(self, irc):
         while not self.e.isSet():
             try:
-                linedata = self.conn.read_until('\n', 1)
+                lines = self.conn.read_very_eager()
             except Exception, e:
-                self.log.error('Error in MarketMonitor: %s: %s' % \
+                self.log.error('Error in MarketMonitor reading telnet: %s: %s' % \
                             (e.__class__.__name__, str(e)))
                 self._reconnect()
                 continue
             try:
-                if irc.getCallback('Services').identified and linedata:
-                    output = self._parse(irc, linedata)
-                    if output:
-                        for chan in self.registryValue('channels'):
-                            irc.queueMsg(ircmsgs.privmsg(chan, output))
+                if irc.getCallback('Services').identified and lines: #Make sure you're running the Services plugin, and are identified!
+                    lines = lines.split("\n")
+                    self._parse(lines)
             except Exception, e:
-                self.log.error('Error in MarketMonitor: %s: %s' % \
+                self.log.error('Error in MarketMonitor parsing: %s: %s' % \
                             (e.__class__.__name__, str(e)))
                 continue # keep going no matter what
+            try:
+                if time.time() >= self.nextsend:
+                    outputs = self._format()
+                    if outputs:
+                        for output in outputs:
+                            for chan in self.registryValue('channels'):
+                                irc.queueMsg(ircmsgs.privmsg(chan, output))
+                        self.nextsend = time.time()+(conf.supybot.protocols.irc.throttleTime() * len(outputs))
+                    self.marketdata = {}
+                    self.raw = []
+            except Exception, e:
+                self.log.error('Error in MarketMonitor sending: %s: %s' % \
+                            (e.__class__.__name__, str(e)))
+                continue # keep going no matter what
+            time.sleep(0.01)
         self.started.clear()
         self.conn.close()
 
-    def _parse(self, irc, msg):
-        if not msg[-1] == '\n':
-            self.data = self.data + msg
+    def _parse(self, msgs):
+        # Stitching of messages
+        if len(msgs) == 1:
+            self.data += msgs[0]
             return
-        self.data = self.data + msg
+        msgs[0] = self.data + msgs[0]
+        self.data = ""
+        if not msgs[-1] == "":
+            self.data = msgs[-1]
 
-        data = self.data
-
-        #{"timestamp": 1302015318, "price": "0.7000", "volume": "0.27", "currency": "USD", "symbol": "btcexUSD"}
-
+        msgs = msgs[:-1]
+        
         if self.registryValue('format') == 'raw':
-            self.data = ""
-            return data
+            self.raw.extend(msgs)
 
+        #[{"timestamp": 1302015318, "price": "0.7000", "volume": "0.27", "currency": "USD", "symbol": "btcexUSD"}]
+
+        # Parsing of messages
+        for data in msgs:
+            try:
+                d = json.loads(data)
+                for needed in "timestamp", "price", "volume", "symbol":
+                    assert needed in d
+                market, currency = re.match(r"^([a-z0-9]+)([A-Z]+)$", d["symbol"]).groups()
+                volume = decimal.Decimal(str(d["volume"]))
+                price = decimal.Decimal(str(d["price"]))
+                stamp = decimal.Decimal(str(d["timestamp"]))
+                if (market, currency) not in self.marketdata:
+                    self.marketdata[(market, currency)] = []
+                self.marketdata[(market, currency)].append((volume, price, stamp))
+            except Exception, e:
+                # we really want to keep going no matter what data we get
+                self.log.error('Error in MarketMonitor parsing: %s: %s' % \
+                                (e.__class__.__name__, str(e)))
+                self.log.error('MarketMonitor: Unrecognized data: %s' % data)
+                self.data = ""
+                return False
+
+    def _format(self):
+        if self.registryValue('format') == 'raw':
+            return [x.rstrip() for x in self.raw]
+
+        # Making a pretty output
+        outputs = []
         try:
-            d = json.loads(data)
-            for needed in "timestamp", "price", "volume", "symbol":
-                assert needed in d
-            market, currency = re.match(r"^([a-z0-9]+)([A-Z]+)$", d["symbol"]).groups()
-            volume = decimal.Decimal(str(d["volume"]))
-            price = decimal.Decimal(str(d["price"]))
-            stamp = datetime.datetime.utcfromtimestamp(d["timestamp"])
-            prfmt = self._moneyfmt(price, places=8)
-            match = re.search(r"\.\d{2}[0-9]*?(0+)$", prfmt)
-            if match is not None:
-                # pad off the trailing 0s with spaces to retain justification
-                numzeros = len(match.group(1))
-                prfmt = prfmt[:-numzeros] + (" " * numzeros)
-            # don't forget to count irc bold marker character on both ends of bolded items
-            if len(self.registryValue('marketsWhitelist')) == 0 or market in self.registryValue('marketsWhitelist'):
-                out = "{time} {mkt:10} {vol:>10} @ {pr:>16} {cur}".format(time=stamp.strftime("%b%d %H:%M:%S"),
-                        mkt=ircutils.bold(market), vol=self._moneyfmt(volume, places=4), pr=ircutils.bold(prfmt), cur=currency)
-            else:
-                out = False
-            self.data = ""
-            return out
+            for (market, currency), txs in self.marketdata.iteritems():
+                if len(txs) >= self.registryValue('collapseThreshold'):
+                    # Collapse transactions to a single transaction with degeneracy
+                    (sumvol, sumpr, sumst) = reduce((lambda (sumvol, sumpr, sumst), (vol, pr, st): (sumvol+vol, sumpr+(pr*vol), sumst+(st*vol))), txs, (0,0,0))
+                    degeneracy = "x" + str(len(txs))
+                    txs = [(sumvol, sumpr/sumvol, sumst/sumvol)]
+                else:
+                    degeneracy = ""
+                for (vol, pr, st) in txs:
+                    prfmt = self._moneyfmt(pr, places=8)
+                    match = re.search(r"\.\d{2}[0-9]*?(0+)$", prfmt)
+                    if match is not None:
+                        # pad off the trailing 0s with spaces to retain justification
+                        numzeros = len(match.group(1))
+                        prfmt = prfmt[:-numzeros] + (" " * numzeros)
+                    # don't forget to count irc bold marker character on both ends of bolded items
+                    if len(self.registryValue('marketsWhitelist')) == 0 or market in self.registryValue('marketsWhitelist'):
+                        out = "{time} {mkt:8} {num:>4} {vol:>10} @ {pr:>16} {cur}".format(time=datetime.datetime.utcfromtimestamp(st).strftime("%b%d %H:%M:%S"),
+                                mkt=ircutils.bold(market), num=degeneracy, vol=self._moneyfmt(vol, places=4), pr=ircutils.bold(prfmt), cur=currency)
+                        outputs.append((st,out))
+
+            outputs.sort()
         except Exception, e:
             # we really want to keep going no matter what data we get
-            self.log.error('Error in MarketMonitor: %s: %s' % \
+            self.log.error('Error in MarketMonitor formatting: %s: %s' % \
                             (e.__class__.__name__, str(e)))
-            self.log.error('MarketMonitor: Unrecognized data: %s' % data)
-            self.data = ""
+            self.log.error('MarketMonitor: Unrecognized data: %s' % self.marketdata)
             return False
+        return [out for (_,out) in outputs]
 
     def die(self):
         self.e.set()
