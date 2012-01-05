@@ -44,8 +44,8 @@ conf.registerGlobalValue(MarketMonitor, 'marketsWhitelist',
     want to monitor, space separated list of short market names. Leave
     blank to include all."""))
 conf.registerGlobalValue(MarketMonitor, 'collapseThreshold',
-    registry.Integer(3, """Minimum amount of transactions upon
-    which the bot will collapse them together"""))
+    registry.Integer(3, """Minimum number of transactions the bot will
+    collapse together"""))
 
 class Formats(registry.OnlySomeStrings):
     validStrings = ('raw', 'pretty')

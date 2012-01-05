@@ -46,8 +46,7 @@ import supybot.callbacks as callbacks
 import supybot.world as world
 from supybot import schedule
 from supybot import ircmsgs
-import supybot.conf as conf
-import supybot.schedule as schedule
+from supybot import conf
 
 class MarketMonitor(callbacks.Plugin):
     """Monitor a telnet push server for bitcoin trade data."""
@@ -133,7 +132,7 @@ class MarketMonitor(callbacks.Plugin):
             self.data = msgs[-1]
 
         msgs = msgs[:-1]
-        
+
         if self.registryValue('format') == 'raw':
             self.raw.extend(msgs)
 
