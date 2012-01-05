@@ -183,7 +183,7 @@ class MarketMonitor(callbacks.Plugin):
                         prfmt = prfmt[:-numzeros] + (" " * numzeros)
                     # don't forget to count irc bold marker character on both ends of bolded items
                     if len(self.registryValue('marketsWhitelist')) == 0 or market in self.registryValue('marketsWhitelist'):
-                        out = "{time} {mkt:8} {num:>4} {vol:>10} @ {pr:>16} {cur}".format(time=datetime.datetime.utcfromtimestamp(st).strftime("%b%d %H:%M:%S"),
+                        out = "{time} {mkt:10} {num:>4} {vol:>10} @ {pr:>16} {cur}".format(time=datetime.datetime.utcfromtimestamp(st).strftime("%b%d %H:%M:%S"),
                                 mkt=ircutils.bold(market), num=degeneracy, vol=self._moneyfmt(vol, places=4), pr=ircutils.bold(prfmt), cur=currency)
                         outputs.append((st,out))
 
