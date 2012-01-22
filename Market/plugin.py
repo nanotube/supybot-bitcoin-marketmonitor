@@ -33,6 +33,7 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+from supybot import conf
 
 import json
 from urllib2 import urlopen
@@ -55,8 +56,11 @@ class Market(callbacks.Plugin):
     threaded = True
 
     def _getMarketDepth(self):
-        json_data = urlopen("https://mtgox.com/code/data/getDepth.php").read()
-        mdepth = json.loads(json_data)
+        # this is a regularly refreshed data dump from
+        # https://mtgox.com/api/1/BTCUSD/public/fulldepth
+        filename = conf.supybot.directories.data.dirize('mtgox.depth.json')
+        mdepth = json.load(open(filename))
+        mdepth = mdepth['return']
         return mdepth
 
     def _getTicker(self):
@@ -85,13 +89,12 @@ class Market(callbacks.Plugin):
         total = 0.0
         asks = mdepth['asks']
         for ask in asks:
-            (price, amount) = ask
-            if f(price, pricetarget):
-                n_coins += amount
-                total += (amount * price)
+            if f(ask['price'], pricetarget):
+                n_coins += ask['amount']
+                total += (ask['amount'] * ask['price'])
 
         irc.reply("There are currently %.8g bitcoins offered at "
-                "or %s %s USD, worth %s USD in total." % (n_coins, 
+                "or %s %s USD, worth %s USD in total." % (n_coins,
                         response, pricetarget, total))
     asks = wrap(asks, [getopts({'over': '',}), 'nonNegativeFloat'])
 
@@ -116,13 +119,12 @@ class Market(callbacks.Plugin):
         total = 0.0
         bids = mdepth['bids']
         for bid in bids:
-            (price, amount) = bid
-            if f(price, pricetarget):
-                n_coins += amount
-                total += (amount * price)
+            if f(bid['price'], pricetarget):
+                n_coins += bid['amount']
+                total += (bid['amount'] * bid['price'])
 
         irc.reply("There are currently %.8g bitcoins demanded at "
-                "or %s %s USD, worth %s USD in total." % (n_coins, 
+                "or %s %s USD, worth %s USD in total." % (n_coins,
                         response, pricetarget, total))
     bids = wrap(bids, [getopts({'under': '',}), 'nonNegativeFloat'])
 
