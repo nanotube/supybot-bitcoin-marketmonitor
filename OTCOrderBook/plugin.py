@@ -402,11 +402,15 @@ class OTCOrderBook(callbacks.Plugin):
                       "to use the order book.")
             return
         rv = self.db.remove(gpgauth['nick'], orderid)
-        if rv is not False:
-            irc.reply("Order %s removed." % orderid)
-        else:
+        if rv is False:
             irc.error("No orders found to remove. Try the 'view' command to "
                       "view your open orders.")
+            return
+        irc.reply("Order %s removed." % orderid)
+        if not world.testing:
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ticker",
+                    "Removed #%s || %s" % (orderid,
+                            gpgauth['nick'],)))
     remove = wrap(remove, ['int',])
 
     def view(self, irc, msg, args, optlist, query):
