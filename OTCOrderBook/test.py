@@ -89,7 +89,6 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertRegexp('view 1', 'BUY 1000')
             self.assertError('buy 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
-            self.assertNotError('remove')
             self.assertError('buy --long 5000 btc at 0.06 USD this is a long order') #not enough trust
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertNotError('buy --long 5000 btc at 0.06 USD this is a long order') #now we have 20 total trust
@@ -110,7 +109,6 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('view')
             self.assertError('sell 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
-            self.assertNotError('remove')
             self.assertError('sell --long 5000 btc at 0.06 USD this is a long order') #not enough trust
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertNotError('sell --long 5000 btc at 0.06 USD this is a long order') #now we have 20 total trust
@@ -144,7 +142,8 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotRegexp('view', '1000.*2000')
             self.assertRegexp('view', '2000')
             self.assertNotError('buy 1000 btc at 0.06 LRUSD really nice offer!')
-            self.assertNotError('remove')
+            self.assertNotError('remove 2')
+            self.assertNotError('remove 3')
             self.assertError('view')
         finally:
             self.prefix = origuser
@@ -173,19 +172,19 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('buy 1000 btc at "{mtgoxbid} - 0.03" ppusd')
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'BUY 1000.0 btc @ "{mtgoxbid}')
-            self.assertNotError('remove')
+            self.assertNotError('remove 1')
             self.assertNotError('sell 1000 btc at "{mtgoxask} + 0.03" ppusd')
             self.assertRegexp('view', 'SELL 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'SELL 1000.0 btc @ "{mtgoxask}')
-            self.assertNotError('remove')
+            self.assertNotError('remove 2')
             self.assertNotError('buy 1000 btc at "0.5*({mtgoxlast} + {mtgoxbid})" ppusd split the spread')
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
-            self.assertNotError('remove')
+            self.assertNotError('remove 3')
             self.assertNotError('buy 1000 btc at "{mtgoxlast} - 0.03" ppusd')
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'BUY 1000.0 btc @ "{mtgoxlast}')
             self.assertRegexp('book ppusd', 'BUY 1000.0 btc @ \d')
-            self.assertNotError('remove')
+            self.assertNotError('remove 4')
             self.assertNotError('buy 1000 btc at "({mtgoxlast} - 0.03) * {usd in eur}" ppeur')
             self.assertRegexp('view', 'BUY 1000.0 btc @ \d')
             self.assertRegexp('view --raw', 'BUY 1000.0 btc @ "\({mtgoxlast}')

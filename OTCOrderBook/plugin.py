@@ -391,10 +391,9 @@ class OTCOrderBook(callbacks.Plugin):
     refresh = wrap(refresh, [getopts({'long': '',}), optional('int')])
 
     def remove(self, irc, msg, args, orderid):
-        """[<orderid>]
+        """<orderid>
 
-        Remove your outstanding orders. If optional <orderid> argument present,
-        only removes that particular order.
+        Remove an outstanding order by <orderid>.
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
@@ -404,11 +403,11 @@ class OTCOrderBook(callbacks.Plugin):
             return
         rv = self.db.remove(gpgauth['nick'], orderid)
         if rv is not False:
-            irc.reply("Order remove successful, %s orders removed." % rv)
+            irc.reply("Order %s removed." % orderid)
         else:
             irc.error("No orders found to remove. Try the 'view' command to "
                       "view your open orders.")
-    remove = wrap(remove, [optional('int')])
+    remove = wrap(remove, ['int',])
 
     def view(self, irc, msg, args, optlist, query):
         """[--raw] [<orderid>|<nick>]
