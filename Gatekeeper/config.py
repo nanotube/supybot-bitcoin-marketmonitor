@@ -45,6 +45,10 @@ Gatekeeper = conf.registerPlugin('Gatekeeper')
 # conf.registerGlobalValue(Gatekeeper, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
 
+conf.registerGlobalValue(Gatekeeper, 'targetChannel',
+    registry.String("#bitcoin-otc", """Target channel for gatekeeper
+    management"""))
+
 conf.registerGlobalValue(Gatekeeper, 'ratingThreshold',
     registry.NonNegativeInteger(0, """Minimum rating to be allowed in."""))
 
@@ -55,5 +59,10 @@ conf.registerGlobalValue(Gatekeeper, 'accountAgeThreshold',
 conf.registerGlobalValue(Gatekeeper, 'msgOnJoin',
     registry.Boolean(False, """Should we send a pm with instructions to
     unauthed joiners?"""))
+
+conf.registerGlobalValue(Gatekeeper, 'talkInChanOnlyForAuthedUsers',
+    registry.Boolean(True, """Should the bot only respond in channel for
+    authed users?"""))
+
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

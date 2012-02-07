@@ -53,6 +53,16 @@ class Gatekeeper(callbacks.Plugin):
     def _gettrust(self, irc, sourcenick, destnick):
         return irc.getCallback('RatingSystem')._gettrust(sourcenick, destnick)
 
+    def outFilter(self, irc, msg):
+        if msg.command == 'PRIVMSG' and \
+                self.registryValue('talkInChanOnlyForAuthedUsers') and \
+                msg.args[0] == self.registryValue('targetChannel'):
+            gpgauth = self._checkGPGAuth(irc, msg.inReplyTo.prefix)
+            if gpgauth is None:
+                print "user not authed"
+                msg = ircmsgs.privmsg(msg.inReplyTo.nick, msg.args[1], msg=msg)
+        return msg
+
     def letmein(self, irc, msg, args):
         """takes no arguments
         
