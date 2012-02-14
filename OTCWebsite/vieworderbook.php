@@ -40,7 +40,7 @@
 
 ?>
 
-<h2>OTC Order Book</h2>
+<h2>OTC Order Book <sup>[<a href="orderbook.json">json</a>]</sup></h2>
 
 <?php
 if (sizeof($queryfilter) != 0) {
