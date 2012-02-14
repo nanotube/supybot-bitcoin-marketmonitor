@@ -1,9 +1,3 @@
-<!DOCTYPE html>
-<?php
- $pagetitle = "#bitcoin-otc gpg key data";
- include("header.php");
-?>
-
 <?php
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "nick";
 	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint');
@@ -15,7 +9,43 @@
 	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
 	
 	$nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
-	$nickfilter = html_entity_decode($nickfilter)
+	$nickfilter = html_entity_decode($nickfilter);
+	
+	$outformat = isset($_GET["outformat"]) ? $_GET["outformat"] : "";
+	$outformat = html_entity_decode($outformat);
+?>
+<?php
+	try { $db = new PDO('sqlite:./otc/GPG.db'); }
+	catch (PDOException $e) { die($e->getMessage()); }
+?>
+<?php
+	$queryfilter = array();
+	if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
+	if (sizeof($queryfilter) != 0) {
+		$queryfilter = " WHERE " . join(' AND ', $queryfilter);
+	}
+	else {
+		$queryfilter = "";
+	}
+?>
+<?php
+	include('querytojson.php');
+	if ($outformat == 'json'){
+		$sql = 'SELECT * FROM users ' . $queryfilter;
+		if (!$query = $db->Query($sql, PDO::FETCH_ASSOC))
+			echo "[]";
+		else {
+			jsonOutput($query);
+			exit();
+		}
+	}
+?>
+
+<!DOCTYPE html>
+
+<?php
+ $pagetitle = "#bitcoin-otc gpg key data";
+ include("header.php");
 ?>
 
 <div class="breadcrumbs">
@@ -37,11 +67,6 @@ else {
    <tr>
 
 <?php
-	try { $db = new PDO('sqlite:./otc/GPG.db'); }
-	catch (PDOException $e) { die($e->getMessage()); }
-?>
-
-<?php
 	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
 	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
 	$sortorders["registered_at"]["othertext"] = "(UTC)";
@@ -51,14 +76,6 @@ else {
 ?>
    </tr>
 <?php
-	$queryfilter = array();
-	if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
-	if (sizeof($queryfilter) != 0) {
-		$queryfilter = " WHERE " . join(' AND ', $queryfilter);
-	}
-	else {
-		$queryfilter = "";
-	}
 	$sql = 'SELECT * FROM users ' . $queryfilter . 'ORDER BY ' . sqlite_escape_string($sortby) . ' COLLATE NOCASE ' . sqlite_escape_string($sortorder);
 	if (!$query = $db->Query($sql))
 		echo "<tr><td>No users found</td></tr>\n";
