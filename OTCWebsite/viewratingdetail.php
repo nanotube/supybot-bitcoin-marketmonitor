@@ -80,7 +80,7 @@ Rating for <?php echo htmlentities($nick); ?>
 	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a></li>';
 ?>
   </ul>
-  <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?></h3>
+  <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
   <table class="datadisplay">
    <tr>
 <?php

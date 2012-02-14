@@ -25,4 +25,12 @@ function jsonOutput($query)
     }
     print "\n]\n";
 }
+
+function jsonlink() {
+    if ($_SERVER["QUERY_STRING"] != "")
+        $sep = '&';
+    else
+        $sep = '?';
+    echo $_SERVER["REQUEST_URI"] . $sep . "outformat=json";
+}
 ?>

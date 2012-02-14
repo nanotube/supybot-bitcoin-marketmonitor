@@ -61,7 +61,7 @@ else {
 ?>
 </div>
 
-  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user " . htmlentities($nickfilter) ;} ?></h3>
+  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user " . htmlentities($nickfilter) ;} ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
   <table class="datadisplay">
    <tr>
 
