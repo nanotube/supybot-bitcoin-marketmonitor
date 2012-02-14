@@ -34,10 +34,9 @@
 		$sql = 'SELECT * FROM users ' . $queryfilter;
 		if (!$query = $db->Query($sql, PDO::FETCH_ASSOC))
 			echo "[]";
-		else {
+		else
 			jsonOutput($query);
-			exit();
-		}
+		exit();
 	}
 ?>
 

@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-
 <?php
 	//error_reporting(-1); ini_set('display_errors', 1);
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "rating";
@@ -16,7 +14,29 @@
 	if (!in_array($type, $validvalues)) $type = "RECV";
 	$nick = isset($_GET["nick"]) ? $_GET["nick"] : "";
 	$nick = html_entity_decode($nick);
+	$outformat = isset($_GET["outformat"]) ? $_GET["outformat"] : "";
+	$outformat = html_entity_decode($outformat);
 ?>
+<?php
+	try { $db = new PDO('sqlite:./otc/RatingSystem.db'); }
+	catch (PDOException $e) { die($e->getMessage()); }
+
+	include('querytojson.php');
+	if ($outformat == 'json'){
+		$signqueries = array('ANY' => ' ', 'POS' => ' AND ratings.rating > 0', 'NEG' => ' AND ratings.rating < 0');
+		$typequeries = array('RECV' => 'users2.nick LIKE ? AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id', 'SENT' => 'users.nick LIKE ? AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id');
+		$sql = "SELECT ratings.id as id, users.nick as rater_nick, users2.nick as rated_nick, ratings.created_at as created_at, ratings.rating as rating, ratings.notes as notes from users, users as users2, ratings WHERE " . $typequeries[$type] . $signqueries[$sign];
+		$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
+		$sth->setFetchMode(PDO::FETCH_ASSOC);
+		$sth->execute(array($nick));
+		if (!$sth) echo "[]";
+		else	jsonOutput($sth);
+		exit();
+	}
+	
+?>
+
+<!DOCTYPE html>
 
 <?php
  $pagetitle = "Rating Details for User '" . htmlentities($nick) . "'";
@@ -50,8 +70,6 @@ Rating for <?php echo htmlentities($nick); ?>
 	$typequeries = array('RECV' => 'users.id = ratings.rated_user_id', 'SENT' => 'users.id = ratings.rater_user_id');
 	$signqueries = array('ANY' => ' ', 'POS' => ' AND ratings.rating > 0', 'NEG' => ' AND ratings.rating < 0');
 
-	try { $db = new PDO('sqlite:./otc/RatingSystem.db'); }
-	catch (PDOException $e) { die($e->getMessage()); }
 	$sql = "SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM users, ratings WHERE users.nick LIKE ? AND " . $typequeries[$type] . $signqueries[$sign];
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 	if (!$sth->execute(array($nick))) echo "<li>No positive ratings found</li>\n";
