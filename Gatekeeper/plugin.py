@@ -59,7 +59,6 @@ class Gatekeeper(callbacks.Plugin):
                 msg.args[0] == self.registryValue('targetChannel'):
             gpgauth = self._checkGPGAuth(irc, msg.inReplyTo.prefix)
             if gpgauth is None:
-                print "user not authed"
                 msg = ircmsgs.privmsg(msg.inReplyTo.nick, msg.args[1], msg=msg)
         return msg
 
