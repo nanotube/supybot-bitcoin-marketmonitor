@@ -68,6 +68,51 @@ class Market(callbacks.Plugin):
         ticker = json.loads(json_data)
         return ticker['ticker']
 
+    def sell(self, irc, msg, args, optlist, value):
+        """[--usd] <value>
+        
+        Calculate the effect on the market depth of a market order of <value>
+        bitcoins. If '--usd' option is given, simulate a sale of <value> USD
+        worth of bitcoins in a market order.
+        """
+        try:
+            mdepth = self._getMarketDepth()
+        except:
+            irc.error("Failure to retrieve order book data. Try again later.")
+            return
+        if dict(optlist).has_key('usd'):     
+            n_coins = 0.0
+            total = value
+            top = 0.0
+            for bid in bids:
+                if total <= bid['amount'] * bid['price']: 
+                    n_coins += total / bid['price']
+                    top      = bid['price']
+                    break
+                else: # we can eat the entire order
+                    n_coins += bid['amount']
+                    total   -= bid['amount'] * bid['price']
+             irc.reply("A market order to sell %s USD worth of bitcoins right"
+                       " now would sell %s bitcoins and would take the last "
+                       " price down to %s USD." % (value, n_coins, top))        
+        else:
+            n_coins = value
+            total = 0.0
+            top = 0.0
+            bids = mdepth['bids']
+            for bid in bids:
+                if n_coins <= bid['amount']: # we don't have enough
+                    total += n_coins * bid['price']
+                    top    = bid['price']
+                    break
+                else: # we can eat the entire order
+                    n_coins -= bid['amount']
+                    total   += bid['amount'] * bid['price']
+            irc.reply("A market order to sell %.8g bitcoins right now would "
+                      "net %s and would take the last price down to %s USD."
+                      % (value, total, top))
+    sell = wrap(sell, [getopts({'usd': '',}), 'nonNegativeFloat']))
+
     def asks(self, irc, msg, args, optlist, pricetarget):
         """[--over] <pricetarget>
         
