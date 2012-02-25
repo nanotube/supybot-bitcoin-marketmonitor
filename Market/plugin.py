@@ -68,6 +68,33 @@ class Market(callbacks.Plugin):
         ticker = json.loads(json_data)
         return ticker['ticker']
 
+    def sell(self, irc, msg, args, optlist, coins):
+        """
+        
+        """
+        try:
+            mdepth = self._getMarketDepth()
+        except:
+            irc.error("Failed to retrieve market order book data. Please try again later.")
+            return
+        
+        n_coins = coins
+        total = 0.0
+        top = 0.0
+        bids = mdepth['bids']
+        for bid in bids:
+            if n_coins <= ask['amount']:
+                top    = ask['price']
+                total += ask['amount'] * ask['price']
+            else:
+                n_coins -= ask['amount']
+                total   += ask['amount'] * ask['price']
+        
+        irc.reply("A market order to sell %.8g bitcoins right now would net %s "
+                  "and would take the last price down to %s USD." % (coins,
+                  total, top))
+    sell = wrap(sell)
+
     def asks(self, irc, msg, args, optlist, pricetarget):
         """[--over] <pricetarget>
         
