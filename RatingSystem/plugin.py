@@ -355,7 +355,7 @@ class RatingSystem(callbacks.Plugin):
             sourcenick = msg.nick
         data = self.db.getRatingDetail(sourcenick, nick)
         if len(data) == 0:
-            irc.error("You have not yet rated user %s" % nick)
+            irc.reply("You have not yet rated user %s" % (nick,))
             return
         data = data[0]
         irc.reply("You rated user %s on %s, giving him a rating of %s, and "
@@ -417,7 +417,7 @@ class RatingSystem(callbacks.Plugin):
             authstatus = " Currently not authenticated."
         data = self.db.get(nick)
         if len(data) == 0:
-            irc.error("This user has not yet been rated." + authstatus)
+            irc.reply("This user has not yet been rated." + authstatus)
             return
         data = data[0]
         irc.reply("User %s, created on %s. "

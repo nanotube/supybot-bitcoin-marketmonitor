@@ -97,7 +97,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertRegexp('getrating nanotube', 'Sent ratings.*1 negative')
             self.assertNotError('rate registeredGUY 5')
             self.assertRegexp('getrating registeredguy', 'Cumulative rating 14')
-            self.assertError('rated nobody')
+            self.assertRegexp('rated nobody', 'not yet rated')
             self.assertRegexp('rated registeredguy', 'You rated user registeredguy .* giving him a rating of 5')
         finally:
             self.prefix = origuser
@@ -111,7 +111,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertNotError('rate registeredguy 4')
             self.assertRegexp('getrating registeredguy', 'Cumulative rating 4')
             self.assertNotError('unrate regISTEredguy')
-            self.assertError('getrating registeredguy') # guy should be gone, having no connections.
+            self.assertRegexp('getrating registeredguy', 'not yet been rated') # guy should be gone, having no connections.
         finally:
             self.prefix = origuser
 
@@ -152,7 +152,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertNotError('rate registeredguy 4')
             self.assertRegexp('getrating registeredguy', 'Cumulative rating 4')
             self.assertNotError('deleteuser registeredGUy')
-            self.assertError('getrating registeredguy') # guy should be gone
+            self.assertRegexp('getrating registeredguy', 'not yet been rated') # guy should be gone
         finally:
             self.prefix = origuser
 
