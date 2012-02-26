@@ -71,15 +71,17 @@ class Market(callbacks.Plugin):
     def sell(self, irc, msg, args, optlist, value):
         """[--usd] <value>
         
-        Calculate the effect on the market depth of a market order of <value>
-        bitcoins. If '--usd' option is given, simulate a sale of <value> USD
-        worth of bitcoins in a market order.
+        Calculate the effect on the market depth of a market sell order of
+        <value> bitcoins. If '--usd' option is given, <value> denotes the 
+        size of the order in USD.
         """
         try:
             mdepth = self._getMarketDepth()
         except:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
+        bids = mdepth['bids']
+        bids.reverse() # bids are listed in ascending order
         if dict(optlist).has_key('usd'):     
             n_coins = 0.0
             total = value
@@ -87,31 +89,98 @@ class Market(callbacks.Plugin):
             for bid in bids:
                 if total <= bid['amount'] * bid['price']: 
                     n_coins += total / bid['price']
-                    top      = bid['price']
+                    top = bid['price']
                     break
                 else: # we can eat the entire order
                     n_coins += bid['amount']
-                    total   -= bid['amount'] * bid['price']
-             irc.reply("A market order to sell %s USD worth of bitcoins right"
-                       " now would sell %s bitcoins and would take the last "
-                       " price down to %s USD." % (value, n_coins, top))        
+                    total -= bid['amount'] * bid['price']
+            else:
+                irc.reply("This order would exceed the size of the order book. "
+                        "You would sell %.8g bitcoins for a total of %.4f USD and "
+                        "take the price to 0." % (n_coins, value - total,))
+                return
+            irc.reply("A market order to sell %.4f USD worth of bitcoins right "
+                    "now would sell %.8g bitcoins and would take the last "
+                    "price down to %.4f USD." % (value, n_coins, top,))
+            return
         else:
             n_coins = value
             total = 0.0
             top = 0.0
-            bids = mdepth['bids']
             for bid in bids:
                 if n_coins <= bid['amount']: # we don't have enough
                     total += n_coins * bid['price']
-                    top    = bid['price']
+                    top = bid['price']
                     break
                 else: # we can eat the entire order
                     n_coins -= bid['amount']
-                    total   += bid['amount'] * bid['price']
+                    total += bid['amount'] * bid['price']
+            else:
+                irc.reply("This order would exceed the size of the order book. "
+                        "You would sell %.8g bitcoins, for a total of %.4f USD and "
+                        "take the price to 0." % (value - n_coins, total,))
+                return
             irc.reply("A market order to sell %.8g bitcoins right now would "
-                      "net %s and would take the last price down to %s USD."
-                      % (value, total, top))
-    sell = wrap(sell, [getopts({'usd': '',}), 'nonNegativeFloat']))
+                    "net %.4f USD and would take the last price down to %.4f USD."
+                    % (value, total, top))
+    sell = wrap(sell, [getopts({'usd': '',}), 'nonNegativeFloat'])
+
+    def buy(self, irc, msg, args, optlist, value):
+        """[--usd] <value>
+        
+        Calculate the effect on the market depth of a market buy order of
+        <value> bitcoins. If '--usd' option is given, <value> denotes the 
+        size of the order in USD.
+        """
+        try:
+            mdepth = self._getMarketDepth()
+        except:
+            irc.error("Failure to retrieve order book data. Try again later.")
+            return
+        asks = mdepth['asks']
+        if dict(optlist).has_key('usd'):     
+            n_coins = 0.0
+            total = value
+            top = 0.0
+            for ask in asks:
+                if total <= ask['amount'] * ask['price']: 
+                    n_coins += total / ask['price']
+                    top = ask['price']
+                    break
+                else: # we can eat the entire order
+                    n_coins += ask['amount']
+                    total -= ask['amount'] * ask['price']
+            else:
+                irc.reply("This order would exceed the size of the order book. "
+                        "You would buy %.8g bitcoins for a total of %.4f USD and "
+                        "take the price to %.4f." % (n_coins, value - total, ask['price'],))
+                return
+            irc.reply("A market order to buy %.4f USD worth of bitcoins right "
+                    "now would buy %.8g bitcoins and would take the last "
+                    "price up to %.4f USD." % (value, n_coins, top,))
+            return
+        else:
+            n_coins = value
+            total = 0.0
+            top = 0.0
+            for ask in asks:
+                if n_coins <= ask['amount']: # we don't have enough
+                    total += n_coins * ask['price']
+                    top = ask['price']
+                    break
+                else: # we can eat the entire order
+                    n_coins -= ask['amount']
+                    total += ask['amount'] * ask['price']
+            else:
+                irc.reply("This order would exceed the size of the order book. "
+                        "You would buy %.8g bitcoins, for a total of %.4f USD and "
+                        "take the price to %.4f." % (value - n_coins, total, ask['price']))
+                return
+            irc.reply("A market order to buy %.8g bitcoins right now would "
+                    "take %.4f USD and would take the last price up to %.4f USD."
+                    % (value, total, top))
+    buy = wrap(buy, [getopts({'usd': '',}), 'nonNegativeFloat'])
+
 
     def asks(self, irc, msg, args, optlist, pricetarget):
         """[--over] <pricetarget>
