@@ -47,8 +47,22 @@ Web of Trust Data
 	}
 ?>
   </ul>
+
+<table class="datadisplay" style="width: 100%;">
+<tr>
+ <td>
   <h3>List of users and ratings</h3>
-  <table class="datadisplay">
+</td>
+<td style="text-align: right;">
+<form method="GET" action="ratingsfilter.php?">
+<label>Search notes: <input type="text" name="notes" value=""/></label>
+<input type="submit" value="Filter" />
+</form>
+</td>
+</tr>
+</table>
+
+   <table class="datadisplay">
    <tr>
 <?php
 	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
