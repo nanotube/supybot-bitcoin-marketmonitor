@@ -14,6 +14,8 @@
     <hr style="width: 80%;">
     <a href="http://coinabul.com/?a=247"><img src="coinabul.jpg" title="Coinabul Bitcoin-to-Gold Dealer" alt="Coinabul Graphic" style="border-style: none;"></a>
     <hr style="width: 80%;">
+    <a href="https://www.privateinternetaccess.com/pages/buy-vpn/OTC001"><img src="pia.png" title="Private Internet Access VPN" alt="Private Internet Access graphic" style="border-style: none;"></a>
+    <hr style="width: 80%;">
    </div>
   </div>
   <div style="padding-left: 200px;">
