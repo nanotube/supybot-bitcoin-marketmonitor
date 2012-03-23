@@ -3,6 +3,7 @@
 # for the nice snippet.
 function jsonOutput($query)
 {
+    header('Content-type: application/json');
     $ofirst = true;
     print "[\n";
     foreach ($query as $row)
