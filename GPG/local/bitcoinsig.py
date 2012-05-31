@@ -164,7 +164,22 @@ def public_key_to_bc_address(public_key):
     h160 = hash_160(public_key)
     return hash_160_to_bc_address(h160)
 
-def verify_message( address, signature, message):
+def sign_message(private_key, message):
+    public_key = private_key.get_verifying_key()
+    signature = private_key.sign_digest( Hash( msg_magic( message ) ), sigencode = ecdsa.util.sigencode_string )
+    address = public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
+    assert public_key.verify_digest( signature, Hash( msg_magic( message ) ), sigdecode = ecdsa.util.sigdecode_string)
+    for i in range(4):
+        sig = base64.b64encode( chr(27+i) + signature )
+        try:
+            verify_message( address, sig, message)
+            return sig
+        except:
+            continue
+    else:
+        raise BaseException("error: cannot sign message")
+
+def verify_message(address, signature, message):
     """ See http://www.secg.org/download/aid-780/sec1-v2.pdf for the math """
     from ecdsa import numbertheory, ellipticcurve, util
     curve = curve_secp256k1
@@ -198,6 +213,7 @@ def verify_message( address, signature, message):
     if address == addr:
         return True
     else:
+        #print addr
         return False
         
 if __name__ == '__main__':
@@ -205,6 +221,17 @@ if __name__ == '__main__':
     print verify_message('16vqGo3KRKE9kTsTZxKoJKLzwZGTodK3ce',
             'HPDs1TesA48a9up4QORIuub67VHBM37X66skAYz0Esg23gdfMuCTYDFORc6XGpKZ2/flJ2h/DUF569FJxGoVZ50=',
             'test message') # good
-    print verify_message('16vqGo3KRKE9kTsTZxKoJKLzwZGTodK3ee',
+    print verify_message('16vqGo3KRKE9kTsTZxKoJKLzwZGTodK3ce',
             'HPDs1TesA48a9up4QORIuub67VHBM37X66skAYz0Esg23gdfMuCTYDFORc6XGpKZ2/flJ2h/DUF569FJxGoVZ50=',
-            'test message') # bad
+            'test message 2') # bad
+
+    private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = SECP256k1 )
+    public_key = private_key.get_verifying_key()
+    bitcoinaddress = public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
+    print bitcoinaddress
+    sig = sign_message(private_key, 'test message')
+    print sig
+    print verify_message(bitcoinaddress, sig, 'test message')
+    print verify_message('1GdKjTSg2eMyeVvPV5Nivo6kR8yP2GT7wF',
+            'GyMn9AdYeZIPWLVCiAblOOG18Qqy4fFaqjg5rjH6QT5tNiUXLS6T2o7iuWkV1gc4DbEWvyi8yJ8FvSkmEs3voWE=',
+            'freenode:#bitcoin-otc:b42f7e7ea336db4109df6badc05c6b3ea8bfaa13575b51631c5178a7')

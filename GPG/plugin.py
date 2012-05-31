@@ -35,12 +35,19 @@ import hashlib
 import time
 import copy
 import logging
+import traceback
 
 try:
     gnupg = utils.python.universalImport('gnupg', 'local.gnupg')
 except ImportError:
     raise callbacks.Error, \
             "You need the gnupg module installed to use this plugin." 
+try:
+    bitcoinsig = utils.python.universalImport('local.bitcoinsig')
+except ImportError:
+    raise callbacks.Error, \
+            "You are possibly missing the ecdsa module." 
+
 
 domainRe = re.compile('^' + utils.web._domain + '$', re.I)
 urlRe = re.compile('^' + utils.web._urlRe + '$', re.I)
@@ -65,6 +72,7 @@ class GPGDB(object):
                           id INTEGER PRIMARY KEY,
                           keyid TEXT,
                           fingerprint TEXT,
+                          bitcoinaddress TEXT,
                           registered_at INTEGER,
                           nick TEXT)
                            """)
@@ -85,16 +93,21 @@ class GPGDB(object):
         cursor.execute("""SELECT * FROM users WHERE keyid = ?""", (keyid,))
         return cursor.fetchall()
 
+    def getByAddr(self, address):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM users WHERE bitcoinaddress = ?""", (address,))
+        return cursor.fetchall()
+
     def getCount(self):
         cursor = self.db.cursor()
         cursor.execute("""SELECT count(*) FROM users""")
         return cursor.fetchall()
 
-    def register(self, keyid, fingerprint, timestamp, nick):
+    def register(self, keyid, fingerprint, bitcoinaddress, timestamp, nick):
         cursor = self.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
-                        (NULL, ?, ?, ?, ?)""",
-                        (keyid, fingerprint, timestamp, nick))
+                        (NULL, ?, ?, ?, ?, ?)""",
+                        (keyid, fingerprint, bitcoinaddress, timestamp, nick))
         self.db.commit()
 
     def changenick(self, oldnick, newnick):
@@ -108,6 +121,13 @@ class GPGDB(object):
         cursor.execute("""UPDATE users SET keyid = ?, fingerprint = ?
                         WHERE keyid = ?""",
                         (newkeyid, newkeyfingerprint, oldkeyid,))
+        self.db.commit()
+
+    def changeaddress(self, oldaddress, newaddress):
+        cursor = self.db.cursor()
+        cursor.execute("""UPDATE users SET bitcoinaddress = ?
+                        WHERE bitcoinaddress = ?""",
+                        (newaddress, oldaddress,))
         self.db.commit()
 
 def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
@@ -311,6 +331,41 @@ class GPG(callbacks.Plugin):
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
     eregister = wrap(eregister, ['something', 'keyid', optional('keyserver')])
 
+    def btcregister(self, irc, msg, args, nick, bitcoinaddress):
+        """<nick> <bitcoinaddress>
+
+        Register your identity, associating bitcoin address key <bitcoinaddress>
+        with <nick>.
+        <bitcoinaddress> should be a standard-type bitcoin address, starting with 1.
+        You will be given a random passphrase to sign with your address key, and
+        submit to the bot with the 'btcverify' command.
+        Your passphrase will expire in 10 minutes.
+        """
+        self._removeExpiredRequests()
+        if self.db.getByNick(nick):
+            irc.error("Username already registered. Try a different username.")
+            return
+        if self.db.getByAddr(bitcoinaddress):
+            irc.error("This address is already registered in the database.")
+            return
+        rs = irc.getCallback('RatingSystem')
+        rsdata = rs.db.get(nick)
+        if len(rsdata) != 0 and rsdata[0][8] != msg.host:
+            irc.error("This username is reserved for the existing member of the "
+                    "web of trust, with host '%s'." % (rsdata[0][8],))
+            return
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        request = {msg.prefix: {'bitcoinaddress':bitcoinaddress,
+                            'nick':nick, 'expiry':time.time(),
+                            'type':'btcregister',
+                            'challenge':challenge}}
+        self.pending_auth.update(request)
+        self.authlog.info("btcregister request from hostmask %s for user %s, bitcoinaddress %s." %\
+                (msg.prefix, nick, bitcoinaddress, ))
+        irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
+                (nick, msg.prefix, challenge,))
+    btcregister = wrap(btcregister, ['something', 'something'])
+
     def auth(self, irc, msg, args, nick):
         """<nick>
 
@@ -328,7 +383,7 @@ class GPG(callbacks.Plugin):
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
-        request = {msg.prefix: {'nick':userdata[0][4],
+        request = {msg.prefix: {'nick':userdata[0][5],
                                 'expiry':time.time(), 'keyid':keyid,
                                 'type':'auth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
@@ -369,7 +424,7 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG eregister: key %s, otp creation %s, exception %s" % \
                     (keyid, data.stderr, e,))
             return
-        request = {msg.prefix: {'nick':userdata[0][4],
+        request = {msg.prefix: {'nick':userdata[0][5],
                                 'expiry':time.time(), 'keyid':keyid,
                                 'type':'eauth', 'challenge':challenge,
                                 'fingerprint':fingerprint}}
@@ -379,6 +434,37 @@ class GPG(callbacks.Plugin):
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
     eauth = wrap(eauth, ['something'])
+
+    def btcauth(self, irc, msg, args, nick):
+        """<nick>
+
+        Initiate authentication for user <nick>.
+        You must have registered with the bot with a bitcoin address for this to work.
+        You will be given a random passphrase to sign with your address, and
+        submit to the bot with the 'btcverify' command.
+        Your passphrase will expire within 10 minutes.
+        """
+        self._removeExpiredRequests()
+        userdata = self.db.getByNick(nick)
+        if len(userdata) == 0:
+            irc.error("This nick is not registered. Please register.")
+            return
+        bitcoinaddress = userdata[0][3]
+        if bitcoinaddress is None:
+            irc.error("You have no registered bitcoin address. Try GPG auth instead.")
+            return
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        request = {msg.prefix: {'nick':userdata[0][5],
+                                'expiry':time.time(),
+                                'type':'btcauth', 'challenge':challenge,
+                                'bitcoinaddress':bitcoinaddress}}
+        self.pending_auth.update(request)
+        self.authlog.info("btcauth request from hostmask %s for user %s, bitcoinaddress %s." %\
+                (msg.prefix, nick, bitcoinaddress, ))
+        irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
+                (nick, msg.prefix, challenge,))
+    btcauth = wrap(btcauth, ['something'])
+
 
     def _unauth(self, hostmask):
         try:
@@ -431,7 +517,7 @@ class GPG(callbacks.Plugin):
                         "Either it expired, or you changed hostmask, or you haven't made one.")
             return
         if authrequest['type'] not in ['register','auth','changekey']:
-            irc.error("No outstanding signature-based request found.")
+            irc.error("No outstanding GPG signature-based request found.")
             return
         try:
             rawdata = utils.web.getUrl(url)
@@ -461,7 +547,7 @@ class GPG(callbacks.Plugin):
             if self.db.getByNick(authrequest['nick']) or self.db.getByKey(authrequest['keyid']):
                 irc.error("Username or key already in the database.")
                 return
-            self.db.register(authrequest['keyid'], authrequest['fingerprint'],
+            self.db.register(authrequest['keyid'], authrequest['fingerprint'], None,
                         time.time(), authrequest['nick'])
             response = "Registration successful. "
         elif authrequest['type'] == 'changekey':
@@ -475,8 +561,10 @@ class GPG(callbacks.Plugin):
             self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
             response = "Successfully changed key for user %s from %s to %s. " %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
+        userdata = self.db.getByNick(authrequest['nick'])
         self.authed_users[msg.prefix] = {'timestamp':time.time(),
                     'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
+                    'bitcoinaddress':userdata[0][3],
                     'fingerprint':authrequest['fingerprint']}
         del self.pending_auth[msg.prefix]
         self.authlog.info("verify success from hostmask %s for user %s, keyid %s." %\
@@ -516,7 +604,7 @@ class GPG(callbacks.Plugin):
             if self.db.getByNick(authrequest['nick']) or self.db.getByKey(authrequest['keyid']):
                 irc.error("Username or key already in the database.")
                 return
-            self.db.register(authrequest['keyid'], authrequest['fingerprint'],
+            self.db.register(authrequest['keyid'], authrequest['fingerprint'], None,
                         time.time(), authrequest['nick'])
             response = "Registration successful. "
         elif authrequest['type'] == 'echangekey':
@@ -530,8 +618,10 @@ class GPG(callbacks.Plugin):
             self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
             response = "Successfully changed key for user %s from %s to %s." %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
+        userdata = self.db.getByNick(authrequest['nick'])
         self.authed_users[msg.prefix] = {'timestamp':time.time(),
                     'keyid': authrequest['keyid'], 'nick':authrequest['nick'],
+                    'bitcoinaddress':userdata[0][3],
                     'fingerprint':authrequest['fingerprint']}
         del self.pending_auth[msg.prefix]
         self.authlog.info("everify success from hostmask %s for user %s, keyid %s." %\
@@ -539,6 +629,70 @@ class GPG(callbacks.Plugin):
         irc.reply(response + "You are now authenticated for user %s with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     everify = wrap(everify, ['something'])
+
+    def btcverify(self, irc, msg, args, data):
+        """<signedmessage>
+
+        Verify the latest authentication request by providing the <signedmessage>
+        which contains the challenge string signed with your bitcoin address
+        of record. If verified, you'll be authenticated for the duration of the bot's
+        or your IRC session on channel (whichever is shorter).
+        """
+        self._removeExpiredRequests()
+        if not self._testPresenceInChannels(irc, msg.nick):
+            irc.error("In order to authenticate, you must be present in one "
+                    "of the following channels: %s" % (self.registryValue('channels'),))
+            return
+        try:
+            authrequest = self.pending_auth[msg.prefix]
+        except KeyError:
+            irc.error("Could not find a pending authentication request from your hostmask. "
+                        "Either it expired, or you changed hostmask, or you haven't made one.")
+            return
+        if authrequest['type'] not in ['btcregister','btcauth','btcchangekey']:
+            irc.error("No outstanding bitcoin-signature-based request found.")
+            return
+        try:
+            result = bitcoinsig.verify_message(authrequest['bitcoinaddress'], data, authrequest['challenge'])
+            if not result:
+                irc.error("Signature verification failed.")
+                return
+        except:
+            irc.error("Authentication failed. Please try again.")
+            traceback.print_exc()
+            self.log.info("btcverify traceback: \n%s" % (traceback.format_exc()))
+            return
+        response = ""
+        if authrequest['type'] == 'btcregister':
+            if self.db.getByNick(authrequest['nick']) or self.db.getByAddr(authrequest['bitcoinaddress']):
+                irc.error("Username or key already in the database.")
+                return
+            self.db.register(None, None, authrequest['bitcoinaddress'],
+                        time.time(), authrequest['nick'])
+            response = "Registration successful. "
+        elif authrequest['type'] == 'btcchangekey':
+            gpgauth = self._ident(msg.prefix)
+            if gpgauth is None:
+                irc.error("You must be authenticated in order to change your registered key.")
+                return
+            if self.db.getByAddr(authrequest['bitcoinaddress']):
+                irc.error("This address is already registered. Try a different one.")
+                return
+            self.db.changeaddress(gpgauth['bitcoinaddress'], authrequest['bitcoinaddress'])
+            response = "Successfully changed address for user %s from %s to %s. " %\
+                (gpgauth['nick'], gpgauth['bitcoinaddress'], authrequest['bitcoinaddress'],)
+        userdata = self.db.getByNick(authrequest['nick'])
+        self.authed_users[msg.prefix] = {'timestamp':time.time(),
+                    'keyid': userdata[0][1], 'nick':authrequest['nick'],
+                    'bitcoinaddress':authrequest['bitcoinaddress'],
+                    'fingerprint':userdata[0][2]}
+        del self.pending_auth[msg.prefix]
+        self.authlog.info("btcverify success from hostmask %s for user %s, address %s." %\
+                (msg.prefix, authrequest['nick'], authrequest['bitcoinaddress'],) + response)
+        irc.reply(response + "You are now authenticated for user '%s' with address %s" %\
+                        (authrequest['nick'], authrequest['bitcoinaddress']))
+    btcverify = wrap(btcverify, ['something'])
+
 
     #~ def changenick(self, irc, msg, args, newnick):
         #~ """<newnick>
@@ -611,6 +765,36 @@ class GPG(callbacks.Plugin):
                 (gpgauth['nick'], msg.prefix, challenge,))
     changekey = wrap(changekey, ['keyid', optional('keyserver')])
 
+    def changeaddress(self, irc, msg, args, bitcoinaddress):
+        """<bitcoinaddress>
+        
+        Changes your registered address to <bitcoinaddress>.
+        You will be given a random passphrase to sign with your new address, and
+        submit to the bot with the 'btcverify' command.
+        You must be authenticated in order to use this command.
+        """
+        self._removeExpiredRequests()
+        gpgauth = self._ident(msg.prefix)
+        if gpgauth is None:
+            irc.error("You must be authenticated in order to change your registered key.")
+            return
+        if self.db.getByAddr(bitcoinaddress):
+            irc.error("This address is already registered. Try a different one.")
+            return
+
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        request = {msg.prefix: {'bitcoinaddress':bitcoinaddress,
+                            'nick':gpgauth['nick'], 'expiry':time.time(),
+                            'type':'btcchangekey',
+                            'challenge':challenge}}
+        self.pending_auth.update(request)
+        self.authlog.info("changeaddress request from hostmask %s for user %s, oldaddress %s, newaddress %s." %\
+                (msg.prefix, gpgauth['nick'], gpgauth['bitcoinaddress'], bitcoinaddress, ))
+        irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
+                (gpgauth['nick'], msg.prefix, challenge,))
+    changeaddress = wrap(changeaddress, ['something'])
+
+
     def ident(self, irc, msg, args, nick):
         """[<nick>]
         
@@ -636,9 +820,10 @@ class GPG(callbacks.Plugin):
                 response = authinfo['nick']
             else:
                 response += ("identified as user %s, with GPG key id %s, " + \
-                        "and key fingerprint %s.") % (authinfo['nick'],
+                        "key fingerprint %s, and bitcoin address %s") % (authinfo['nick'],
                                 authinfo['keyid'],
-                                authinfo['fingerprint'])
+                                authinfo['fingerprint'],
+                                authinfo['bitcoinaddress'])
         except KeyError:
             response += "not identified."
         irc.reply(response)
@@ -653,31 +838,29 @@ class GPG(callbacks.Plugin):
             return result[0]
 
     def info(self, irc, msg, args, optlist, nick):
-        """[--key] <nick>
+        """[--key|--address] <nick>
 
         Returns the registration details of registered user <nick>.
         If '--key' option is given, interpret <nick> as a GPG key ID.
         """
-        key = False
-        for (option, arg) in optlist:
-            if option == 'key':
-                key = True
-        if key:
+        if 'key' in dict(optlist).keys():
             result = self.db.getByKey(nick)
+        elif 'address' in dict(optlist).keys():
+            result = self.db.getByAddr(nick)
         else:
             result = self.db.getByNick(nick)
         if len(result) == 0:
             irc.error("No such user registered.")
             return
         result = result[0]
-        authhost = self._identByNick(result[4])
+        authhost = self._identByNick(result[5])
         if authhost is not None:
             authstatus = " Currently authenticated from hostmask %s" % (authhost,)
         else:
             authstatus = " Currently not authenticated."
-        irc.reply("User '%s', with keyid %s and fingerprint %s, registered on %s.%s" %\
-                (result[4], result[1], result[2], time.ctime(result[3]), authstatus))
-    info = wrap(info, [getopts({'key': '',}),'something'])
+        irc.reply("User '%s', with keyid %s, fingerprint %s, and bitcoin address %s, registered on %s.%s" %\
+                (result[5], result[1], result[2], result[3], time.ctime(result[4]), authstatus))
+    info = wrap(info, [getopts({'key': '','address':'',}),'something'])
 
     def stats(self, irc, msg, args):
         """takes no arguments
