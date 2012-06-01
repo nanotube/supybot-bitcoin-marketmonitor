@@ -123,11 +123,11 @@ class GPGDB(object):
                         (newkeyid, newkeyfingerprint, oldkeyid,))
         self.db.commit()
 
-    def changeaddress(self, oldaddress, newaddress):
+    def changeaddress(self, nick, oldaddress, newaddress):
         cursor = self.db.cursor()
         cursor.execute("""UPDATE users SET bitcoinaddress = ?
-                        WHERE bitcoinaddress = ?""",
-                        (newaddress, oldaddress,))
+                        WHERE nick = ? AND bitcoinaddress = ?""",
+                        (newaddress, nick, oldaddress,))
         self.db.commit()
 
 def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
@@ -678,7 +678,7 @@ class GPG(callbacks.Plugin):
             if self.db.getByAddr(authrequest['bitcoinaddress']):
                 irc.error("This address is already registered. Try a different one.")
                 return
-            self.db.changeaddress(gpgauth['bitcoinaddress'], authrequest['bitcoinaddress'])
+            self.db.changeaddress(gpgauth['nick'], gpgauth['bitcoinaddress'], authrequest['bitcoinaddress'])
             response = "Successfully changed address for user %s from %s to %s. " %\
                 (gpgauth['nick'], gpgauth['bitcoinaddress'], authrequest['bitcoinaddress'],)
         userdata = self.db.getByNick(authrequest['nick'])
