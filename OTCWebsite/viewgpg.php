@@ -1,6 +1,6 @@
 <?php
 	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "nick";
-	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint');
+	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress');
 	if (!in_array($sortby, $validkeys)) $sortby = "nick";
 
 	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
@@ -89,6 +89,7 @@ else {
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['registered_at']); ?></td>
     <td><?php echo $entry['keyid']; ?></td>
 	<td><a href ="http://pool.sks-keyservers.net:11371/pks/lookup?op=vindex&search=0x<?php echo $entry['fingerprint']; ?>"><?php echo $entry['fingerprint']; ?></a></td>
+	<td><?php echo $entry['bitcoinaddress']; ?></td>
    </tr>
 <?
 		}
