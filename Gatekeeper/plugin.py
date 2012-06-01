@@ -73,7 +73,7 @@ class Gatekeeper(callbacks.Plugin):
             return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
-            regtimestamp = info[3]
+            regtimestamp = info[4]
         else:
             # this should not happen
             irc.error("No info on your user in the database.")
@@ -108,7 +108,7 @@ class Gatekeeper(callbacks.Plugin):
                 return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
-            regtimestamp = info[3]
+            regtimestamp = info[4]
         else:
             # this should not happen
             return
