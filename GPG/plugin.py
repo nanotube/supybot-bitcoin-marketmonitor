@@ -382,6 +382,9 @@ class GPG(callbacks.Plugin):
             return
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
+        if keyid is None:
+            irc.error("You have not registered a GPG key. Try using btcauth instead, or register a GPG key first.")
+            return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'nick':userdata[0][5],
                                 'expiry':time.time(), 'keyid':keyid,
@@ -410,6 +413,9 @@ class GPG(callbacks.Plugin):
             return
         keyid = userdata[0][1]
         fingerprint = userdata[0][2]
+        if keyid is None:
+            irc.error("You have not registered a GPG key. Try using btcauth instead, or register a GPG key first.")
+            return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
@@ -451,7 +457,7 @@ class GPG(callbacks.Plugin):
             return
         bitcoinaddress = userdata[0][3]
         if bitcoinaddress is None:
-            irc.error("You have no registered bitcoin address. Try GPG auth instead.")
+            irc.error("You have not registered a bitcoin address. Try using auth/eauth instead, or register an address first.")
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'nick':userdata[0][5],
