@@ -73,7 +73,7 @@ class GPGTestCase(PluginTestCase):
         gpg.authed_users['authedguy!stuff@123.345.234.34'] = {'nick':'authedguy',
                 'keyid':'AAAAAAAAAAAAAAA3', 'fingerprint':'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3',
                 'bitcoinaddress':'1nthoeubla'}
-        gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4', 'someaddr',
+        gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4', None,
                     time.time(), 'authedguy2')
         gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2',
                 'keyid':'AAAAAAAAAAAAAAA4', 'fingerprint':'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
@@ -274,6 +274,7 @@ class GPGTestCase(PluginTestCase):
         self.assertRegexp('btcverify %s' % (sig,),
                     'Successfully changed address.*You are now authenticated')
         self.assertRegexp('gpg ident', 'You are identified.*address %s' % (bitcoinaddress,))
+        self.assertRegexp('gpg info authedguy2', 'address %s' % (bitcoinaddress,))
 
     def testNick(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
