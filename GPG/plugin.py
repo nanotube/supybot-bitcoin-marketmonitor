@@ -116,11 +116,11 @@ class GPGDB(object):
                         (newnick, oldnick,))
         self.db.commit()
 
-    def changekey(self, oldkeyid, newkeyid, newkeyfingerprint):
+    def changekey(self, nick, oldkeyid, newkeyid, newkeyfingerprint):
         cursor = self.db.cursor()
         cursor.execute("""UPDATE users SET keyid = ?, fingerprint = ?
-                        WHERE keyid = ?""",
-                        (newkeyid, newkeyfingerprint, oldkeyid,))
+                        WHERE keyid = ? and nick = ?""",
+                        (newkeyid, newkeyfingerprint, oldkeyid, nick))
         self.db.commit()
 
     def changeaddress(self, nick, oldaddress, newaddress):
@@ -558,7 +558,7 @@ class GPG(callbacks.Plugin):
             if self.db.getByKey(authrequest['keyid']):
                 irc.error("This key id already registered. Try a different key.")
                 return
-            self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
+            self.db.changekey(gpgauth['nick'] ,gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
             response = "Successfully changed key for user %s from %s to %s. " %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
         userdata = self.db.getByNick(authrequest['nick'])
