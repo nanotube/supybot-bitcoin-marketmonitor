@@ -164,16 +164,29 @@ def public_key_to_bc_address(public_key):
     h160 = hash_160(public_key)
     return hash_160_to_bc_address(h160)
 
-def sign_message(private_key, message):
+def encode_point(pubkey, compressed=False):
+    order = generator_secp256k1.order()
+    p = pubkey.pubkey.point
+    x_str = ecdsa.util.number_to_string(p.x(), order)
+    y_str = ecdsa.util.number_to_string(p.y(), order)
+    if compressed:
+        return chr(2 + (p.y() & 1)) + x_str
+    else:
+        return chr(4) + x_str + y_str
+
+def sign_message(private_key, message, compressed=False):
     public_key = private_key.get_verifying_key()
     signature = private_key.sign_digest( Hash( msg_magic( message ) ), sigencode = ecdsa.util.sigencode_string )
-    address = public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
+    address = public_key_to_bc_address(encode_point(public_key, compressed))
     assert public_key.verify_digest( signature, Hash( msg_magic( message ) ), sigdecode = ecdsa.util.sigdecode_string)
     for i in range(4):
-        sig = base64.b64encode( chr(27+i) + signature )
+        nV = 27 + i
+        if compressed:
+            nV += 4
+        sig = base64.b64encode( chr(nV) + signature )
         try:
-            verify_message( address, sig, message)
-            return sig
+            if verify_message( address, sig, message):
+                return sig
         except:
             continue
     else:
@@ -189,7 +202,15 @@ def verify_message(address, signature, message):
     sig = base64.b64decode(signature)
     if len(sig) != 65: raise BaseException("Wrong encoding")
     r,s = util.sigdecode_string(sig[1:], order)
-    recid = ord(sig[0]) - 27
+    nV = ord(sig[0])
+    if nV < 27 or nV >= 35:
+        return False
+    if nV >= 31:
+        compressed = True
+        nV -= 4
+    else:
+        compressed = False
+    recid = nV - 27
     # 1.1
     x = r + (recid/2) * order
     # 1.3
@@ -209,7 +230,7 @@ def verify_message(address, signature, message):
     # check that Q is the public key
     public_key.verify_digest( sig[1:], h, sigdecode = ecdsa.util.sigdecode_string)
     # check that we get the original signing address
-    addr = public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
+    addr = public_key_to_bc_address(encode_point(public_key, compressed))
     if address == addr:
         return True
     else:
@@ -227,7 +248,7 @@ if __name__ == '__main__':
 
     private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = SECP256k1 )
     public_key = private_key.get_verifying_key()
-    bitcoinaddress = public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
+    bitcoinaddress = public_key_to_bc_address( encode_point(public_key) )
     print bitcoinaddress
     sig = sign_message(private_key, 'test message')
     print sig
@@ -235,3 +256,28 @@ if __name__ == '__main__':
     print verify_message('1GdKjTSg2eMyeVvPV5Nivo6kR8yP2GT7wF',
             'GyMn9AdYeZIPWLVCiAblOOG18Qqy4fFaqjg5rjH6QT5tNiUXLS6T2o7iuWkV1gc4DbEWvyi8yJ8FvSkmEs3voWE=',
             'freenode:#bitcoin-otc:b42f7e7ea336db4109df6badc05c6b3ea8bfaa13575b51631c5178a7')
+
+    print verify_message('1Hpj6xv9AzaaXjPPisQrdAD2tu84cnPv3f',
+            'INEJxQnSu6mwGnLs0E8eirl5g+0cAC9D5M7hALHD9sK0XQ66CH9mas06gNoIX7K1NKTLaj3MzVe8z3pt6apGJ34=',
+            'testtest')
+    print verify_message('18uitB5ARAhyxmkN2Sa9TbEuoGN1he83BX',
+            'IMAtT1SjRyP6bz6vm5tKDTTTNYS6D8w2RQQyKD3VGPq2i2txGd2ar18L8/nvF1+kAMo5tNc4x0xAOGP0HRjKLjc=',
+            'testtest')
+
+    # sign compressed key
+    compressed = True
+    secret = 'dea7715ddcf5aba27530d6a1393813fbdd09af3aeb5f4f1616f563833d07babb'.decode('hex')
+    private_key = ecdsa.SigningKey.from_string( secret, curve = SECP256k1 )
+    public_key = private_key.get_verifying_key()
+    bitcoinaddress = public_key_to_bc_address( encode_point(public_key, compressed) )
+    print bitcoinaddress
+
+    sig = sign_message(private_key, 'test message', compressed)
+    print sig
+
+    print verify_message(bitcoinaddress, sig, 'test message')
+
+    print verify_message('1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
+            'H3I37ur48/fn52ZvWQT+Mj2wXL36gyjfaN5qcgfiVRTJb1eP1li/IacCQspYnUntiRv8r6GDfJYsdiQ5VzlG3As=',
+            'testtest')
+
