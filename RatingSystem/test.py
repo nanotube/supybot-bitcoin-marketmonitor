@@ -48,15 +48,15 @@ class RatingSystemTestCase(PluginTestCase):
 
         #preseed the GPG db with a GPG registration and auth for nanotube
         gpg = self.irc.getCallback('GPG')
-        gpg.db.register('AAAAAAAAAAAAAAA1', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA1',
+        gpg.db.register('AAAAAAAAAAAAAAA1', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA1', None,
                     time.time(), 'nanotube')
         gpg.authed_users['nanotube!stuff@stuff/somecloak'] = {'nick':'nanotube'}
-        gpg.db.register('AAAAAAAAAAAAAAA2', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA2',
+        gpg.db.register('AAAAAAAAAAAAAAA2', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA2', None,
                     time.time(), 'registeredguy')
-        gpg.db.register('AAAAAAAAAAAAAAA3', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3',
+        gpg.db.register('AAAAAAAAAAAAAAA3', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3', None,
                     time.time(), 'authedguy')
         gpg.authed_users['authedguy!stuff@123.345.234.34'] = {'nick':'authedguy'}
-        gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
+        gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4', None,
                     time.time(), 'authedguy2')
         gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2'}
 

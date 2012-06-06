@@ -420,7 +420,7 @@ class RatingSystem(callbacks.Plugin):
             irc.reply("This user has not yet been rated." + authstatus)
             return
         data = data[0]
-        irc.reply("User %s, created on %s. "
+        irc.reply("User %s, rated since %s. "
                   "Cumulative rating %s, from %s total ratings. "
                   "Received ratings: %s positive, %s negative. "
                   "Sent ratings: %s positive, %s negative. "
