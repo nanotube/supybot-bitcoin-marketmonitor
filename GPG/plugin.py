@@ -856,7 +856,7 @@ class GPG(callbacks.Plugin):
         else:
             result = self.db.getByNick(nick)
         if len(result) == 0:
-            irc.error("No such user registered.")
+            irc.reply("No such user registered.")
             return
         result = result[0]
         authhost = self._identByNick(result[5])
