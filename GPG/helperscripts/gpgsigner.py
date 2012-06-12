@@ -19,6 +19,7 @@ p1 = subprocess.Popen(['gpg','--clearsign'], stdin = subprocess.PIPE, stdout=sub
 p1.stdin.write(input)
 output = p1.communicate()[0]
 
-s = ServerProxy('http://paste.pocoo.org/xmlrpc/')
-pasteid = s.pastes.newPaste('text',output)
-print "http://paste.pocoo.org/raw/%s/" % (pasteid)
+s = ServerProxy('http://paste.debian.net/server.pl')
+rc = s.paste.addPaste(output, 'mygpgauth', 300)
+pasteid = rc['id']
+print "http://paste.debian.net/plain/%s/" % (pasteid,)
