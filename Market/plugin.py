@@ -259,7 +259,7 @@ class Market(callbacks.Plugin):
             irc.error("Please only choose one option at a time.")
             return
         if len(od) == 0:
-            irc.reply("Best bid: %s, Best ask: %s, Bid-ask spread: %s, Last trade: %s, "
+            irc.reply("Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
                 "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s" % \
                 (ticker['buy'], ticker['sell'], ticker['sell'] - ticker['buy'], ticker['last'], 
                 ticker['vol'], ticker['low'], ticker['high']))
