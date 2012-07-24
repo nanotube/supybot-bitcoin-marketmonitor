@@ -36,7 +36,7 @@ if (sizeof($notesfilter) != 0) {
 </tr>
 </table>
 
-<table class="datadisplay">
+<table class="datadisplay sortable">
 <tr>
  <th>id</th>
  <th>rater nick</th>

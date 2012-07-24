@@ -5,14 +5,10 @@
 ?>
 
 <?php
-	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "total_rating";
+	$sortby = "total_rating";
 	$validkeys = array('id', 'nick', 'created_at', 'keyid', 'total_rating', 'pos_rating_recv_count', 'neg_rating_recv_count', 'pos_rating_sent_count', 'neg_rating_sent_count');
-	if (!in_array($sortby, $validkeys)) $sortby = "total_rating";
 
-	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	if (! isset($_GET["sortby"]) && $sortby == "total_rating" ) $sortorder = "DESC";
-	$validorders = array("ASC","DESC");
-	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+	$sortorder = "DESC";
 ?>
 
 <div class="breadcrumbs">
@@ -62,30 +58,25 @@ Web of Trust Data
 </tr>
 </table>
 
-   <table class="datadisplay">
+   <table class="datadisplay sortable">
    <tr>
 <?php
-	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
-	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
-	$sortorders["created_at"]["linktext"] = "first rated";
-	$sortorders["created_at"]["othertext"] = "(UTC)";
-	$sortorders["pos_rating_recv_count"]["linktext"] = "number of positive ratings received";
-	$sortorders["neg_rating_recv_count"]["linktext"] = "number of negative ratings received";
-	$sortorders["pos_rating_sent_count"]["linktext"] = "number of positive ratings sent";
-	$sortorders["neg_rating_sent_count"]["linktext"] = "number of negative ratings sent";
-	foreach ($sortorders as $by => $order) {
+	foreach ($validkeys as $key) $colheaders[$key] = array('linktext' => str_replace("_", " ", $key));
+	$colheaders["created_at"]["linktext"] = "first rated";
+	$colheaders["created_at"]["othertext"] = "(UTC)";
+	$colheaders["pos_rating_recv_count"]["linktext"] = "number of positive ratings received";
+	$colheaders["neg_rating_recv_count"]["linktext"] = "number of negative ratings received";
+	$colheaders["pos_rating_sent_count"]["linktext"] = "number of positive ratings sent";
+	$colheaders["neg_rating_sent_count"]["linktext"] = "number of negative ratings sent";
+	foreach ($colheaders as $by => $colhdr) {
 		//if ($by == $sortby) $order["order"] = "DESC";
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratings.php?sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+		echo "    <th>" . $colhdr["linktext"] . (!empty($colhdr["othertext"]) ? "<br>".$colhdr["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
 <?php
-	$sortby_full = $sortby;
-	if ($sortby != 'keyid'){
-		$sortby_full = "rsusers." . $sortby;
-	}
 	$query = $db->Query("attach database './otc/GPG.db' as gpg");
-	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick LIKE gpg.users.nick ORDER BY ' . $sortby_full . ' COLLATE NOCASE ' . $sortorder))
+	if (!$query = $db->Query('select rsusers.*, gpg.users.keyid from main.users as rsusers left outer join gpg.users on rsusers.nick LIKE gpg.users.nick ORDER BY ' . $sortby . ' COLLATE NOCASE ' . $sortorder))
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		//$resultrow = 0;

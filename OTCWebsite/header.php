@@ -1,9 +1,11 @@
 <html>
 <head>
+<script src="sorttable.js"></script>
 <link rel="stylesheet" type="text/css" href="otcstyle.css" />
 <link rel="shortcut icon" href="favicon.ico" />
 <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
 <title><?php echo $pagetitle; ?></title>
+</head>
 <body>
 <div id="header">
 <table border="0" style="color: #d3d7cf; width: 100%">

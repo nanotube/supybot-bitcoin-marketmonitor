@@ -9,12 +9,9 @@
 </div>
 
 <?php
-  $sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "price";
+  $sortby = "id";
   $validkeys = array('id', 'buysell', 'nick', 'amount', 'thing', 'price', 'otherthing', 'notes');
-  if (!in_array($sortby, $validkeys)) $sortby = "price";
-  $sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-  $validorders = array("ASC","DESC");
-  if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+  $sortorder = "ASC";
 
   $typefilter = isset($_GET["type"]) ? $_GET["type"] : "";
   $typefilter = html_entity_decode($typefilter);
@@ -148,21 +145,20 @@ foreach ($eitherthingdata as $eitherthing) {
 </td></tr>
 </table>
 
-  <table class="datadisplay">
+  <table class="datadisplay sortable">
    <tr>
 <?php
-foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
-if ($sortorder == "ASC") $sortorders[$sortby]["order"] = 'DESC';
-$sortorders["buysell"]["linktext"] = "type";
-$sortorders["amount"]["linktext"] = "amount";
-$sortorders["thing"]["linktext"] = "thing";
-$sortorders["otherthing"]["linktext"] = "otherthing";
-foreach ($sortorders as $by => $order) {
-  if ($order["linktext"] != "notes"){
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"] . "&type=" . htmlentities($typefilter) . "&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+foreach ($validkeys as $key) $colheaders[$key] = array('linktext' => str_replace("_", " ", $key));
+$colheaders["buysell"]["linktext"] = "type";
+$colheaders["amount"]["linktext"] = "amount";
+$colheaders["thing"]["linktext"] = "thing";
+$colheaders["otherthing"]["linktext"] = "otherthing";
+foreach ($colheaders as $by => $colhdr) {
+  if ($colhdr["linktext"] != "notes"){
+    echo "    <th>" . $colhdr["linktext"] . (!empty($colhdr["othertext"]) ? "<br>".$colhdr["othertext"] : "") . "</th>\n";
   }
   else {
-    echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"vieworderbook.php?sortby=$by&sortorder=".$order["order"]. "&type=" . htmlentities($typefilter) . "&nick=" . htmlentities($nickfilter) . "&thing=" . htmlentities($thingfilter) . "&otherthing=" . htmlentities($otherthingfilter) . "&eitherthing=" . htmlentities($eitherthingfilter) . "&notes=" . htmlentities($notesfilter) . "\">".$order["linktext"]."</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+    echo "    <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" . $colhdr["linktext"] . "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" . (!empty($colhdr["othertext"]) ? "<br>".$colhdr["othertext"] : "") . "</th>\n";
   }
 }
 ?>   </tr>

@@ -1,17 +1,18 @@
 <?php
 	//error_reporting(-1); ini_set('display_errors', 1);
-	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "rating";
-	$validkeys = array('id', 'rater_nick', 'rated_nick', 'created_at', 'rating', 'notes');
-	if (!in_array($sortby, $validkeys)) $sortby = "rating";
-	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	$validorders = array("ASC","DESC");
-	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+	$sortby = "rating";
+	$sortorder = "ASC";
 	$sign = isset($_GET["sign"]) ? $_GET["sign"] : "ANY";
 	$validvalues = array("ANY","POS","NEG");
 	if (!in_array($sign, $validvalues)) $sign = "ANY";
 	$type = isset($_GET["type"]) ? $_GET["type"] : "RECV";
 	$validvalues = array("RECV","SENT");
 	if (!in_array($type, $validvalues)) $type = "RECV";
+	if ($type == "RECV") {
+		$validkeys = array('id', 'rater_nick', 'rater_total_rating', 'rated_nick', 'created_at', 'rating', 'notes');
+	} else {
+		$validkeys = array('id', 'rater_nick', 'rated_nick', 'ratee_total_rating', 'created_at', 'rating', 'notes');
+	}
 	$nick = isset($_GET["nick"]) ? $_GET["nick"] : "";
 	$nick = html_entity_decode($nick);
 	$outformat = isset($_GET["outformat"]) ? $_GET["outformat"] : "";
@@ -81,22 +82,19 @@ Rating for <?php echo htmlentities($nick); ?>
 ?>
   </ul>
   <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
-  <table class="datadisplay">
+  <table class="datadisplay sortable">
    <tr>
 <?php
-	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
-	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
-	$sortorders["created_at"]["othertext"] = "(UTC)";
-	foreach ($sortorders as $by => $order) {
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewratingdetail.php?nick=" . htmlentities($nick) . "&sign=$sign&type=$type&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+	foreach ($validkeys as $key) $colheaders[$key] = array('linktext' => str_replace("_", " ", $key));
+	$colheaders["created_at"]["othertext"] = "(UTC)";
+	foreach ($colheaders as $by => $colhdr) {
+		echo "    <th>" . $colhdr["linktext"] . (!empty($colhdr["othertext"]) ? "<br>".$colhdr["othertext"] : "")."</th>\n";
 	}
 ?>
    </tr>
 <?php
-	if ($sortby == 'id') $sortby = "ratings.id";
-	if ($sortby == 'created_at') $sortby = "ratings.created_at";
 	$typequeries = array('RECV' => 'users2.nick LIKE ? AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id', 'SENT' => 'users.nick LIKE ? AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id');
-	$sql = "SELECT ratings.id as id, users.nick as rater_nick, users2.nick as rated_nick, ratings.created_at as created_at, ratings.rating as rating, ratings.notes as notes from users, users as users2, ratings WHERE " . $typequeries[$type] . $signqueries[$sign] . " ORDER BY " . $sortby . ' COLLATE NOCASE ' . $sortorder;
+	$sql = "SELECT ratings.id as id, users.nick as rater_nick, users.total_rating as rater_total_rating, users2.nick as rated_nick, users2.total_rating as ratee_total_rating, ratings.created_at as created_at, ratings.rating as rating, ratings.notes as notes from users, users as users2, ratings WHERE " . $typequeries[$type] . $signqueries[$sign] . " ORDER BY " . $sortby . ' COLLATE NOCASE ' . $sortorder;
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 	$sth->execute(array($nick));
 	if (!$sth) echo "<tr><td>No matching records found</td></tr>\n";
@@ -110,7 +108,9 @@ Rating for <?php echo htmlentities($nick); ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
     <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['rater_nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['rater_nick']); ?></a></td>
+    <?php if ($type == "RECV") echo "<td>" . $entry['rater_total_rating'] . "</td>\n"; ?>
     <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['rated_nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['rated_nick']); ?></a></td>
+	<?php if ($type == "SENT") echo "<td>" . $entry['ratee_total_rating'] . "</td>\n"; ?>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['created_at']); ?></td>
     <td><?php echo $entry['rating']; ?></td>
     <td><?php echo htmlentities($entry['notes']); ?></td>

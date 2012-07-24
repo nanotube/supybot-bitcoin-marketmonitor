@@ -1,12 +1,8 @@
 <?php
-	$sortby = isset($_GET["sortby"]) ? $_GET["sortby"] : "nick";
+	$sortby = "nick";
 	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress');
-	if (!in_array($sortby, $validkeys)) $sortby = "nick";
 
-	$sortorder = isset($_GET["sortorder"]) ? $_GET["sortorder"] : "ASC";
-	if (! isset($_GET[$var]) && $sortby == "total_rating" ) $sortorder = "DESC";
-	$validorders = array("ASC","DESC");
-	if (!in_array($sortorder, $validorders)) $sortorder = "ASC";
+	$sortorder = "ASC";
 	
 	$nickfilter = isset($_GET["nick"]) ? $_GET["nick"] : "";
 	$nickfilter = html_entity_decode($nickfilter);
@@ -62,15 +58,14 @@ else {
 </div>
 
   <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user " . htmlentities($nickfilter) ;} ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
-  <table class="datadisplay">
+  <table class="datadisplay sortable">
    <tr>
 
 <?php
-	foreach ($validkeys as $key) $sortorders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
-	if ($sortorder == 'ASC') $sortorders[$sortby]["order"] = 'DESC';
-	$sortorders["registered_at"]["othertext"] = "(UTC)";
-	foreach ($sortorders as $by => $order) {
-		echo "    <th class=\"".str_replace(" ", "_", $order["linktext"])."\"><a href=\"viewgpg.php?nick=" . htmlentities($nickfilter) . "&sortby=$by&sortorder=".$order["order"]."\">".$order["linktext"]."</a>".(!empty($order["othertext"]) ? "<br>".$order["othertext"] : "")."</th>\n";
+	foreach ($validkeys as $key) $colheaders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
+	$colheaders["registered_at"]["othertext"] = "(UTC)";
+	foreach ($colheaders as $by => $colhdr) {
+		echo "    <th>" . $colhdr["linktext"] . (!empty($colhdr["othertext"]) ? "<br>".$colhdr["othertext"] : "") . "</th>\n";
 	}
 ?>
    </tr>
