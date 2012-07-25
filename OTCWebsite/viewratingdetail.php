@@ -79,6 +79,7 @@ Rating for <?php echo htmlentities($nick); ?>
 		echo "<li>Count of " . $signs[$sign] . " ratings " . $types[$type] . ": " . number_format($entry['ratingcount']) . ". Total of points: " . number_format($entry['ratingsum']) . ".</li>\n";
 	}
 	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a></li>';
+	echo '<li><a href="ratingreciprocity.php?nick=' . htmlentities($nick) . '">Rating reciprocity</a></li>';
 ?>
   </ul>
   <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
