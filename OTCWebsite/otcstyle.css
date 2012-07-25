@@ -14,4 +14,6 @@ table.datadisplay td.nowrap { white-space: nowrap; }
 table.datadisplay th { background-color: #f0f0ff; padding: 10px; vertical-align: middle; }
 table.datadisplay tr.even { background-color: #eeeeec; }
 
+table.sortable th { cursor: pointer; }
+
 div.filter { background-color: #e9b96e; border: 1px dashed #f57900; padding: 2px; margin-bottom: 3px; text-align: center;}
