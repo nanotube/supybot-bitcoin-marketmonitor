@@ -101,7 +101,8 @@ class Market(callbacks.Plugin):
                 return
             irc.reply("A market order to sell %.4f USD worth of bitcoins right "
                     "now would sell %.8g bitcoins and would take the last "
-                    "price down to %.4f USD." % (value, n_coins, top,))
+                    "price down to %.4f USD, resulting in an average price of "
+                    "%.4f USD/BTC." % (value, n_coins, top,(value/n_coins)))
             return
         else:
             n_coins = value
@@ -121,8 +122,9 @@ class Market(callbacks.Plugin):
                         "take the price to 0." % (value - n_coins, total,))
                 return
             irc.reply("A market order to sell %.8g bitcoins right now would "
-                    "net %.4f USD and would take the last price down to %.4f USD."
-                    % (value, total, top))
+                    "net %.4f USD and would take the last price down to %.4f USD, "
+                    "resulting in an average price of %.4f USD/BTC."
+                    % (value, total, top, (total/value)))
     sell = wrap(sell, [getopts({'usd': '',}), 'nonNegativeFloat'])
 
     def buy(self, irc, msg, args, optlist, value):
@@ -157,7 +159,8 @@ class Market(callbacks.Plugin):
                 return
             irc.reply("A market order to buy %.4f USD worth of bitcoins right "
                     "now would buy %.8g bitcoins and would take the last "
-                    "price up to %.4f USD." % (value, n_coins, top,))
+                    "price up to %.4f USD, resulting in an average price of "
+                    "%.4f USD/BTC." % (value, n_coins, top,(value/n_coins)))
             return
         else:
             n_coins = value
@@ -177,8 +180,9 @@ class Market(callbacks.Plugin):
                         "take the price to %.4f." % (value - n_coins, total, ask['price']))
                 return
             irc.reply("A market order to buy %.8g bitcoins right now would "
-                    "take %.4f USD and would take the last price up to %.4f USD."
-                    % (value, total, top))
+                    "take %.4f USD and would take the last price up to %.4f USD, "
+                    "resulting in an average price of %.4f USD/BTC."
+                    % (value, total, top, (total/value)))
     buy = wrap(buy, [getopts({'usd': '',}), 'nonNegativeFloat'])
 
 
