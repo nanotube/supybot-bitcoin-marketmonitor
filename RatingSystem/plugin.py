@@ -412,7 +412,7 @@ class RatingSystem(callbacks.Plugin):
         """
         authhost = self._checkGPGAuthByNick(irc, nick)
         if authhost is not None:
-            authstatus = " Currently authenticated from hostmask %s" % (authhost,)
+            authstatus = " Currently authenticated from hostmask %s ." % (authhost,)
         else:
             authstatus = " Currently not authenticated."
         data = self.db.get(nick)
@@ -420,6 +420,10 @@ class RatingSystem(callbacks.Plugin):
             irc.reply("This user has not yet been rated." + authstatus)
             return
         data = data[0]
+        
+        if authhost is not None and authhost.split('!')[0].upper() != data[7].upper():
+            authstatus += " CAUTION: irc nick differs from otc registered nick."
+
         irc.reply("User %s, rated since %s. "
                   "Cumulative rating %s, from %s total ratings. "
                   "Received ratings: %s positive, %s negative. "
