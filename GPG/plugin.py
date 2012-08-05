@@ -861,7 +861,9 @@ class GPG(callbacks.Plugin):
         result = result[0]
         authhost = self._identByNick(result[5])
         if authhost is not None:
-            authstatus = " Currently authenticated from hostmask %s" % (authhost,)
+            authstatus = " Currently authenticated from hostmask %s ." % (authhost,)
+            if authhost.split('!')[0].upper() != result[5].upper():
+                authstatus += " CAUTION: irc nick differs from otc registered nick."
         else:
             authstatus = " Currently not authenticated."
         irc.reply("User '%s', with keyid %s, fingerprint %s, and bitcoin address %s, registered on %s. http://bitcoin-otc.com/viewgpg.php?nick=%s .%s" %\
