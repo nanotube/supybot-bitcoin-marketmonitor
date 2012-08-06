@@ -412,9 +412,9 @@ class RatingSystem(callbacks.Plugin):
         """
         authhost = self._checkGPGAuthByNick(irc, nick)
         if authhost is not None:
-            authstatus = " Currently authenticated from hostmask %s ." % (authhost,)
+            authstatus = "Currently authenticated from hostmask %s ." % (authhost,)
         else:
-            authstatus = " Currently not authenticated."
+            authstatus = "WARNING: Currently not authenticated."
         data = self.db.get(nick)
         if len(data) == 0:
             irc.reply("This user has not yet been rated." + authstatus)
@@ -424,12 +424,13 @@ class RatingSystem(callbacks.Plugin):
         if authhost is not None and authhost.split('!')[0].upper() != data[7].upper():
             authstatus += " CAUTION: irc nick differs from otc registered nick."
 
-        irc.reply("User %s, rated since %s. "
+        irc.reply("%s User %s, rated since %s. "
                   "Cumulative rating %s, from %s total ratings. "
                   "Received ratings: %s positive, %s negative. "
                   "Sent ratings: %s positive, %s negative. "
-                  "Details: %s %s" % \
-                  (data[7],
+                  "Details: %s" % \
+                  (authstatus,
+                   data[7],
                    time.ctime(data[2]),
                    data[1],
                    int(data[3]) + int(data[4]),
@@ -437,8 +438,7 @@ class RatingSystem(callbacks.Plugin):
                    data[4],
                    data[5],
                    data[6],
-                   "http://bitcoin-otc.com/viewratingdetail.php?nick=%s" % (data[7],),
-                   authstatus))
+                   "http://bitcoin-otc.com/viewratingdetail.php?nick=%s" % (data[7],)))
     getrating = wrap(getrating, ['something'])
 
     def _gettrust(self, sourcenick, destnick):
