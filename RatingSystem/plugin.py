@@ -417,7 +417,7 @@ class RatingSystem(callbacks.Plugin):
             authstatus = "WARNING: Currently not authenticated."
         data = self.db.get(nick)
         if len(data) == 0:
-            irc.reply("This user has not yet been rated." + authstatus)
+            irc.reply("This user has not yet been rated. " + authstatus)
             return
         data = data[0]
         
