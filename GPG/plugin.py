@@ -427,7 +427,7 @@ class GPG(callbacks.Plugin):
             f.close()
         except Exception, e:
             irc.error("Problem creating encrypted OTP file.")
-            self.log.info("GPG eregister: key %s, otp creation %s, exception %s" % \
+            self.log.info("GPG eauth: key %s, otp creation %s, exception %s" % \
                     (keyid, data.stderr, e,))
             return
         request = {msg.prefix: {'nick':userdata[0][5],
@@ -665,7 +665,6 @@ class GPG(callbacks.Plugin):
                 return
         except:
             irc.error("Authentication failed. Please try again.")
-            traceback.print_exc()
             self.log.info("bcverify traceback: \n%s" % (traceback.format_exc()))
             return
         response = ""
