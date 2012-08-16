@@ -61,7 +61,7 @@ class BitcoinData(callbacks.Plugin):
     threaded = True
 
     def _grabapi(self, apipaths):
-        sources = ['http://blockexplorer.com', 'http://blockchain.info']
+        sources = ['http://blockchain.info','http://blockexplorer.com', ]
         urls = [''.join(t) for t in zip(sources, apipaths)]
         for url in urls:
             try:
@@ -122,7 +122,7 @@ class BitcoinData(callbacks.Plugin):
             bbeurl = m.group(1)
         except:
             bbeurl = 'doesnotexist'
-        data = self._grabapi([bbeurl, '/block-height/%s?format=json' % blocknum])
+        data = self._grabapi(['/block-height/%s?format=json' % blocknum, bbeurl, ])
         try:
             j = json.loads(data)
             if 'blocks' in j.keys():
