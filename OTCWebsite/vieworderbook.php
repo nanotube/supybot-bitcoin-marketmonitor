@@ -81,8 +81,6 @@ if (sizeof($queryfilter) != 0) {
 
 <td style="text-align: right;">
 <form method="GET" action="vieworderbook.php?">
-<input type="hidden" name="sortby" value="<?php echo $sortby; ?>">
-<input type="hidden" name="sortorder" value="<?php echo $sortorder; ?>">
 <select name="type">
 <option label="--type--" value="" <?php if (strcasecmp($typefilter, "") == 0) {echo "selected";} ?>>--type--</option>
 <option value="BUY" <?php if (strcasecmp($typefilter, "buy") == 0) {echo "selected";} ?>>BUY</option>
