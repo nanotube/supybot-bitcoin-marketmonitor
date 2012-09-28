@@ -19,6 +19,7 @@
 
 from supybot import conf
 from supybot import ircmsgs
+from supybot import world
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -474,9 +475,11 @@ class GPG(callbacks.Plugin):
 
     def _unauth(self, hostmask):
         try:
-            self.authlog.info("Terminating session for hostmask %s, authenticated to user %s, keyid %s" % \
-                    (hostmask, self.authed_users[hostmask]['nick'], self.authed_users[hostmask]['keyid'],))
+            logmsg = "Terminating session for hostmask %s, authenticated to user %s, keyid %s, bitcoinaddress %s" % (hostmask, self.authed_users[hostmask]['nick'], self.authed_users[hostmask]['keyid'],self.authed_users[hostmask]['bitcoinaddress'],)
+            self.authlog.info(logmsg)
             del self.authed_users[hostmask]
+            if not world.testing:
+                irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
             return True
         except KeyError:
             return False
@@ -573,8 +576,11 @@ class GPG(callbacks.Plugin):
                     'bitcoinaddress':userdata[0][3],
                     'fingerprint':authrequest['fingerprint']}
         del self.pending_auth[msg.prefix]
-        self.authlog.info("verify success from hostmask %s for user %s, keyid %s." %\
-                (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response)
+        logmsg = "verify success from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response
+        self.authlog.info(logmsg)
+        if not world.testing:
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     verify = wrap(verify, ['httpUrl'])
@@ -630,8 +636,11 @@ class GPG(callbacks.Plugin):
                     'bitcoinaddress':userdata[0][3],
                     'fingerprint':authrequest['fingerprint']}
         del self.pending_auth[msg.prefix]
-        self.authlog.info("everify success from hostmask %s for user %s, keyid %s." %\
-                (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response)
+        logmsg = "everify success from hostmask %s for user %s, keyid %s." %\
+                (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response
+        self.authlog.info(logmsg)
+        if not world.testing:
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user %s with key %s" %\
                         (authrequest['nick'], authrequest['keyid']))
     everify = wrap(everify, ['something'])
@@ -692,8 +701,11 @@ class GPG(callbacks.Plugin):
                     'bitcoinaddress':authrequest['bitcoinaddress'],
                     'fingerprint':userdata[0][2]}
         del self.pending_auth[msg.prefix]
-        self.authlog.info("bcverify success from hostmask %s for user %s, address %s." %\
-                (msg.prefix, authrequest['nick'], authrequest['bitcoinaddress'],) + response)
+        logmsg = "bcverify success from hostmask %s for user %s, address %s." %\
+                (msg.prefix, authrequest['nick'], authrequest['bitcoinaddress'],) + response
+        self.authlog.info(logmsg)
+        if not world.testing:
+            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user '%s' with address %s" %\
                         (authrequest['nick'], authrequest['bitcoinaddress']))
     bcverify = wrap(bcverify, ['something'])
