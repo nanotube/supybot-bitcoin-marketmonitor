@@ -257,6 +257,18 @@ class GPGTestCase(PluginTestCase):
                     'Successfully changed key.*You are now authenticated')
         self.assertRegexp('gpg ident', 'You are identified.*key id %s' % (self.testkeyid,))
 
+    def testEchangekey(self):
+        self.assertError('gpg echangekey AAAAAAAAAAAAAAA1') #not authed
+        self.prefix = 'authedguy2!stuff@123.345.234.34'
+        self.assertRegexp('gpg ident', 'are identified')
+        m = self.getMsg('gpg echangekey %s' % (self.testkeyid,))
+        self.failUnless('Request successful' in str(m))
+        encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
+        decrypted = self.cb.gpg.decrypt(encrypteddata)
+        self.assertRegexp('everify %s' % (decrypted.data.strip(),),
+                    'Successfully changed key.*You are now authenticated')
+        self.assertRegexp('gpg ident', 'You are identified.*key id %s' % (self.testkeyid,))
+
     def testChangeaddress(self):
         # create the test ecdsa keypair and resulting bitcoin address
         private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = bitcoinsig.SECP256k1 )

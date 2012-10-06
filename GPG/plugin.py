@@ -58,14 +58,22 @@ class GPGDB(object):
         self.filename = filename
         self.db = None
 
+    def _commit(self):
+        '''a commit wrapper to give it another try if it errors.'''
+        try:
+            self.db.commit()
+        except:
+            time.sleep(10)
+            self.db.commit()
+
     def open(self):
         if os.path.exists(self.filename):
-            db = sqlite3.connect(self.filename, check_same_thread = False)
+            db = sqlite3.connect(self.filename, timeout=10, check_same_thread = False)
             db.text_factory = str
             self.db = db
             return
         
-        db = sqlite3.connect(self.filename, check_same_thread = False)
+        db = sqlite3.connect(self.filename, timeout=10, check_same_thread = False)
         db.text_factory = str
         self.db = db
         cursor = self.db.cursor()
@@ -77,7 +85,7 @@ class GPGDB(object):
                           registered_at INTEGER,
                           nick TEXT)
                            """)
-        self.db.commit()
+        self._commit()
         return
 
     def close(self):
@@ -109,27 +117,27 @@ class GPGDB(object):
         cursor.execute("""INSERT INTO users VALUES
                         (NULL, ?, ?, ?, ?, ?)""",
                         (keyid, fingerprint, bitcoinaddress, timestamp, nick))
-        self.db.commit()
+        self._commit()
 
     def changenick(self, oldnick, newnick):
         cursor = self.db.cursor()
         cursor.execute("""UPDATE users SET nick = ? WHERE nick = ?""",
                         (newnick, oldnick,))
-        self.db.commit()
+        self._commit()
 
     def changekey(self, nick, oldkeyid, newkeyid, newkeyfingerprint):
         cursor = self.db.cursor()
         cursor.execute("""UPDATE users SET keyid = ?, fingerprint = ?
                         WHERE (keyid = ? OR keyid IS NULL) and nick = ?""",
                         (newkeyid, newkeyfingerprint, oldkeyid, nick))
-        self.db.commit()
+        self._commit()
 
     def changeaddress(self, nick, oldaddress, newaddress):
         cursor = self.db.cursor()
         cursor.execute("""UPDATE users SET bitcoinaddress = ?
                         WHERE nick = ? AND (bitcoinaddress = ? OR bitcoinaddress IS NULL)""",
                         (newaddress, nick, oldaddress,))
-        self.db.commit()
+        self._commit()
 
 def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
     v = args[0]
@@ -215,7 +223,7 @@ class GPG(callbacks.Plugin):
         Register your GPG identity, associating GPG key <keyid> with <nick>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
         Optional <keyserver> argument tells us where to get your public key.
-        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        By default we look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a random passphrase to clearsign with your key, and
         submit to the bot with the 'verify' command.
         Your passphrase will expire in 10 minutes.
@@ -270,7 +278,7 @@ class GPG(callbacks.Plugin):
         Register your GPG identity, associating GPG key <keyid> with <nick>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
         Optional <keyserver> argument tells us where to get your public key.
-        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        By default we look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a link to a page which contains a one time password
         encrypted with your key. Decrypt, and use the 'everify' command with it.
         Your passphrase will expire in 10 minutes.
@@ -472,7 +480,6 @@ class GPG(callbacks.Plugin):
                 (nick, msg.prefix, challenge,))
     bcauth = wrap(bcauth, ['something'])
 
-
     def _unauth(self, irc, hostmask):
         try:
             logmsg = "Terminating session for hostmask %s, authenticated to user %s, keyid %s, bitcoinaddress %s" % (hostmask, self.authed_users[hostmask]['nick'], self.authed_users[hostmask]['keyid'],self.authed_users[hostmask]['bitcoinaddress'],)
@@ -567,7 +574,7 @@ class GPG(callbacks.Plugin):
             if self.db.getByKey(authrequest['keyid']):
                 irc.error("This key id already registered. Try a different key.")
                 return
-            self.db.changekey(gpgauth['nick'] ,gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
+            self.db.changekey(gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
             response = "Successfully changed key for user %s from %s to %s. " %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
         userdata = self.db.getByNick(authrequest['nick'])
@@ -627,7 +634,7 @@ class GPG(callbacks.Plugin):
             if self.db.getByKey(authrequest['keyid']):
                 irc.error("This key id already registered. Try a different key.")
                 return
-            self.db.changekey(gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
+            self.db.changekey(gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
             response = "Successfully changed key for user %s from %s to %s." %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
         userdata = self.db.getByNick(authrequest['nick'])
@@ -737,7 +744,7 @@ class GPG(callbacks.Plugin):
         Changes your GPG registered key to <keyid>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
         Optional <keyserver> argument tells us where to get your public key.
-        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        By default we look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a random passphrase to clearsign with your key, and
         submit to the bot with the 'verify' command.
         You must be authenticated in order to use this command.
@@ -781,6 +788,70 @@ class GPG(callbacks.Plugin):
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (gpgauth['nick'], msg.prefix, challenge,))
     changekey = wrap(changekey, ['keyid', optional('keyserver')])
+
+    def echangekey(self, irc, msg, args, keyid, keyserver):
+        """<keyid> [<keyserver>]
+        
+        Changes your GPG registered key to <keyid>.
+        <keyid> is a 16 digit key id, with or without the '0x' prefix.
+        Optional <keyserver> argument tells us where to get your public key.
+        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        You will be given a link to a page which contains a one time password
+        encrypted with your key. Decrypt, and use the 'everify' command with it.
+        You must be authenticated in order to use this command.
+        """
+        self._removeExpiredRequests()
+        gpgauth = self._ident(msg.prefix)
+        if gpgauth is None:
+            irc.error("You must be authenticated in order to change your registered key.")
+            return
+        if self.db.getByKey(keyid):
+            irc.error("This key id already registered. Try a different key.")
+            return
+
+        keyservers = []
+        if keyserver:
+            keyservers.extend([keyserver])
+        else:
+            keyservers.extend(self.registryValue('keyservers').split(','))
+        try:
+            for ks in keyservers:
+                result = self.gpg.recv_keys(ks, keyid)
+                if result.results[0].has_key('ok'):
+                    fingerprint = result.results[0]['fingerprint']
+                    break
+            else:
+                raise
+        except:
+            irc.error("Could not retrieve your key from keyserver. "
+                    "Either it isn't there, or it is invalid.")
+            self.log.info("GPG echangekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
+                    (keyid, keyservers, result.stderr,))
+            return
+        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        try:
+            data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
+            if data.status != "encryption ok":
+                raise ValueError, "problem encrypting otp"
+            otpfn = conf.supybot.directories.data.dirize('otps/%s' % (keyid,))
+            f = open(otpfn, 'w')
+            f.write(data.data)
+            f.close()
+        except Exception, e:
+            irc.error("Problem creating encrypted OTP file.")
+            self.log.info("GPG echangekey: key %s, otp creation %s, exception %s" % \
+                    (keyid, data.stderr, e,))
+            return
+        request = {msg.prefix: {'keyid':keyid,
+                            'nick':gpgauth['nick'], 'expiry':time.time(),
+                            'type':'echangekey', 'fingerprint':fingerprint,
+                            'challenge':challenge}}
+        self.pending_auth.update(request)
+        self.authlog.info("echangekey request from hostmask %s for user %s, oldkeyid %s, newkeyid %s." %\
+                (msg.prefix, gpgauth['nick'], gpgauth['keyid'], keyid, ))
+        irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
+                (gpgauth['nick'], msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
+    echangekey = wrap(echangekey, ['keyid', optional('keyserver')])
 
     def changeaddress(self, irc, msg, args, bitcoinaddress):
         """<bitcoinaddress>
