@@ -473,7 +473,7 @@ class GPG(callbacks.Plugin):
     bcauth = wrap(bcauth, ['something'])
 
 
-    def _unauth(self, hostmask):
+    def _unauth(self, irc, hostmask):
         try:
             logmsg = "Terminating session for hostmask %s, authenticated to user %s, keyid %s, bitcoinaddress %s" % (hostmask, self.authed_users[hostmask]['nick'], self.authed_users[hostmask]['keyid'],self.authed_users[hostmask]['bitcoinaddress'],)
             self.authlog.info(logmsg)
@@ -489,7 +489,7 @@ class GPG(callbacks.Plugin):
         
         Unauthenticate, 'logout' of your GPG session.
         """
-        if self._unauth(msg.prefix):
+        if self._unauth(irc, msg.prefix):
             irc.reply("Your GPG session has been terminated.")
         else:
             irc.error("You do not have a GPG session to terminate.")
@@ -916,7 +916,7 @@ class GPG(callbacks.Plugin):
     def doQuit(self, irc, msg):
         """Kill the authentication when user quits."""
         if irc.network == self.registryValue('network'):
-            self._unauth(msg.prefix)
+            self._unauth(irc, msg.prefix)
 
     def doPart(self, irc, msg):
         """Kill the authentication when user parts all channels."""
@@ -933,7 +933,7 @@ class GPG(callbacks.Plugin):
                     self.authlog.info("***** clearing authed_users due to self-part. *****")
                     self.authed_users.clear()
                 else:
-                    self._unauth(msg.prefix)
+                    self._unauth(irc, msg.prefix)
 
     def doError(self, irc, msg):
         """Reset the auth dict when bot gets disconnected."""
@@ -952,7 +952,7 @@ class GPG(callbacks.Plugin):
             else:
                 try:
                     hostmask = irc.state.nickToHostmask(nick)
-                    self._unauth(hostmask)
+                    self._unauth(irc, hostmask)
                 except KeyError:
                     pass
 
@@ -962,7 +962,7 @@ class GPG(callbacks.Plugin):
             self.authlog.info("Attaching authentication for hostmask %s to new hostmask %s due to nick change." %\
                     (msg.prefix, newprefix,))
             self.authed_users[newprefix] = self.authed_users[msg.prefix]
-            self._unauth(msg.prefix)
+            self._unauth(irc, msg.prefix)
 
 Class = GPG
 
