@@ -247,13 +247,7 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
+            result = self.gpg.recv_key_keyservers(ks, keyid)
         except:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
@@ -302,13 +296,7 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
+            result = self.gpg.recv_key_keyservers(ks, keyid)
         except:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
@@ -764,13 +752,7 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
+            result = self.gpg.recv_key_keyservers(keyservers, keyid)
         except:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
@@ -815,13 +797,7 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
+            result = self.gpg.recv_key_keyservers(keyservers, keyid)
         except:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")

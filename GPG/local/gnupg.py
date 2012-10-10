@@ -449,6 +449,17 @@ class GPG(object):
         data.close()
         return result
 
+    def recv_key_keyservers(self, keyservers, keyid):
+        for ks in keyservers:
+            try:
+                result = recv_keys(ks, keyid)
+                if result.results[0].has_key('ok'):
+                    return result.results[0]['fingerprint']
+            except:
+               continue 
+        else:
+            raise
+
     def delete_keys(self, fingerprints, secret=False):
         which='key'
         if secret:
