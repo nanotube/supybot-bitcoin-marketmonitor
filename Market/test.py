@@ -50,6 +50,17 @@ class MarketTestCase(PluginTestCase):
         self.assertRegexp('ticker --last', '[\d\.]+')
         self.assertRegexp('ticker --high', '[\d\.]+')
         self.assertRegexp('ticker --low', '[\d\.]+')
-        self.assertError('ticker --last --bid')
+        self.assertRegexp('ticker --avg', '[\d\.]+')
+        self.assertRegexp('ticker --vol', '[\d\.]+')
+        self.assertError('ticker --last --bid') # can't have multiple result options
+        self.assertRegexp('ticker', 'BTCUSD')
+        self.assertRegexp('ticker --currency EUR', 'BTCEUR')
+        self.assertRegexp('ticker --currency EUR --currency JPY', 'BTCJPY') # should use the last supplied currency
+        self.assertRegexp('ticker --currency EUR --avg', '[\d\.]+')
+        self.assertError('ticker --last --bid --currency USD') # can't have multiple result options
+        self.assertError('ticker --currency ZZZ') # no such currency on mtgox
+        self.assertError('ticker --currency blablabla') # invalid currency code
+        
+
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

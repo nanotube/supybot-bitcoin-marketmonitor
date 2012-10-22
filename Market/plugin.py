@@ -35,6 +35,7 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import conf
 
+import re
 import json
 from urllib2 import urlopen
 
@@ -48,7 +49,17 @@ def getNonNegativeFloat(irc, msg, args, state, type=' floating point number'):
     except ValueError:
         state.errorInvalid(type, args[0])
 
+def getCurrencyCode(irc, msg, args, state, type='currency code'):
+    v = args[0]
+    m = re.search(r'^([A-Za-z]{3})$', v)
+    if m is None:
+        state.errorInvalid(type, args[0])
+        return
+    state.args.append(m.group(1).upper())
+    del args[0]
+
 addConverter('nonNegativeFloat', getNonNegativeFloat)
+addConverter('currencyCode', getCurrencyCode)
 
 class Market(callbacks.Plugin):
     """Add the help for "@plugin help Market" here
@@ -63,10 +74,10 @@ class Market(callbacks.Plugin):
         mdepth = mdepth['return']
         return mdepth
 
-    def _getTicker(self):
-        json_data = urlopen("https://mtgox.com/code/data/ticker.php").read()
+    def _getTicker(self, currency):
+        json_data = urlopen("https://mtgox.com/api/1/BTC%s/ticker" % (currency.capitalize(),)).read()
         ticker = json.loads(json_data)
-        return ticker['ticker']
+        return ticker
 
     def sell(self, irc, msg, args, optlist, value):
         """[--usd] <value>
@@ -247,31 +258,44 @@ class Market(callbacks.Plugin):
     bids = wrap(bids, [getopts({'under': '',}), 'nonNegativeFloat'])
 
     def ticker(self, irc, msg, args, optlist):
-        """[--bid|--ask|--last|--high|--low]
+        """[--bid|--ask|--last|--high|--low|--avg] [--currency XXX]
         
         Return pretty-printed mtgox ticker. 
-        If one of the options is given, returns only that numeric result
+        If one of the result options is given, returns only that numeric result
         (useful for nesting in calculations).
+        
+        If '--currency XXX' option  is given, returns ticker for that three-letter currency code.
+        It is up to you to make sure that the three letter code you enter is a valid currency
+        that is traded on mtgox. Default currency is USD.
         """
+        od = dict(optlist)
+        if ('currency' not in od.keys() and len(od) > 1) or ('currency' in od.keys() and len(od) > 2):
+            irc.error("Please only choose at most one result option at a time.")
+            return
+        currency = od.pop('currency', 'USD')
         try:
-            ticker = self._getTicker()
+            ticker = self._getTicker(currency)
         except:
             irc.error("Failure to retrieve ticker. Try again later.")
             return
-        od = dict(optlist)
-        if len(od) > 1:
-            irc.error("Please only choose one option at a time.")
+        if ticker['result'] == 'error':
+            irc.error('Error retrieving ticker. Details: %s' % (ticker['error'],))
             return
+
         if len(od) == 0:
-            irc.reply("Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
-                "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s" % \
-                (ticker['buy'], ticker['sell'], ticker['sell'] - ticker['buy'], ticker['last'], 
-                ticker['vol'], ticker['low'], ticker['high']))
+            irc.reply("BTC%s ticker | Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
+                "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s, 24 hour vwap: %s" % \
+                (currency, ticker['return']['buy']['value'], ticker['return']['sell']['value'],
+                float(ticker['return']['sell']['value']) - float(ticker['return']['buy']['value']),
+                ticker['return']['last']['value'], ticker['return']['vol']['value'],
+                ticker['return']['low']['value'], ticker['return']['high']['value'],
+                ticker['return']['vwap']['value']))
         else:
             key = od.keys()[0]
-            key = {'bid':'buy', 'ask':'sell'}.setdefault(key, key)
-            irc.reply(ticker[key])
-    ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '','low': '',})])
+            key = {'bid':'buy', 'ask':'sell', 'avg':'vwap'}.setdefault(key, key)
+            irc.reply(ticker['return'][key]['value'])
+    ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
+            'low': '', 'avg': '', 'currency': 'currencyCode'})])
 
 Class = Market
 
