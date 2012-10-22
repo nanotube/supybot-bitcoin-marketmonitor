@@ -203,6 +203,17 @@ class GPG(callbacks.Plugin):
         utils.gpg_pending_auth = self.pending_auth
         self.authlog.info("***** quitting or unloading GPG plugin. *****")
 
+    def _recv_key(self, keyservers, keyid):
+        for ks in keyservers:
+            try:
+                result = self.gpg.recv_keys(ks, keyid)
+                if result.results[0].has_key('ok'):
+                    return result.results[0]['fingerprint']
+            except:
+               continue
+        else:
+            raise Exception(result.stderr)
+
     def _removeExpiredRequests(self):
         pending_auth_copy = copy.deepcopy(self.pending_auth)
         for hostmask,auth in pending_auth_copy.iteritems():
@@ -247,18 +258,12 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
-        except:
+            fingerprint = self._recv_key(keyservers, keyid)
+        except Exception as e:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
             self.log.info("GPG register: failed to retrieve key %s from keyservers %s. Details: %s" % \
-                    (keyid, keyservers, result.stderr,))
+                    (keyid, keyservers, e,))
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'keyid':keyid,
@@ -302,18 +307,12 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
-        except:
+            fingerprint = self._recv_key(keyservers, keyid)
+        except Exception as e:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
             self.log.info("GPG eregister: failed to retrieve key %s from keyservers %s. Details: %s" % \
-                    (keyid, keyservers, result.stderr,))
+                    (keyid, keyservers, e,))
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
@@ -764,13 +763,7 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
+            fingerprint = self._recv_key(keyservers, keyid)
         except:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
@@ -815,13 +808,7 @@ class GPG(callbacks.Plugin):
         else:
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
-            for ks in keyservers:
-                result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    fingerprint = result.results[0]['fingerprint']
-                    break
-            else:
-                raise
+            fingerprint = self._recv_key(keyservers, keyid)
         except:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
