@@ -1,5 +1,5 @@
 __module_name__ = 'OTC Auto Eauth'
-__module_version__ = '0.2.0'
+__module_version__ = '0.3.0'
 __module_description__ = 'Automatic eauth for gribble in Freenode #bitcoin-otc. Version 0.2.0 by nanotube <nanotube@users.sourceforge.net>, based on version 0.1.0 by Delia Eris <asphodelia.erin@gmail.com>.'
 
 ###############
@@ -45,7 +45,11 @@ def askpw_cb(word, word_eol, userdata):
     if xchat.pw == "":
         xchat.pw = None
     response_data = str(gpg.decrypt(xchat.challenge_data, passphrase = xchat.pw)).rstrip()
-    xchat.command('msg gribble ;;everify '+response_data)
+    m = re.search("freenode:#bitcoin-otc:[a-f0-9]{56}", response_data)
+    if m is not None:
+        xchat.command('msg gribble ;;everify '+ m.group(0))
+    else:
+        print '\0034OTC Eauth Error: Decrypted message does not contain expected challenge string format.\003'
     return xchat.EAT_ALL
 xchat.hook_command('ASKPW', askpw_cb, help="/ASKPW Ask user for gpg passphrase.")
 
@@ -63,4 +67,4 @@ xchat.hook_server('PRIVMSG', detect_eauth_challenge)
 def eauth_cb(word, word_eol, userdata):
     xchat.command('msg gribble ;;eauth ' + _otcnick)
     return xchat.EAT_ALL
-xchat.hook_command('EAUTH', eauth_cb, help="/RUNAUTH Initiate auth procedure with gribble.")
+xchat.hook_command('EAUTH', eauth_cb, help="/EAUTH Initiate auth procedure with gribble.")
