@@ -5,6 +5,8 @@
 # Usage: run the script, enter your GPG password, type ;;eauth YourNick, be happy.
 # License: GPL
 #
+# You must also have the python-gnupg module.
+# Get it from http://code.google.com/p/python-gnupg/
 
 VOICEME = True # You can change this if you like
 
@@ -42,10 +44,14 @@ class PidginOTC:
                 print 'recieved request from gribble, grabbing', match.group(1)
                 data = urllib2.urlopen(match.group(1)).read()
                 decrypted = str(self.gpg.decrypt(data, passphrase=self.passphrase))
-                reply = ";;gpg everify "+decrypted
-                print 'replying with', reply
-                self.purple.PurpleConvImSend(self.purple.PurpleConvIm(conversation), reply)
-                if VOICEME:
-                    self.purple.PurpleConvImSend(self.purple.PurpleConvIm(conversation), ";;voiceme")
+                m = re.search("freenode:#bitcoin-otc:[a-f0-9]{56}", decrypted)
+                if m is not None:
+                    reply = ";;gpg everify "+m.group(0)
+                    print 'replying with', reply
+                    self.purple.PurpleConvImSend(self.purple.PurpleConvIm(conversation), reply)
+                    if VOICEME:
+                        self.purple.PurpleConvImSend(self.purple.PurpleConvIm(conversation), ";;voiceme")
+                else:
+                    print 'Error: Decrypted message does not contain expected challenge string format.'
 
 PidginOTC()
