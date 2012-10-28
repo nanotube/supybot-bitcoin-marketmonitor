@@ -166,6 +166,7 @@ class GPGExt(callbacks.Plugin):
         parser = etree.HTMLParser()
         tree = etree.parse(url, parser)
         context = etree.iterwalk(tree, tag='div')
+        ebaybio = ''
         for _, element in context:
             for item in element.items():
                 if item[0] == 'id' and item[1] == 'PortalColumnTwo':
