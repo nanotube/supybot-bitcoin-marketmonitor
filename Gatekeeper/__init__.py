@@ -53,6 +53,7 @@ __url__ = '' # 'http://supybot.com/Members/yourname/Gatekeeper/download'
 import config
 import plugin
 reload(plugin) # In case we're being reloaded.
+reload(config)
 # Add more reloads here if you add third-party modules and want them to be
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
 

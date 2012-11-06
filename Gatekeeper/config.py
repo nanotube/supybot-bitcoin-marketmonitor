@@ -56,9 +56,18 @@ conf.registerGlobalValue(Gatekeeper, 'accountAgeThreshold',
     registry.PositiveInteger(604800, """Minimum account age, in seconds,
     to be allowed in."""))
 
-conf.registerGlobalValue(Gatekeeper, 'msgOnJoin',
-    registry.Boolean(False, """Should we send a pm with instructions to
-    unauthed joiners?"""))
+conf.registerGlobalValue(Gatekeeper, 'invite',
+    registry.Boolean(False, """Should the bot invite the user to channel?"""))
+
+conf.registerGlobalValue(Gatekeeper, 'msgOnJoinVoice',
+    registry.String("Join #bitcoin-otc-foyer and see channel topic for instructions on getting voice on #bitcoin-otc.",
+    """Message to send to unauthed users with instructions on 
+    how to get voice in channel."""))
+
+conf.registerGlobalValue(Gatekeeper, 'msgOnJoinIdent',
+    registry.String("#bitcoin-otc: \x02Watch out for fraudsters!\x02 Always check authentication with the \x02ident\x02 command before trading, otherwise you could be dealing with an \x02impostor\x02. If in doubt, ask in channel. More info: http://bit.ly/YCGOI3",
+    """Message to send to unauthed users with instructions on 
+    checking auth and avoiding fraudsters."""))
 
 conf.registerGlobalValue(Gatekeeper, 'talkInChanOnlyForAuthedUsers',
     registry.Boolean(True, """Should the bot only respond in channel for

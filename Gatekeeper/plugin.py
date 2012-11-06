@@ -35,6 +35,7 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import ircmsgs
 import time
+from supybot import world
 
 class Gatekeeper(callbacks.Plugin):
     """Lets you into #bitcoin-otc, if you're authenticated and
@@ -66,10 +67,11 @@ class Gatekeeper(callbacks.Plugin):
         """takes no arguments
         
         Gives you voice on #bitcoin-otc if you qualify.
+        Also invites you if needed.
         """
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            irc.error("You must authenticate via GPG to get voice.")
+            irc.error("You must authenticate via GPG to use this command.")
             return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
@@ -83,8 +85,13 @@ class Gatekeeper(callbacks.Plugin):
         mintrust = min(trust_nanotube[0][0] + trust_nanotube[1][0], 
                 trust_keefe[0][0] + trust_keefe[1][0])
         if mintrust >= self.registryValue('ratingThreshold') and \
-                time.time() - regtimestamp > self.registryValue('accountAgeThreshold'):
-                irc.queueMsg(ircmsgs.voice('#bitcoin-otc', msg.nick))
+                    time.time() - regtimestamp > self.registryValue('accountAgeThreshold'):
+            if msg.nick not in irc.state.channels[self.registryValue('targetChannel')].users and \
+                        self.registryValue('invite'):
+                irc.queueMsg(ircmsgs.invite(msg.nick, self.registryValue('targetChannel')))
+                irc.reply("You have been invited to %s. Type '/j %s' to enter the channel." % (self.registryValue('targetChannel'), self.registryValue('targetChannel'),))
+            if msg.nick in irc.state.channels[self.registryValue('targetChannel')].users:
+                irc.queueMsg(ircmsgs.voice(self.registryValue('targetChannel'), msg.nick))
                 irc.noReply()
         else:
             irc.error("Insufficient account age or rating. Required minimum account age is %s days, and required minimum trust is %s. Yours are %s days and %s, respectively." % (self.registryValue('accountAgeThreshold')/60/60/24, self.registryValue('ratingThreshold'),(time.time() - regtimestamp)/60/60/24, mintrust))
@@ -93,19 +100,22 @@ class Gatekeeper(callbacks.Plugin):
 
     def doJoin(self, irc, msg):
         """give voice to users that join and meet requirements."""
-        if msg.args[0] != '#bitcoin-otc' or irc.network != 'freenode':
+        if msg.args[0] != self.registryValue('targetChannel') or irc.network != 'freenode':
+            return
+        if msg.nick == irc.nick: # ignore our own join msgs.
             return
 
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            if not self.registryValue('msgOnJoin'):
-                return
             try:
-                if msg.nick not in irc.state.channels['#bitcoin-otc-foyer'].users:
-                    irc.queueMsg(ircmsgs.privmsg(msg.nick, "Join #bitcoin-otc-foyer and see channel topic for instructions on getting voice on #bitcoin-otc."))
-                return
+                if (not world.testing) and self.registryValue('msgOnJoinVoice') != "" and msg.nick not in irc.state.channels['#bitcoin-otc-foyer'].users:
+                    irc.queueMsg(ircmsgs.privmsg(msg.nick, self.registryValue('msgOnJoinVoice')))
             except KeyError:
-                return
+                pass
+            if (not world.testing) and self.registryValue('msgOnJoinIdent') != "":
+                irc.queueMsg(ircmsgs.privmsg(msg.nick, self.registryValue('msgOnJoinIdent')))
+            return
+
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
             regtimestamp = info[4]
