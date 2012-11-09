@@ -36,6 +36,17 @@ class RatingSystemDB(object):
         self.filename = filename
         self.db = None
 
+    def _commit(self):
+        '''a commit wrapper to give it another few tries if it errors.
+        
+        which sometimes happens due to:
+        OperationalError: database is locked'''
+        for i in xrange(10):
+            try:
+                self.db.commit()
+            except:
+                time.sleep(1)
+
     def open(self):
         if os.path.exists(self.filename):
             db = sqlite3.connect(self.filename, check_same_thread = False)
@@ -66,7 +77,7 @@ class RatingSystemDB(object):
                           rating INTEGER,
                           notes TEXT)
                           """)
-        self.db.commit()
+        self._commit()
         return
 
     def close(self):
@@ -190,7 +201,7 @@ class RatingSystemDB(object):
                           neg_rating_sent_count = ? WHERE
                           id = ?""",
                        (source_pos_count, source_neg_count, sourceid))
-        self.db.commit()
+        self._commit()
 
     def rate(self, sourcenick, sourceid, targetnick, targetid,
              rating, replacementflag, notes, targethost=None):
@@ -205,7 +216,7 @@ class RatingSystemDB(object):
             cursor.execute("""INSERT INTO users VALUES
                               (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
                            (rating, timestamp, 0, 0, 0, 0, targetnick, targethost))
-            self.db.commit()
+            self._commit()
             cursor.execute("""SELECT id FROM users
                               WHERE nick LIKE ? ESCAPE '|'""", (targetnick_escaped,))
             targetid = cursor.fetchall()[0][0]
@@ -218,7 +229,7 @@ class RatingSystemDB(object):
                               WHERE rated_user_id = ? AND
                               rater_user_id = ?""",
                            (rating, notes, timestamp, targetid, sourceid))
-        self.db.commit()
+        self._commit()
         self.update_counts(sourcenick, sourceid, targetnick, targetid)
 
     def unrate(self, sourcenick, sourceid, targetnick, targetid):
@@ -228,12 +239,12 @@ class RatingSystemDB(object):
                           WHERE rated_user_id = ? AND
                           rater_user_id = ?""",
                        (targetid, sourceid))
-        self.db.commit()
+        self._commit()
         connections = self.getConnections(targetnick)
         if len(connections) == 0:
             cursor.execute("""DELETE FROM users
                               WHERE nick LIKE ? ESCAPE '|'""", (targetnick_escaped,))
-            self.db.commit()
+            self._commit()
         self.update_counts(sourcenick, sourceid, targetnick, targetid)
 
     def deleteuser(self, userid):
@@ -245,7 +256,7 @@ class RatingSystemDB(object):
                             WHERE rated_user_id = ? OR
                             rater_user_id = ?""",
                             (userid, userid,))
-        self.db.commit()
+        self._commit()
 
 class RatingSystem(callbacks.Plugin):
     """This plugin maintains a rating system among IRC users.

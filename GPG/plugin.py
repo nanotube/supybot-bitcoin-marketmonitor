@@ -59,12 +59,15 @@ class GPGDB(object):
         self.db = None
 
     def _commit(self):
-        '''a commit wrapper to give it another try if it errors.'''
-        try:
-            self.db.commit()
-        except:
-            time.sleep(10)
-            self.db.commit()
+        '''a commit wrapper to give it another few tries if it errors.
+        
+        which sometimes happens due to:
+        OperationalError: database is locked'''
+        for i in xrange(10):
+            try:
+                self.db.commit()
+            except:
+                time.sleep(1)
 
     def open(self):
         if os.path.exists(self.filename):
