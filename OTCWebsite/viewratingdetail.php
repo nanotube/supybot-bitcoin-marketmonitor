@@ -55,7 +55,7 @@ Rating for <?php echo htmlentities($nick); ?>
 	$types = array('RECV' => 'received', 'SENT' => 'sent');
 	$signs = array('ANY' => 'all', 'POS' => 'positive', 'NEG' => 'negative');
 ?>
-  <p>You are currently viewing <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> by user <?php echo htmlentities($nick); ?>.</p>
+  <p>You are currently viewing <b><?php echo $signs[$sign]; ?></b> ratings <b><?php echo $types[$type]; ?></b> by user <?php echo htmlentities($nick); ?>.</p>
   <p>
    [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&sign=<?php echo $sign; ?>&type=RECV">view received</a>] ||
    [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&sign=<?php echo $sign; ?>&type=SENT">view sent</a>]
