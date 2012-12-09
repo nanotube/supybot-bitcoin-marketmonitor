@@ -423,9 +423,9 @@ class BitcoinData(callbacks.Plugin):
 
     def _timetonext(self):
         try:
-            interval = int(self._interval())
-            blocks = int(self._blocks())
-            retarget = int(self._nextretarget())
+            interval = float(self._interval())
+            blocks = float(self._blocks())
+            retarget = float(self._nextretarget())
             return (retarget - blocks)*interval
         except:
             return None
