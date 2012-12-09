@@ -171,6 +171,33 @@ class BitcoinData(callbacks.Plugin):
         irc.reply(data)
     diff = wrap(diff)
 
+    def _hextarget(self, blocknum):
+        block = self._rawblockbynum(blocknum)
+        try:
+            diffbits = block['bits']
+            hexbits = hex(diffbits)
+            target = int(hexbits[4:], 16) * 2 ** (8 * (int(hexbits[2:4], 16) - 3))
+            target = hex(target)[2:-1]
+            target = '0'*(64-len(target)) + target
+            return target.upper()
+        except:
+            return None
+
+    def hextarget(self, irc, msg, args, blocknum):
+        '''[<block number>]
+        
+        get the hex target for current block.
+        if optional block number is provided, get hex target for that block height.
+        '''
+        if blocknum is None:
+            blocknum = self._blocks()
+        target = self._hextarget(blocknum)
+        if target is None:
+            irc.error("Failed to retrieve data. Try again later.")
+            return
+        irc.reply(target)
+    hextarget = wrap(hextarget, [optional('positiveInt')])
+
     def _bounty(self):
         data = self._grabapi(['/q/bcperblock']*2)
         try:
