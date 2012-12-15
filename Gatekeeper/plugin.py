@@ -58,7 +58,7 @@ class Gatekeeper(callbacks.Plugin):
         if msg.command == 'PRIVMSG' and \
                 self.registryValue('talkInChanOnlyForAuthedUsers') and \
                 msg.args[0] == self.registryValue('targetChannel') and \
-                msg.prefix != '': # prefix is empty for 'say' msgs
+                msg.inReplyTo is not None: # 'say' msgs don't have an inReplyTo
             gpgauth = self._checkGPGAuth(irc, msg.inReplyTo.prefix)
             if gpgauth is None:
                 msg = ircmsgs.privmsg(msg.inReplyTo.nick, msg.args[1], msg=msg)
