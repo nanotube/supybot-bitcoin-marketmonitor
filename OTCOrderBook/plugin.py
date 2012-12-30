@@ -38,6 +38,17 @@ class OTCOrderDB(object):
         self.filename = filename
         self.db = None
 
+    def _commit(self):
+        '''a commit wrapper to give it another few tries if it errors.
+        
+        which sometimes happens due to:
+        OperationalError: database is locked'''
+        for i in xrange(10):
+            try:
+                self.db.commit()
+            except:
+                time.sleep(1)
+
     def open(self):
         if os.path.exists(self.filename):
             db = sqlite3.connect(self.filename, check_same_thread = False)
@@ -62,7 +73,7 @@ class OTCOrderDB(object):
                           otherthing TEXT,
                           notes TEXT)
                           """)
-        self.db.commit()
+        self._commit()
         return
 
     def close(self):
@@ -100,7 +111,7 @@ class OTCOrderDB(object):
         timestamp = time.time()
         cursor.execute("""DELETE FROM orders WHERE refreshed_at + ? < ?""",
                        (expiry, timestamp))
-        self.db.commit()
+        self._commit()
 
     def getCurrencyBook(self, thing):
         cursor = self.db.cursor()
@@ -117,7 +128,7 @@ class OTCOrderDB(object):
                        (NULL, ?, ?, "BUY", ?, ?, ?, ?, ?, ?, ?)""",
                        (timestamp, timestamp+extratime, nick, host, amount, thing, price,
                         otherthing, notes))
-        self.db.commit()
+        self._commit()
         return cursor.lastrowid
 
     def sell(self, nick, host, amount, thing, price, otherthing, notes, extratime=0):
@@ -127,7 +138,7 @@ class OTCOrderDB(object):
                        (NULL, ?, ?, "SELL", ?, ?, ?, ?, ?, ?, ?)""",
                        (timestamp, timestamp+extratime, nick, host, amount, thing, price,
                         otherthing, notes))
-        self.db.commit()
+        self._commit()
         return cursor.lastrowid
 
     def refresh(self, nick, id=None, extratime=0):
@@ -138,7 +149,7 @@ class OTCOrderDB(object):
             for row in results:
                 cursor.execute("""UPDATE orders SET refreshed_at=?
                                WHERE id=?""", (timestamp+extratime, row[0]))
-            self.db.commit()
+            self._commit()
             return len(results)
         return False
 
@@ -149,7 +160,7 @@ class OTCOrderDB(object):
             for row in results:
                 cursor.execute("""DELETE FROM orders where id=?""",
                                (row[0],))
-            self.db.commit()
+            self._commit()
             return len(results)
         return False
     

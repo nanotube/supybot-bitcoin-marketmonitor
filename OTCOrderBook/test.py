@@ -41,15 +41,15 @@ class OTCOrderBookTestCase(PluginTestCase):
         #preseed the GPG db with a GPG registration and auth for nanotube
         gpg = self.irc.getCallback('GPG')
         gpg.db.register('AAAAAAAAAAAAAAA1', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA1',
-                    time.time(), 'nanotube')
+                    '1somestuff', time.time(), 'nanotube')
         gpg.authed_users['nanotube!stuff@stuff/somecloak'] = {'nick':'nanotube'}
         gpg.db.register('AAAAAAAAAAAAAAA2', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA2',
-                    time.time(), 'registeredguy')
+                   '1somestuff',  time.time(), 'registeredguy')
         gpg.db.register('AAAAAAAAAAAAAAA3', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA3',
-                    time.time(), 'authedguy')
+                    '1somestuff', time.time(), 'authedguy')
         gpg.authed_users['authedguy!stuff@123.345.234.34'] = {'nick':'authedguy'}
         gpg.db.register('AAAAAAAAAAAAAAA4', 'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
-                    time.time(), 'authedguy2')
+                    '1somestuff', time.time(), 'authedguy2')
         gpg.authed_users['authedguy2!stuff@123.345.234.34'] = {'nick':'authedguy2'}
 
         # pre-seed the rating db with some ratings, for testing long orders
