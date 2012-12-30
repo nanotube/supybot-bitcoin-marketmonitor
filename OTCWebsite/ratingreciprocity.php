@@ -1,5 +1,10 @@
 <?php
+	function like($s, $e) {
+		return str_replace(array($e, '_', '%'), array($e.$e, $e.'_', $e.'%'), $s);
+	}
+
 	$nick = isset($_GET["nick"]) ? $_GET["nick"] : "";
+	$nickfilter = html_entity_decode(like($nick, '|'));
 	$nick = html_entity_decode($nick);
 	if ($nick == "") header( 'Location: http://bitcoin-otc.com/viewratings.php' );
 ?>
@@ -19,10 +24,10 @@
 
 	include('querytojson.php');
 	if ($outformat == 'json'){
-		$sql = "SELECT users.nick as rater_nick, users2.nick as rated_nick, ratings.rating as rating from users, users as users2, ratings WHERE users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id AND (users.nick = ? OR users2.nick = ?);";
+		$sql = "SELECT users.nick as rater_nick, users2.nick as rated_nick, ratings.rating as rating from users, users as users2, ratings WHERE users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id AND (users.nick LIKE ? ESCAPE '|' OR users2.nick LIKE ? ESCAPE '|');";
 		$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 		$sth->setFetchMode(PDO::FETCH_ASSOC);
-		$sth->execute(array($nick, $nick));
+		$sth->execute(array($nickfilter, $nickfilter));
 		if (!$sth) echo "[]";
 		else	jsonOutput($sth);
 		exit();
@@ -55,9 +60,9 @@ Rating Symmetry for <?php echo htmlentities($nick); ?>
   
 <?php
 	$results = array();
-	$sql = "SELECT users.nick as rater_nick, users2.nick as rated_nick, ratings.rating as rating from users, users as users2, ratings WHERE users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id AND (users.nick LIKE ? OR users2.nick LIKE ?);";
+	$sql = "SELECT users.nick as rater_nick, users2.nick as rated_nick, ratings.rating as rating from users, users as users2, ratings WHERE users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id AND (users.nick LIKE ? ESCAPE '|' OR users2.nick LIKE ? ESCAPE '|');";
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
-	$sth->execute(array($nick, $nick));
+	$sth->execute(array($nickfilter, $nickfilter));
 	if (!$sth) echo "<tr><td>No matching records found</td></tr>\n";
 	else {
 		while ($entry = $sth->fetch(PDO::FETCH_BOTH)) {

@@ -1,4 +1,8 @@
 <?php
+	function like($s, $e) {
+		return str_replace(array($e, '_', '%'), array($e.$e, $e.'_', $e.'%'), $s);
+	}
+
 	//error_reporting(-1); ini_set('display_errors', 1);
 	$sortby = "rating";
 	$sortorder = "ASC";
@@ -14,6 +18,7 @@
 		$validkeys = array('id', 'rater_nick', 'rated_nick', 'ratee_total_rating', 'created_at', 'rating', 'notes');
 	}
 	$nick = isset($_GET["nick"]) ? $_GET["nick"] : "";
+	$nickfilter = html_entity_decode(like($nick, '|'));
 	$nick = html_entity_decode($nick);
 	$outformat = isset($_GET["outformat"]) ? $_GET["outformat"] : "";
 	$outformat = html_entity_decode($outformat);
@@ -25,11 +30,11 @@
 	include('querytojson.php');
 	if ($outformat == 'json'){
 		$signqueries = array('ANY' => ' ', 'POS' => ' AND ratings.rating > 0', 'NEG' => ' AND ratings.rating < 0');
-		$typequeries = array('RECV' => 'users2.nick LIKE ? AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id', 'SENT' => 'users.nick LIKE ? AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id');
+		$typequeries = array('RECV' => "users2.nick LIKE ? ESCAPE '|' AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id", 'SENT' => "users.nick LIKE ? ESCAPE '|' AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id");
 		$sql = "SELECT ratings.id as id, users.nick as rater_nick, users2.nick as rated_nick, ratings.created_at as created_at, ratings.rating as rating, ratings.notes as notes from users, users as users2, ratings WHERE " . $typequeries[$type] . $signqueries[$sign];
 		$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 		$sth->setFetchMode(PDO::FETCH_ASSOC);
-		$sth->execute(array($nick));
+		$sth->execute(array($nickfilter));
 		if (!$sth) echo "[]";
 		else	jsonOutput($sth);
 		exit();
@@ -71,9 +76,9 @@ Rating for <?php echo htmlentities($nick); ?>
 	$typequeries = array('RECV' => 'users.id = ratings.rated_user_id', 'SENT' => 'users.id = ratings.rater_user_id');
 	$signqueries = array('ANY' => ' ', 'POS' => ' AND ratings.rating > 0', 'NEG' => ' AND ratings.rating < 0');
 
-	$sql = "SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM users, ratings WHERE users.nick LIKE ? AND " . $typequeries[$type] . $signqueries[$sign];
+	$sql = "SELECT count(*) as ratingcount, sum(rating) as ratingsum FROM users, ratings WHERE users.nick LIKE ? ESCAPE '|' AND " . $typequeries[$type] . $signqueries[$sign];
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
-	if (!$sth->execute(array($nick))) echo "<li>No positive ratings found</li>\n";
+	if (!$sth->execute(array($nickfilter))) echo "<li>No ratings found</li>\n";
 	else {
 		$entry = $sth->fetch(PDO::FETCH_BOTH);
 		echo "<li>Count of " . $signs[$sign] . " ratings " . $types[$type] . ": " . number_format($entry['ratingcount']) . ". Total of points: " . number_format($entry['ratingsum']) . ".</li>\n";
@@ -94,10 +99,10 @@ Rating for <?php echo htmlentities($nick); ?>
 ?>
    </tr>
 <?php
-	$typequeries = array('RECV' => 'users2.nick LIKE ? AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id', 'SENT' => 'users.nick LIKE ? AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id');
+	$typequeries = array('RECV' => "users2.nick LIKE ? ESCAPE '|' AND users2.id = ratings.rated_user_id AND users.id = ratings.rater_user_id", 'SENT' => "users.nick LIKE ? ESCAPE '|' AND users.id = ratings.rater_user_id AND users2.id = ratings.rated_user_id");
 	$sql = "SELECT ratings.id as id, users.nick as rater_nick, users.total_rating as rater_total_rating, users2.nick as rated_nick, users2.total_rating as ratee_total_rating, ratings.created_at as created_at, ratings.rating as rating, ratings.notes as notes from users, users as users2, ratings WHERE " . $typequeries[$type] . $signqueries[$sign] . " ORDER BY " . $sortby . ' COLLATE NOCASE ' . $sortorder;
 	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
-	$sth->execute(array($nick));
+	$sth->execute(array($nickfilter));
 	if (!$sth) echo "<tr><td>No matching records found</td></tr>\n";
 	else {
 		//$resultrow = 0;

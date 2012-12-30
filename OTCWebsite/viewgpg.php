@@ -1,4 +1,9 @@
 <?php
+
+	function like($s, $e) {
+		return str_replace(array($e, '_', '%'), array($e.$e, $e.'_', $e.'%'), $s);
+	}
+
 	$sortby = "nick";
 	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress');
 
@@ -16,7 +21,7 @@
 ?>
 <?php
 	$queryfilter = array();
-	if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
+	if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string(like($nickfilter, '|')) . "' ESCAPE '|'";
 	if (sizeof($queryfilter) != 0) {
 		$queryfilter = " WHERE " . join(' AND ', $queryfilter);
 	}
