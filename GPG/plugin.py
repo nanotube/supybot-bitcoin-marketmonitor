@@ -142,7 +142,7 @@ class GPGDB(object):
                         (newaddress, nick, oldaddress,))
         self._commit()
 
-def getGPGKeyID(irc, msg, args, state, type='GPG key id'):
+def getGPGKeyID(irc, msg, args, state, type='GPG key id. Please use the long form 16 digit key id'):
     v = args[0]
     m = re.search(r'^(0x)?([0-9A-Fa-f]{16})$', v)
     if m is None:
@@ -159,7 +159,7 @@ def getKeyserver(irc, msg, args, state, type='keyserver'):
     state.args.append(args[0])
     del args[0]
 
-def getUsername(irc, msg, args, state, type='username'):
+def getUsername(irc, msg, args, state, type='username. Usernames must contain only printable ASCII characters with no whitespace'):
     v = args[0]
     m = re.search(r"^[!-~]+$", v)
     if m is None:
