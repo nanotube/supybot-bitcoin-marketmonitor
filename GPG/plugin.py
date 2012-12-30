@@ -159,8 +159,18 @@ def getKeyserver(irc, msg, args, state, type='keyserver'):
     state.args.append(args[0])
     del args[0]
 
+def getUsername(irc, msg, args, state, type='username'):
+    v = args[0]
+    m = re.search(r"^[!-~]+$", v)
+    if m is None:
+        state.errorInvalid(type, args[0])
+        return
+    state.args.append(m.group(0))
+    del args[0]
+
 addConverter('keyid', getGPGKeyID)
 addConverter('keyserver', getKeyserver)
+addConverter('username', getUsername)
 
 class GPG(callbacks.Plugin):
     """This plugin lets users create identities based on GPG keys,
@@ -278,7 +288,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
-    register = wrap(register, ['something', 'keyid', optional('keyserver')])
+    register = wrap(register, ['username', 'keyid', optional('keyserver')])
 
     def eregister(self, irc, msg, args, nick, keyid, keyserver):
         """<nick> <keyid> [<keyserver>]
@@ -340,7 +350,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, keyid,))
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
-    eregister = wrap(eregister, ['something', 'keyid', optional('keyserver')])
+    eregister = wrap(eregister, ['username', 'keyid', optional('keyserver')])
 
     def bcregister(self, irc, msg, args, nick, bitcoinaddress):
         """<nick> <bitcoinaddress>
@@ -375,7 +385,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, bitcoinaddress, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
-    bcregister = wrap(bcregister, ['something', 'something'])
+    bcregister = wrap(bcregister, ['username', 'something'])
 
     def auth(self, irc, msg, args, nick):
         """<nick>
@@ -406,7 +416,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
-    auth = wrap(auth, ['something'])
+    auth = wrap(auth, ['username'])
 
     def eauth(self, irc, msg, args, nick):
         """<nick>
@@ -450,7 +460,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
-    eauth = wrap(eauth, ['something'])
+    eauth = wrap(eauth, ['username'])
 
     def bcauth(self, irc, msg, args, nick):
         """<nick>
@@ -480,7 +490,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, bitcoinaddress, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
-    bcauth = wrap(bcauth, ['something'])
+    bcauth = wrap(bcauth, ['username'])
 
     def _unauth(self, irc, hostmask):
         try:
