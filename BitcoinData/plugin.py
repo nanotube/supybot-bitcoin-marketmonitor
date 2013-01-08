@@ -220,7 +220,7 @@ class BitcoinData(callbacks.Plugin):
     bounty = wrap(bounty)
 
     def _gentime(self, hashrate, difficulty):
-        gentime = 1/((2**224-1)/difficulty*hashrate*1000000/2**256)
+        gentime = 2**48/65535*difficulty/hashrate/1000000
         return gentime
 
     def gentime(self, irc, msg, args, hashrate, difficulty):
@@ -234,7 +234,7 @@ class BitcoinData(callbacks.Plugin):
             try:
                 difficulty = float(self._diff())
             except:
-                irc.error("Failed to current difficulty. Try again later or supply difficulty manually.")
+                irc.error("Failed to fetch current difficulty. Try again later or supply difficulty manually.")
                 return
         gentime = self._gentime(hashrate, difficulty)
         irc.reply("The average time to generate a block at %s Mhps, given difficulty of %s, is %s" % \
