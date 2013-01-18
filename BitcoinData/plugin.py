@@ -352,17 +352,19 @@ class BitcoinData(callbacks.Plugin):
         Return total number of bitcoins created thus far.
         """
         try:
-            blocks = int(self._blocks())
+            blocks = int(self._blocks()) + 1 # offset for block0
         except:
             irc.error("Failed to retrieve block count. Try again later.")
             return
-        bounty = 50
+        bounty = 50.
         chunk = 210000
-        total = 0
-        while blocks > 0:
-            total += blocks * bounty
+        total = 0.
+        while blocks > chunk:
+            total += chunk * bounty
             blocks -= 210000
-            bounty /= 2
+            bounty /= 2.
+        if blocks > 0:
+            total += blocks * bounty
         irc.reply("%s" % total)
     totalbc = wrap(totalbc)
 
