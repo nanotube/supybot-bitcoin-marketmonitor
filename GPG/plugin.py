@@ -1030,8 +1030,11 @@ class GPG(callbacks.Plugin):
     def doNick(self, irc, msg):
         if msg.prefix in self.authed_users.keys():
             newprefix = msg.args[0] + '!' + msg.prefix.split('!',1)[1]
-            self.authlog.info("Attaching authentication for hostmask %s to new hostmask %s due to nick change." %\
-                    (msg.prefix, newprefix,))
+            logmsg = "Attaching authentication for hostmask %s to new hostmask %s due to nick change." %\
+                    (msg.prefix, newprefix,)
+            self.authlog.info(logmsg)
+            if not world.testing:
+                irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
             self.authed_users[newprefix] = self.authed_users[msg.prefix]
             self._unauth(irc, msg.prefix)
 
