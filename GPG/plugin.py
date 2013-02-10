@@ -777,11 +777,11 @@ class GPG(callbacks.Plugin):
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
             fingerprint = self._recv_key(keyservers, keyid)
-        except:
+        except Exception as e:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
             self.log.info("GPG changekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
-                    (keyid, keyservers, result.stderr,))
+                    (keyid, keyservers, e,))
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'keyid':keyid,
@@ -822,11 +822,11 @@ class GPG(callbacks.Plugin):
             keyservers.extend(self.registryValue('keyservers').split(','))
         try:
             fingerprint = self._recv_key(keyservers, keyid)
-        except:
+        except Exception as e:
             irc.error("Could not retrieve your key from keyserver. "
                     "Either it isn't there, or it is invalid.")
             self.log.info("GPG echangekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
-                    (keyid, keyservers, result.stderr,))
+                    (keyid, keyservers, e,))
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
