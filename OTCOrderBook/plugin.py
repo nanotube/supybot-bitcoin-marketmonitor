@@ -490,6 +490,7 @@ class OTCOrderBook(callbacks.Plugin):
         """<thing>
 
         Get a list of open orders for <thing>.
+        Web view: http://bitcoin-otc.com/vieworderbook.php
         """
         self.db.deleteExpired(self.registryValue('orderExpiry'))
         results = self.db.getCurrencyBook(thing)
