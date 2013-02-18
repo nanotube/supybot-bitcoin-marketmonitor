@@ -300,7 +300,7 @@ class BitcoinData(callbacks.Plugin):
     def nethash(self, irc, msg, args):
         '''takes no arguments
         
-        Shows the current estimate for total network hash rate, in Thps.
+        Shows the current estimate for total network hash rate, in Ghps.
         '''
         data = self._nethash3d()
         if data is None:
