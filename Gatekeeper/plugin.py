@@ -74,6 +74,9 @@ class Gatekeeper(callbacks.Plugin):
         if gpgauth is None:
             irc.error("You must authenticate via GPG to use this command.")
             return
+        if msg.nick in irc.state.channels[self.registryValue('targetChannel')].voices:
+            irc.error("You already have voice in %s." % (self.registryValue('targetChannel'),))
+            return
         info = self._getGPGInfo(irc, gpgauth['nick'])
         if info is not None:
             regtimestamp = info[4]
