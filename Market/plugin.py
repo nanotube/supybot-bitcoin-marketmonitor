@@ -335,8 +335,8 @@ class Market(callbacks.Plugin):
             irc.error("The width provided extends past the edge of the order book. Please use a smaller width.")
             return
         obip = (b['total'] + s['total'])/2.0/width
-        irc.reply("The weighted average price of BTC, %s coins up and down from the spread, is %s",
-                (width, obip,))
+        irc.reply("The weighted average price of BTC, %s coins up and down from the spread, is %s" \
+                % (width, obip,))
     obip = wrap(obip, ['nonNegativeFloat'])
 
     def ticker(self, irc, msg, args, optlist):
