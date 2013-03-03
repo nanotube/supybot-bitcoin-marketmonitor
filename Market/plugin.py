@@ -83,6 +83,7 @@ class Market(callbacks.Plugin):
                 data = urlopen('https://mtgox.com/api/1/BTCUSD/public/fulldepth').read()
                 self.mdepth = json.loads(data)
                 self.mdepth = self.mdepth['return']
+                self.mdepth['bids'].reverse() # bids are listed in ascending order
                 self.lastdepthfetch = time.time()
         except:
             pass # oh well, try again later.
@@ -139,7 +140,6 @@ class Market(callbacks.Plugin):
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
-        bids.reverse() # bids are listed in ascending order
         if dict(optlist).has_key('usd'):
             r = self._sellusd(bids, value)
             if r['all']:
@@ -327,7 +327,6 @@ class Market(callbacks.Plugin):
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
-        bids.reverse() # bids are listed in ascending order
 
         b = self._buybtc(asks, width)
         s = self._sellbtc(bids, width)
