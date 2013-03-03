@@ -61,6 +61,19 @@ class MarketTestCase(PluginTestCase):
         self.assertError('ticker --currency ZZZ') # no such currency on mtgox
         self.assertError('ticker --currency blablabla') # invalid currency code
         
+    def testBuy(self):
+        self.assertError('buy blabla')
+        self.assertRegexp('buy 100', 'market order to buy .* bitcoins right now would')
+        self.assertRegexp('buy --usd 100', 'market order to buy .* USD worth of bitcoins right now would buy')
+
+    def testSell(self):
+        self.assertError('sell blabla')
+        self.assertRegexp('sell 100', 'market order to sell .* bitcoins right now would')
+        self.assertRegexp('sell --usd 100', 'market order to sell .* USD worth of bitcoins right now would')
+
+    def testObip(self):
+        self.assertError('obip blabla')
+        self.assertRegexp('obip 100', 'weighted average price of BTC, .* coins up and down')
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
