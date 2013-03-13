@@ -298,7 +298,7 @@ class RatingSystem(callbacks.Plugin):
         """
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            irc.error("For identification purposes, you must be identified via GPG "
+            irc.error("For identification purposes, you must be authenticated "
                       "to use the rating system.")
             return
         userrating = self.db.get(gpgauth['nick'])
@@ -384,7 +384,7 @@ class RatingSystem(callbacks.Plugin):
         """
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            irc.error("You must be GPG authenticated to perform this operation.")
+            irc.error("You must be authenticated to perform this operation.")
             return
         userrating = self.db.get(gpgauth['nick'])
         if len(userrating) == 0:
