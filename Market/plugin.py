@@ -80,7 +80,7 @@ class Market(callbacks.Plugin):
             return
         try:
             if time.time() - self.lastdepthfetch > 120: # don't fetch from gox more often than every 2 min
-                data = urlopen('https://mtgox.com/api/1/BTCUSD/public/fulldepth').read()
+                data = urlopen('http://data.mtgox.com/api/1/BTCUSD/depth/full').read()
                 self.mdepth = json.loads(data)
                 self.mdepth = self.mdepth['return']
                 self.mdepth['bids'].reverse() # bids are listed in ascending order
@@ -89,7 +89,7 @@ class Market(callbacks.Plugin):
             pass # oh well, try again later.
 
     def _getTicker(self, currency):
-        json_data = urlopen("https://mtgox.com/api/1/BTC%s/ticker" % (currency.upper(),)).read()
+        json_data = urlopen("https://data.mtgox.com/api/1/BTC%s/ticker" % (currency.upper(),)).read()
         ticker = json.loads(json_data)
         return ticker
 
