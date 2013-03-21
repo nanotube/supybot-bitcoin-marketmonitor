@@ -89,14 +89,14 @@ class Market(callbacks.Plugin):
             pass # oh well, try again later.
 
     def _getTicker(self, currency):
-        json_data = urlopen("https://data.mtgox.com/api/1/BTC%s/ticker" % (currency.upper(),)).read()
+        json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
         ticker = json.loads(json_data)
         ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
         tf = json.loads(ftj)
         if ticker['result'] != 'error' and tf['result'] != 'error': # use fast ticker where available
-            ticker['return']['buy']['value'] = tf['data']['buy']['value']
-            ticker['return']['sell']['value'] = tf['data']['sell']['value']
-            ticker['return']['last']['value'] = tf['data']['last']['value']
+            ticker['data']['buy']['value'] = tf['data']['buy']['value']
+            ticker['data']['sell']['value'] = tf['data']['sell']['value']
+            ticker['data']['last']['value'] = tf['data']['last']['value']
         return ticker
 
     def _sellbtc(self, bids, value):
@@ -373,15 +373,15 @@ class Market(callbacks.Plugin):
         if len(od) == 0:
             irc.reply("BTC%s ticker | Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
                 "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s, 24 hour vwap: %s" % \
-                (currency, ticker['return']['buy']['value'], ticker['return']['sell']['value'],
-                float(ticker['return']['sell']['value']) - float(ticker['return']['buy']['value']),
-                ticker['return']['last']['value'], ticker['return']['vol']['value'],
-                ticker['return']['low']['value'], ticker['return']['high']['value'],
-                ticker['return']['vwap']['value']))
+                (currency, ticker['data']['buy']['value'], ticker['data']['sell']['value'],
+                float(ticker['data']['sell']['value']) - float(ticker['data']['buy']['value']),
+                ticker['data']['last']['value'], ticker['data']['vol']['value'],
+                ticker['data']['low']['value'], ticker['data']['high']['value'],
+                ticker['data']['vwap']['value']))
         else:
             key = od.keys()[0]
             key = {'bid':'buy', 'ask':'sell', 'avg':'vwap'}.setdefault(key, key)
-            irc.reply(ticker['return'][key]['value'])
+            irc.reply(ticker['data'][key]['value'])
     ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
             'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode'})])
 
