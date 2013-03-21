@@ -340,7 +340,7 @@ class Market(callbacks.Plugin):
     obip = wrap(obip, ['nonNegativeFloat'])
 
     def ticker(self, irc, msg, args, optlist):
-        """[--bid|--ask|--last|--high|--low|--avg] [--currency XXX]
+        """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX]
         
         Return pretty-printed mtgox ticker. 
         If one of the result options is given, returns only that numeric result
@@ -377,7 +377,7 @@ class Market(callbacks.Plugin):
             key = {'bid':'buy', 'ask':'sell', 'avg':'vwap'}.setdefault(key, key)
             irc.reply(ticker['return'][key]['value'])
     ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
-            'low': '', 'avg': '', 'currency': 'currencyCode'})])
+            'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode'})])
 
 Class = Market
 
