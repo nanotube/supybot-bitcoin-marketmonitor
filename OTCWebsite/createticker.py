@@ -77,9 +77,9 @@ class Quote:
     def _getIndexedValue(self, rawprice, inverse=False):
         try:
             if self.ticker is not None:
-                indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
-                indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], indexedprice)
-                indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last'], indexedprice)
+                indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell']['value'], rawprice)
+                indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy']['value'], indexedprice)
+                indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last']['value'], indexedprice)
             else:
                 indexedprice = rawprice
             indexedprice = self._getCurrencyConversion(indexedprice)
@@ -127,9 +127,9 @@ class QuoteCreator:
         self.write_json()
 
     def get_mtgox_quote(self):
-        mtgox_ticker = urllib2.urlopen('https://mtgox.com/code/ticker.php').read()
+        mtgox_ticker = urllib2.urlopen('https://data.mtgox.com/api/2/BTCUSD/money/ticker').read()
         self.mtgox_ticker = json.loads(mtgox_ticker, parse_float=str, parse_int=str)
-        self.mtgox_ticker = self.mtgox_ticker['ticker']
+        self.mtgox_ticker = self.mtgox_ticker['data']
 
     def create_quotes(self):
         cursor = self.db1.cursor()

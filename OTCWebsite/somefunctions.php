@@ -4,10 +4,10 @@ error_reporting(E_ALL & ~ E_NOTICE & ~E_WARNING);
 
 try {
 	$f = fopen("mtgox.json", "r");
-	$ticker = fread($f, 1024);
+	$ticker = fread($f, 2048);
 	fclose($f);
 	$ticker = json_decode($ticker, true);
-	$ticker = $ticker['ticker'];
+	$ticker = $ticker['data'];
 	$f = fopen("exchangerates.json", "r");
 	$rates = fread($f, 4096);
 	fclose($f);
@@ -49,9 +49,9 @@ function doNothing() { return(true); }
 function index_prices($rawprice){
 	global $ticker;
 	try {
-		$indexedprice = preg_replace("/{mtgoxask}/", $ticker['sell'], $rawprice);
-		$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy'], $indexedprice);
-		$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last'], $indexedprice);
+		$indexedprice = preg_replace("/{mtgoxask}/", $ticker['sell']['value'], $rawprice);
+		$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy']['value'], $indexedprice);
+		$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last']['value'], $indexedprice);
 		$indexedprice = get_currency_conversion($indexedprice);
 		$code = 'set_error_handler("doNothing");return(' . $indexedprice . ');restore_error_handler();';
 		ob_start();
