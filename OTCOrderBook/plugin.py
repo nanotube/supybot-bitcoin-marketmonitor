@@ -242,9 +242,9 @@ class OTCOrderBook(callbacks.Plugin):
 
     def _getMtgoxQuote(self):
         try:
-            ticker = utils.web.getUrl('https://mtgox.com/code/ticker.php')
+            ticker = utils.web.getUrl('https://data.mtgox.com/api/2/BTCUSD/money/ticker')
             self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
-            self.ticker = self.ticker['ticker']
+            self.ticker = self.ticker['data']
         except:
             pass # don't want to die on failure of mtgox
 
@@ -267,9 +267,9 @@ class OTCOrderBook(callbacks.Plugin):
 
     def _getIndexedValue(self, rawprice):
         try:
-            indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell'], rawprice)
-            indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy'], indexedprice)
-            indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last'], indexedprice)
+            indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell']['value'], rawprice)
+            indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy']['value'], indexedprice)
+            indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last']['value'], indexedprice)
             indexedprice = self._getCurrencyConversion(indexedprice)
             return "%.5g" % eval(indexedprice)
         except:
