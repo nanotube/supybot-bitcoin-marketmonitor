@@ -65,7 +65,7 @@ class MarketMonitorTicker(callbacks.Plugin):
     def _getTicker(self):
         json_data = urlopen(self.registryValue('tickerUrl')).read()
         ticker = json.loads(json_data)
-        return ticker['ticker']
+        return ticker['return']
 
     def _monitor(self, irc):
         while not self.e.isSet():
@@ -97,10 +97,11 @@ class MarketMonitorTicker(callbacks.Plugin):
         timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime("%b%d %H:%M:%S")
         
         datalist = [timestamp,
-                    self.freshticker['buy'],
-                    self.freshticker['sell'],
-                    self.freshticker['last'],
-                    self.freshticker['vol']]
+                    self.freshticker['buy']['value'],
+                    self.freshticker['sell']['value'],
+                    self.freshticker['last']['value'],
+                    self.freshticker['vol']['value']
+		    ]
         colorlist = ['light gray'] * 5
         
         if self.cachedticker is None:
