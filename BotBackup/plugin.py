@@ -41,10 +41,10 @@ class BotBackup(callbacks.Plugin):
     threaded=True
     
     def outFilter(self, irc, msg):
+        quiet = False
         if msg.command == 'PRIVMSG' and \
                 irc.isChannel(msg.args[0]) and \
                 msg.inReplyTo is not None: # 'say' msgs don't have an inReplyTo
-            quiet = False
             for pn in self.registryValue('precedentBotNicks'):
                 if pn in irc.state.channels[msg.args[0]].users:
                     quiet = True
