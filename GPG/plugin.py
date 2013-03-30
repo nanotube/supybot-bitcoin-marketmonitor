@@ -261,9 +261,10 @@ class GPG(callbacks.Plugin):
             return
         rs = irc.getCallback('RatingSystem')
         rsdata = rs.db.get(nick)
-        if len(rsdata) != 0 and rsdata[0][8] != msg.host:
-            irc.error("This username is reserved for the existing member of the "
-                    "web of trust, with host '%s'." % (rsdata[0][8],))
+        if len(rsdata) != 0:
+            irc.error("This username is reserved for a legacy user. "
+                    "Contact otc administrator to reclaim the account, if "
+                    "you are an oldtimer since before key auth.")
             return
         keyservers = []
         if keyserver:
@@ -310,9 +311,10 @@ class GPG(callbacks.Plugin):
             return
         rs = irc.getCallback('RatingSystem')
         rsdata = rs.db.get(nick)
-        if len(rsdata) != 0 and rsdata[0][8] != msg.host:
-            irc.error("This username is reserved for the existing member of the "
-                    "web of trust, with host '%s'." % (rsdata[0][8],))
+        if len(rsdata) != 0:
+            irc.error("This username is reserved for a legacy user. "
+                    "Contact otc administrator to reclaim the account, if "
+                    "you are an oldtimer since before key auth.")
             return
         keyservers = []
         if keyserver:
@@ -371,9 +373,10 @@ class GPG(callbacks.Plugin):
             return
         rs = irc.getCallback('RatingSystem')
         rsdata = rs.db.get(nick)
-        if len(rsdata) != 0 and rsdata[0][8] != msg.host:
-            irc.error("This username is reserved for the existing member of the "
-                    "web of trust, with host '%s'." % (rsdata[0][8],))
+        if len(rsdata) != 0:
+            irc.error("This username is reserved for a legacy user. "
+                    "Contact otc administrator to reclaim the account, if "
+                    "you are an oldtimer since before key auth.")
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'bitcoinaddress':bitcoinaddress,
