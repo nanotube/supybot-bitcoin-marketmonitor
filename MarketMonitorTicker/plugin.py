@@ -65,7 +65,7 @@ class MarketMonitorTicker(callbacks.Plugin):
     def _getTicker(self):
         json_data = urlopen(self.registryValue('tickerUrl')).read()
         ticker = json.loads(json_data)
-        return ticker['return']
+        return ticker['data']
 
     def _monitor(self, irc):
         while not self.e.isSet():
@@ -101,24 +101,25 @@ class MarketMonitorTicker(callbacks.Plugin):
                     self.freshticker['sell']['value'],
                     self.freshticker['last']['value'],
                     self.freshticker['vol']['value']
-		    ]
+            ]
         colorlist = ['light gray'] * 5
         
         if self.cachedticker is None:
             self.cachedticker = self.freshticker
             makeoutput = True
             
-        if self.freshticker['buy'] != self.cachedticker['buy'] or \
-            self.freshticker['sell'] != self.cachedticker['sell'] or \
-            self.freshticker['last'] != self.cachedticker['last']:
+        if self.freshticker['buy']['value'] != self.cachedticker['buy']['value'] or \
+            self.freshticker['sell']['value'] != self.cachedticker['sell']['value'] or \
+            self.freshticker['last']['value'] != self.cachedticker['last']['value'] or \
+            self.freshticker['vol']['value'] != self.cachedticker['vol']['value']:
             
             makeoutput = True
             
             colorlist = ['light gray',]
             for item in ['buy','sell','last','vol']:
-                if self.freshticker[item] > self.cachedticker[item]:
+                if float(self.freshticker[item]['value']) > float(self.cachedticker[item]['value']):
                     colorlist.append('green')
-                elif self.freshticker[item] < self.cachedticker[item]:
+                elif float(self.freshticker[item]['value']) < float(self.cachedticker[item]['value']):
                     colorlist.append('red')
                 else:
                     colorlist.append('light gray')

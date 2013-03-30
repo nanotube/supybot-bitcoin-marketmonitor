@@ -33,7 +33,7 @@ conf.registerGlobalValue(MarketMonitorTicker, 'network',
     registry.String("freenode", """Network that should
     receive monitoring output."""))
 conf.registerGlobalValue(MarketMonitorTicker, 'tickerUrl',
-    registry.String("https://mtgox.com/code/ticker.php", """Url with 
+    registry.String("https://data.mtgox.com/api/2/BTCUSD/money/ticker", """Url with 
     the ticker data."""))
 conf.registerGlobalValue(MarketMonitorTicker, 'autostart',
     registry.Boolean(False, """If true, will autostart monitoring upon bot
