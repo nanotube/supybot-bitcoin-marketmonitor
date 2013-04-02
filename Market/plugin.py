@@ -385,6 +385,48 @@ class Market(callbacks.Plugin):
     ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
             'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode'})])
 
+    def goxlag(self, irc, msg, args, optlist):
+        """[--au]
+        
+        Retrieve mtgox order processing lag. If --au option is specified, expresses
+        the lag in terms of distance light can travel during that time."""
+        try:
+            json_data = urlopen("https://mtgox.com/api/2/money/order/lag").read()
+            lag = json.loads(json_data)
+            lag_secs = lag['data']['lag_secs']
+        except:
+            irc.error("Problem retrieving gox lag. Try again later.")
+            return
+        response = "secs"
+        if dict(optlist).has_key('au'):
+            response = "au"
+        
+        result = "MtGox lag is %s seconds." % (lag_secs,)
+        
+        if response == "au":
+            au = lag_secs / 499.004784
+            meandistance = {0.01: 'edge of solar corona',
+                            0.39: 'Mercury',
+                            0.72: 'Venus',
+                            1: 'Earth',
+                            1.52: 'Mars',
+                            2.77: 'Ceres (main asteroid belt)',
+                            5.2: 'Jupiter',
+                            9.54: 'Saturn',
+                            19.18: 'Uranus',
+                            30.06: 'Neptune',
+                            39.44: 'Pluto (Kuiper belt)',
+                            100: 'Heliopause'}
+            import operator
+            distances = meandistance.keys()
+            diffs = map(lambda x: abs(operator.__sub__(x, au)), distances)
+            bestdist = distances[diffs.index(min(diffs))]
+            objectname = meandistance[bestdist]
+            result += " During this time, light travels %s AU, which is \
+closest to the distance between the Sun and %s, %s AU" % (au, objectname, bestdist)
+        irc.reply(result)
+    goxlag = wrap(goxlag, [getopts({'au': ''})])
+
 Class = Market
 
 
