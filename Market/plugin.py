@@ -386,10 +386,10 @@ class Market(callbacks.Plugin):
             'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode'})])
 
     def goxlag(self, irc, msg, args, optlist):
-        """[--au]
+        """[--raw]
         
-        Retrieve mtgox order processing lag. If --au option is specified, expresses
-        the lag in terms of distance light can travel during that time."""
+        Retrieve mtgox order processing lag. If --raw option is specified
+        only output the raw number of seconds. Otherwise, dress it up."""
         try:
             json_data = urlopen("https://mtgox.com/api/2/money/order/lag").read()
             lag = json.loads(json_data)
@@ -397,35 +397,49 @@ class Market(callbacks.Plugin):
         except:
             irc.error("Problem retrieving gox lag. Try again later.")
             return
-        response = "secs"
-        if dict(optlist).has_key('au'):
-            response = "au"
+
+        if dict(optlist).has_key('raw'):
+            irc.reply("%s" % (lag_secs,))
+            return
         
         result = "MtGox lag is %s seconds." % (lag_secs,)
         
-        if response == "au":
-            au = lag_secs / 499.004784
-            meandistance = {0.01: 'edge of solar corona',
-                            0.39: 'Mercury',
-                            0.72: 'Venus',
-                            1: 'Earth',
-                            1.52: 'Mars',
-                            2.77: 'Ceres (main asteroid belt)',
-                            5.2: 'Jupiter',
-                            9.54: 'Saturn',
-                            19.18: 'Uranus',
-                            30.06: 'Neptune',
-                            39.44: 'Pluto (Kuiper belt)',
-                            100: 'Heliopause'}
-            import operator
-            distances = meandistance.keys()
-            diffs = map(lambda x: abs(operator.__sub__(x, au)), distances)
-            bestdist = distances[diffs.index(min(diffs))]
-            objectname = meandistance[bestdist]
-            result += " During this time, light travels %s AU, which is \
-closest to the distance between the Sun and %s, %s AU" % (au, objectname, bestdist)
+        au = lag_secs / 499.004784
+        meandistance = {0: "... nowhere, really",
+                        0.0001339: "to the other side of the Earth, along the surface",
+                        0.0024: "across the outer diameter of Saturn's rings",
+                        0.00257: "from Earth to Moon",
+                        0.002819: "from Jupiter to its third largest moon, Io",
+                        0.007155: "from Jupiter to its largest moon, Ganymede",
+                        0.00802: "from Saturn to its largest moon, Titan",
+                        0.012567: "from Jupiter to its second largest moon, Callisto",
+                        0.016: "one full loop along the orbit of the Moon around Earth",
+                        0.0257: 'ten times between Earth and Moon',
+                        0.0689: "approximately the distance covered by Voyager 1 in one week",
+                        0.0802: "ten times between Saturn and Titan",
+                        0.12567: "ten times between Jupiter and Callisto",
+                        0.2540: 'between Earth and Venus at their closest approach',
+                        0.257: 'one hundred times between Earth and Moon',
+                        0.2988: 'approximately the distance covered by Voyager 1 in one month',
+                        0.39: 'from the Sun to Mercury',
+                        0.72: 'from the Sun to Venus',
+                        1: 'from the Sun to Earth',
+                        1.52: 'from the Sun to Mars',
+                        2.77: 'from the Sun to Ceres (in the main asteroid belt)',
+                        5.2: 'from the Sun to Jupiter',
+                        9.54: 'from the Sun to Saturn',
+                        19.18: 'from the Sun to Uranus',
+                        30.06: 'from the Sun to Neptune',
+                        39.44: 'from the Sun to Pluto (Kuiper belt)',
+                        100: 'from the Sun to heliopause (out of the solar system!)'}
+        import operator
+        distances = meandistance.keys()
+        diffs = map(lambda x: abs(operator.__sub__(x, au)), distances)
+        bestdist = distances[diffs.index(min(diffs))]
+        objectname = meandistance[bestdist]
+        result += " During this time, light travels %s AU. You could have sent a bitcoin %s (%s AU)." % (au, objectname, bestdist)
         irc.reply(result)
-    goxlag = wrap(goxlag, [getopts({'au': ''})])
+    goxlag = wrap(goxlag, [getopts({'raw': ''})])
 
 Class = Market
 
