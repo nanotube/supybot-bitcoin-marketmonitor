@@ -32,9 +32,10 @@ from supybot.test import *
 
 import sqlite3
 import time
+import traceback
 
 class RatingSystemTestCase(PluginTestCase):
-    plugins = ('RatingSystem','GPG')
+    plugins = ('RatingSystem','GPG', 'UserSettings')
 
     def setUp(self):
         PluginTestCase.setUp(self)
@@ -156,5 +157,29 @@ class RatingSystemTestCase(PluginTestCase):
         finally:
             self.prefix = origuser
 
+    def testAddRatingNotification(self):
+        try:
+            origuser = self.prefix
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
+            self.assertNotError('ratingnotification add nanotube')
+            self.assertNotError('rate authedguy 5')
+
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('rate nanotube 1')
+        finally:
+            self.prefix = origuser
+
+    def testRemoveRatingNotification(self):
+        try:
+            origuser = self.prefix
+            self.prefix = 'nanotube!stuff@stuff/somecloak'
+            self.assertNotError('ratingnotification add nanotube')
+            self.assertNotError('ratingnotification remove nanotube')
+            self.assertNotError('rate authedguy 1')
+
+            self.prefix = 'authedguy!stuff@123.345.234.34'
+            self.assertNotError('rate nanotube 1')
+        finally:
+            self.prefix = origuser
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
