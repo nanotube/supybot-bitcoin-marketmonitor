@@ -650,7 +650,7 @@ class GPG(callbacks.Plugin):
                 irc.error("This key id already registered. Try a different key.")
                 return
             self.db.changekey(gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'], authrequest['fingerprint'])
-            response = "Successfully changed key for user %s from %s to %s." %\
+            response = "Successfully changed key for user %s from %s to %s. " %\
                 (gpgauth['nick'], gpgauth['keyid'], authrequest['keyid'],)
         userdata = self.db.getByNick(authrequest['nick'])
         self.authed_users[msg.prefix] = {'timestamp':time.time(),
