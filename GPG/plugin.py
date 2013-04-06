@@ -976,10 +976,7 @@ class GPG(callbacks.Plugin):
 
     def _ident(self, hostmask):
         """Use to check identity status from other plugins."""
-        try:
-            return self.authed_users[hostmask]
-        except KeyError:
-            return None
+        return self.authed_users.get(hostmask, None)
 
     def _identByNick(self, nick):
         for k,v in self.authed_users.iteritems():
