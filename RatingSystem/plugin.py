@@ -77,6 +77,12 @@ class RatingSystemDB(object):
                           rating INTEGER,
                           notes TEXT)
                           """)
+
+        cursor.execute("""CREATE TABLE rating_notification (
+                          id INTEGER PRIMARY KEY,
+                          user_id INTEGER,
+                          nick TEXT UNIQUE ON CONFLICT REPLACE)
+                          """)
         self._commit()
         return
 
@@ -258,6 +264,7 @@ class RatingSystemDB(object):
                             (userid, userid,))
         self._commit()
 
+
 class RatingSystem(callbacks.Plugin):
     """This plugin maintains a rating system among IRC users.
     Use commands 'rate' and 'unrate' to enter/remove your ratings.
@@ -296,6 +303,7 @@ class RatingSystem(callbacks.Plugin):
         must be the user's GPG-registered username, Your previously existing rating,
         if any, will be overwritten.
         """
+
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("For identification purposes, you must be authenticated "
@@ -343,14 +351,24 @@ class RatingSystem(callbacks.Plugin):
                         (nick, priorrating[0][4], rating,)
         self.db.rate(gpgauth['nick'], sourceid, nick, targetid, rating,
                      replacementflag, notes)
+
+        if not replacementflag:
+          logmsg = "New rating | %s > %s > %s | %s" % (gpgauth['nick'], rating, nick, notes)
+        else:
+          logmsg = "Rating change | Old rating %s | New rating: %s > %s > %s | %s" % \
+            (priorrating[0][4], gpgauth['nick'], rating, nick, notes,)
+
         if not world.testing:
-            if not replacementflag:
-                logmsg = "New rating | %s > %s > %s | %s" % (gpgauth['nick'],
-                        rating, nick, notes)
-            else:
-                logmsg = "Rating change | Old rating %s | New rating: %s > %s > %s | %s" % \
-                        (priorrating[0][4], gpgauth['nick'], rating, nick, notes,)
-            irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ratings", logmsg))
+          irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ratings", logmsg))
+
+        nickToNotify = irc.getCallback('UserSettings')._getRatedNick(targetid)
+        if len(nickToNotify) != 0 and targetid != None:
+          if not world.testing:
+            irc.queueMsg(ircmsgs.privmsg(nickToNotify[0][0], logmsg))
+          else:
+            print 'sending priv msg to', nickToNotify[0][0], logmsg 
+          
+
         irc.reply("Rating entry successful. %s" % (result,))
     rate = wrap(rate, ['something', 'int', optional('text')])
 
@@ -506,6 +524,40 @@ class RatingSystem(callbacks.Plugin):
         self.db.deleteuser(data[0][0])
         irc.reply("Successfully deleted user %s, id %s" % (nick, data[0][0],))
     deleteuser = wrap(deleteuser, ['owner','something'])
+
+    def ratingnotification(self, irc, msg, args, option, nick):
+        """<add | remove> <irc_username>
+        Adds or removes your rating notification.
+        When ever you receive a rating, you will get notified by msg.
+        """
+
+        if option not in ('add', 'remove'):
+          irc.error("You can only add or remove.")
+          return
+
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is None:
+          irc.error("You must be authenticated to perform this operation.")
+          return
+
+        user = self.db.get(gpgauth['nick'])
+        if len(user) == 0:
+          irc.error("Your nick does not exist in the Rating database.")
+          return
+
+        userId = user[0][0]
+        added_or_removed = ''
+
+        if option == 'add':
+          added_or_removed = 'added'
+          irc.getCallback('UserSettings')._addRatingNotification(userId, nick)
+        else:
+          added_or_removed = 'removed'
+          irc.getCallback('UserSettings')._removeRatingNotification(userId, nick)
+
+        irc.reply("Successfully %s user %s with IRC nick %s to the rating notification system." % (added_or_removed, user, nick))
+
+    ratingnotification = wrap(ratingnotification, ['something','something'])
 
 
 Class = RatingSystem
