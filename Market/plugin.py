@@ -41,7 +41,7 @@ import json
 from urllib2 import urlopen
 import time
 
-def getNonNegativeFloat(irc, msg, args, state, type=' floating point number'):
+def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
     try:
         v = float(args[0])
         if v < 0:
