@@ -518,7 +518,7 @@ class BitcoinData(callbacks.Plugin):
         Calculate probability to generate a block using <hashrate> Mhps,
         in <interval> seconds, at current difficulty.
         If optional <difficulty> argument is provided, probability is for supplied difficulty.
-        To provide the <interval> argument, a nested 'elapsed' command may be helpful.
+        To provide the <interval> argument, a nested 'seconds' command may be helpful.
         '''
         if difficulty is None:
             try:
@@ -530,6 +530,25 @@ class BitcoinData(callbacks.Plugin):
         irc.reply("The probability to generate a block at %s Mhps within %s, given difficulty of %s, is %s" % \
                 (hashrate, utils.timeElapsed(interval), difficulty, gp))
     genprob = wrap(genprob, ['positiveFloat', 'positiveInt', optional('positiveFloat')])
+
+    def tblb(self, irc, msg, args, interval):
+        """<interval>
+        
+        Calculate the expected time between blocks which take at least
+        <interval> seconds to create.
+        To provide the <interval> argument, a nested 'seconds' command may be helpful.
+        """
+        try:
+            difficulty = float(self._diff())
+            nh = float(self._nethash3d())
+            gp = self._genprob(nh*1000, interval, difficulty)
+        except:
+            irc.error("Problem retrieving data. Try again later.")
+            return
+        sblb = (difficulty * 2**48 / 65535) / (nh * 1e9) / (1 - gp)
+        irc.reply("The expected time between blocks taking %s to generate is %s" % \
+                (utils.timeElapsed(interval), utils.timeElapsed(sblb),))
+    tblb = wrap(tblb, ['positiveInt'])
 
 
 Class = BitcoinData
