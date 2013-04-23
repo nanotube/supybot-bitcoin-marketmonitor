@@ -52,6 +52,9 @@ function index_prices($rawprice){
 		$indexedprice = preg_replace("/{mtgoxask}/", $ticker['sell']['value'], $rawprice);
 		$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy']['value'], $indexedprice);
 		$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last']['value'], $indexedprice);
+		$indexedprice = preg_replace("/{mtgoxhigh}/", $ticker['high']['value'], $indexedprice);
+		$indexedprice = preg_replace("/{mtgoxlow}/", $ticker['low']['value'], $indexedprice);
+		$indexedprice = preg_replace("/{mtgoxavg}/", $ticker['vwap']['value'], $indexedprice);
 		$indexedprice = get_currency_conversion($indexedprice);
 		$code = 'set_error_handler("doNothing");return(' . $indexedprice . ');restore_error_handler();';
 		ob_start();

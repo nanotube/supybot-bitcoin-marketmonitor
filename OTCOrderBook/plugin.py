@@ -174,15 +174,16 @@ def getAt(irc, msg, args, state):
 
 def getIndexedPrice(irc, msg, args, state, type='price input'):
     """Indexed price can contain one or more of {mtgoxask}, {mtgoxbid},
-    {mtgoxlast}, included in an arithmetical expression.
+    {mtgoxlast}, {mtgoxhigh}, {mtgoxlow}, {mtgoxavg}, included in 
+    an arithmetical expression.
     It can also contain one expression of the form {XXX in YYY} which
     queries google for currency conversion rate from XXX to YYY."""
     try:
         v = args[0]
-        v = re.sub(r'{mtgoxask}|{mtgoxbid}|{mtgoxlast}', '1', v)
+        v = re.sub(r'{mtgox(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{... in ...}', '1', v, 1)
         if not set(v).issubset(set('1234567890*-+./() ')) or '**' in v:
-            raise ValueError, "only {mtgoxask}, {mtgoxbid}, {mtgoxlast}, one {... in ...}, and arithmetic allowed."
+            raise ValueError, "only {mtgoxask}, {mtgoxbid}, {mtgoxlast}, {mtgoxhigh}, {mtgoxlow}, {mtgoxavg}, one {... in ...}, and arithmetic allowed."
         eval(v)
         state.args.append(args[0])
         del args[0]
@@ -270,6 +271,9 @@ class OTCOrderBook(callbacks.Plugin):
             indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell']['value'], rawprice)
             indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy']['value'], indexedprice)
             indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last']['value'], indexedprice)
+            indexedprice = re.sub(r'{mtgoxhigh}', self.ticker['high']['value'], indexedprice)
+            indexedprice = re.sub(r'{mtgoxlow}', self.ticker['low']['value'], indexedprice)
+            indexedprice = re.sub(r'{mtgoxavg}', self.ticker['vwap']['value'], indexedprice)
             indexedprice = self._getCurrencyConversion(indexedprice)
             return "%.5g" % eval(indexedprice)
         except:
@@ -281,7 +285,8 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a buy order for <amount> units of <thing>, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
+        and {mtgox(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
+        high, low, or avg price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
         If '--long' option is given, puts in a longer-duration order, but this is only
@@ -328,7 +333,8 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a sell order for <amount> units of <thing, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {mtgox(ask|bid|last)} to index price to mtgox ask, bid, or last price.
+        and {mtgox(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
+        high, low, or avg price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
         If '--long' option is given, puts in a longer-duration order, but this is only
