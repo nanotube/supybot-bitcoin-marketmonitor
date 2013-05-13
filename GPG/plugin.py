@@ -241,6 +241,19 @@ class GPG(callbacks.Plugin):
             except:
                 pass #let's keep going
 
+    def _checkURLWhitelist(self, url):
+        if not self.registryValue('pastebinWhitelist'):
+            return True
+        passed = False
+        for wu in self.registryValue('pastebinWhitelist'):
+            if wu.endswith('/') and url.find(wu) == 0:
+                passed = True
+                break
+            if (not wu.endswith('/')) and (url.find(wu + '/') == 0):
+                passed = True
+                break
+        return passed
+
     def register(self, irc, msg, args, nick, keyid, keyserver):
         """<nick> <keyid> [<keyserver>]
 
@@ -537,6 +550,10 @@ class GPG(callbacks.Plugin):
         or your IRC session on channel (whichever is shorter).
         """
         self._removeExpiredRequests()
+        if not self._checkURLWhitelist(url):
+            irc.error("Only these pastebins are supported: %s" % \
+                    self.registryValue('pastebinWhitelist'))
+            return
         if not self._testPresenceInChannels(irc, msg.nick):
             irc.error("In order to authenticate, you must be present in one "
                     "of the following channels: %s" % (self.registryValue('channels'),))

@@ -35,7 +35,7 @@ conf.registerGlobalValue(GPG, 'authRequestTimeout',
     registry.NonNegativeInteger(300, """Time (seconds) for authentication
     requests to time out."""))
 conf.registerGlobalValue(GPG, 'keyservers',
-    registry.String("pgp.surfnet.nl,pgp.mit.edu", """Default keyservers to
+    registry.String("subset.pool.sks-keyservers.net,pgp.mit.edu", """Default keyservers to
     use for key retrieval. Comma-separated list."""))
 conf.registerGlobalValue(GPG, 'channels',
     registry.String("#bitcoin-otc", """Channels to monitor for user parts
@@ -43,5 +43,10 @@ conf.registerGlobalValue(GPG, 'channels',
 conf.registerGlobalValue(GPG, 'network',
     registry.String("freenode", """Network to monitor for user parts/quits
     and bot quits for auth removal."""))
+conf.registerGlobalValue(GPG, 'pastebinWhitelist',
+    registry.SpaceSeparatedListOfStrings(['http://pastebin.com','http://paste.debian.net'], 
+    """If set, bot will only fetch clearsigned data
+    for the verify command from urls in the whitelist, i.e. starting with
+    http://domain/optionalpath/."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
