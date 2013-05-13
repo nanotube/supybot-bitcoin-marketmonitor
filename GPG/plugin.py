@@ -151,14 +151,6 @@ def getGPGKeyID(irc, msg, args, state, type='GPG key id. Please use the long for
     state.args.append(m.group(2).upper())
     del args[0]
 
-def getKeyserver(irc, msg, args, state, type='keyserver'):
-    v = args[0]
-    if not urlRe.search(v) and not domainRe.search(v):
-        state.errorInvalid(type, args[0])
-        return
-    state.args.append(args[0])
-    del args[0]
-
 def getUsername(irc, msg, args, state, type='username. Usernames must contain only printable ASCII characters with no whitespace'):
     v = args[0]
     m = re.search(r"^[!-~]+$", v)
@@ -169,7 +161,6 @@ def getUsername(irc, msg, args, state, type='username. Usernames must contain on
     del args[0]
 
 addConverter('keyid', getGPGKeyID)
-addConverter('keyserver', getKeyserver)
 addConverter('username', getUsername)
 
 class GPG(callbacks.Plugin):
@@ -254,13 +245,12 @@ class GPG(callbacks.Plugin):
                 break
         return passed
 
-    def register(self, irc, msg, args, nick, keyid, keyserver):
-        """<nick> <keyid> [<keyserver>]
+    def register(self, irc, msg, args, nick, keyid):
+        """<nick> <keyid>
 
         Register your GPG identity, associating GPG key <keyid> with <nick>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
-        Optional <keyserver> argument tells us where to get your public key.
-        By default we look on servers listed in 'plugins.GPG.keyservers' config.
+        We look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a random passphrase to clearsign with your key, and
         submit to the bot with the 'verify' command.
         Your passphrase will expire in 10 minutes.
@@ -279,11 +269,7 @@ class GPG(callbacks.Plugin):
                     "Contact otc administrator to reclaim the account, if "
                     "you are an oldtimer since before key auth.")
             return
-        keyservers = []
-        if keyserver:
-            keyservers.extend([keyserver])
-        else:
-            keyservers.extend(self.registryValue('keyservers').split(','))
+        keyservers = self.registryValue('keyservers').split(',')
         try:
             fingerprint = self._recv_key(keyservers, keyid)
         except Exception as e:
@@ -302,15 +288,14 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (nick, msg.prefix, challenge,))
-    register = wrap(register, ['username', 'keyid', optional('keyserver')])
+    register = wrap(register, ['username', 'keyid'])
 
-    def eregister(self, irc, msg, args, nick, keyid, keyserver):
-        """<nick> <keyid> [<keyserver>]
+    def eregister(self, irc, msg, args, nick, keyid):
+        """<nick> <keyid>
 
         Register your GPG identity, associating GPG key <keyid> with <nick>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
-        Optional <keyserver> argument tells us where to get your public key.
-        By default we look on servers listed in 'plugins.GPG.keyservers' config.
+        We look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a link to a page which contains a one time password
         encrypted with your key. Decrypt, and use the 'everify' command with it.
         Your passphrase will expire in 10 minutes.
@@ -329,11 +314,7 @@ class GPG(callbacks.Plugin):
                     "Contact otc administrator to reclaim the account, if "
                     "you are an oldtimer since before key auth.")
             return
-        keyservers = []
-        if keyserver:
-            keyservers.extend([keyserver])
-        else:
-            keyservers.extend(self.registryValue('keyservers').split(','))
+        keyservers = self.registryValue('keyservers').split(',')
         try:
             fingerprint = self._recv_key(keyservers, keyid)
         except Exception as e:
@@ -365,7 +346,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, nick, keyid,))
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (nick, msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
-    eregister = wrap(eregister, ['username', 'keyid', optional('keyserver')])
+    eregister = wrap(eregister, ['username', 'keyid'])
 
     def bcregister(self, irc, msg, args, nick, bitcoinaddress):
         """<nick> <bitcoinaddress>
@@ -770,13 +751,12 @@ class GPG(callbacks.Plugin):
         #~ irc.reply("Successfully changed your nick from %s to %s." % (oldnick, newnick,))
     #~ changenick = wrap(changenick, ['something'])
 
-    def changekey(self, irc, msg, args, keyid, keyserver):
-        """<keyid> [<keyserver>]
+    def changekey(self, irc, msg, args, keyid):
+        """<keyid>
         
         Changes your GPG registered key to <keyid>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
-        Optional <keyserver> argument tells us where to get your public key.
-        By default we look on servers listed in 'plugins.GPG.keyservers' config.
+        We look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a random passphrase to clearsign with your key, and
         submit to the bot with the 'verify' command.
         You must be authenticated in order to use this command.
@@ -790,11 +770,7 @@ class GPG(callbacks.Plugin):
             irc.error("This key id already registered. Try a different key.")
             return
 
-        keyservers = []
-        if keyserver:
-            keyservers.extend([keyserver])
-        else:
-            keyservers.extend(self.registryValue('keyservers').split(','))
+        keyservers = self.registryValue('keyservers').split(',')
         try:
             fingerprint = self._recv_key(keyservers, keyid)
         except Exception as e:
@@ -813,15 +789,14 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, gpgauth['nick'], gpgauth['keyid'], keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Your challenge string is: %s" %\
                 (gpgauth['nick'], msg.prefix, challenge,))
-    changekey = wrap(changekey, ['keyid', optional('keyserver')])
+    changekey = wrap(changekey, ['keyid',])
 
-    def echangekey(self, irc, msg, args, keyid, keyserver):
-        """<keyid> [<keyserver>]
+    def echangekey(self, irc, msg, args, keyid):
+        """<keyid>
         
         Changes your GPG registered key to <keyid>.
         <keyid> is a 16 digit key id, with or without the '0x' prefix.
-        Optional <keyserver> argument tells us where to get your public key.
-        By default we look on pgp.mit.edu and pgp.surfnet.nl.
+        We look on servers listed in 'plugins.GPG.keyservers' config.
         You will be given a link to a page which contains a one time password
         encrypted with your key. Decrypt, and use the 'everify' command with it.
         You must be authenticated in order to use this command.
@@ -835,11 +810,7 @@ class GPG(callbacks.Plugin):
             irc.error("This key id already registered. Try a different key.")
             return
 
-        keyservers = []
-        if keyserver:
-            keyservers.extend([keyserver])
-        else:
-            keyservers.extend(self.registryValue('keyservers').split(','))
+        keyservers = self.registryValue('keyservers').split(',')
         try:
             fingerprint = self._recv_key(keyservers, keyid)
         except Exception as e:
@@ -871,7 +842,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, gpgauth['nick'], gpgauth['keyid'], keyid, ))
         irc.reply("Request successful for user %s, hostmask %s. Get your encrypted OTP from %s" %\
                 (gpgauth['nick'], msg.prefix, 'http://bitcoin-otc.com/otps/%s' % (keyid,),))
-    echangekey = wrap(echangekey, ['keyid', optional('keyserver')])
+    echangekey = wrap(echangekey, ['keyid',])
 
     def changeaddress(self, irc, msg, args, bitcoinaddress):
         """<bitcoinaddress>
