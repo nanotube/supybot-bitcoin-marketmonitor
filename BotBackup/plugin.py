@@ -39,12 +39,10 @@ class BotBackup(callbacks.Plugin):
     """This plugin lets you run a live instance of a backup bot. It will keep
     the backup bot silent unless all the precedent bots are offline."""
     threaded=True
-    
-    def outFilter(self, irc, msg):
+
+    def inFilter(self, irc, msg):
         quiet = False
-        if msg.command == 'PRIVMSG' and \
-                irc.isChannel(msg.args[0]) and \
-                msg.inReplyTo is not None: # 'say' msgs don't have an inReplyTo
+        if irc.isChannel(msg.args[0]):
             for pn in self.registryValue('precedentBotNicks'):
                 if pn in irc.state.channels[msg.args[0]].users:
                     quiet = True
