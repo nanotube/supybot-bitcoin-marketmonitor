@@ -261,7 +261,7 @@ class BitcoinData(callbacks.Plugin):
                 irc.error("Failed to fetch current difficulty. Try again later or supply difficulty manually.")
                 return
         gentime = self._gentime(hashrate, difficulty)
-        irc.reply("The average time to generate a block at %s h/s, given difficulty of %s, is %s" % \
+        irc.reply("The average time to generate a block at %.0f h/s, given difficulty of %.0f, is %s" % \
                 (hashrate, difficulty, utils.timeElapsed(gentime)))
     gentime = wrap(gentime, ['hashrate', optional('positiveFloat')])
 
@@ -284,7 +284,7 @@ class BitcoinData(callbacks.Plugin):
         except:
             irc.error("Failed to retrieve current block bounty. Try again later.")
             return
-        irc.reply("The expected generation output, at %s h/s, given difficulty of %s, is %s BTC "
+        irc.reply("The expected generation output, at %.0f h/s, given difficulty of %.0f, is %s BTC "
                 "per day and %s BTC per hour." % (hashrate, difficulty,
                             bounty*24*60*60/gentime,
                             bounty * 60*60/gentime))
@@ -520,11 +520,11 @@ class BitcoinData(callbacks.Plugin):
         except:
             timetonext = None        
         
-        irc.reply("Current Blocks: %s | Current Difficulty: %s | "
+        irc.reply("Current Blocks: %s | Current Difficulty: %.0f | "
                 "Next Difficulty At Block: %s | "
                 "Next Difficulty In: %s blocks | "
                 "Next Difficulty In About: %s | "
-                "Next Difficulty Estimate: %s | "
+                "Next Difficulty Estimate: %.0f | "
                 "Estimated Percent Change: %s" % (blocks, diff, 
                         nextretarget, blockstoretarget, timetonext, 
                         estimate, diffchange))
@@ -551,7 +551,7 @@ class BitcoinData(callbacks.Plugin):
                 irc.error("Failed to current difficulty. Try again later or supply difficulty manually.")
                 return
         gp = self._genprob(hashrate, interval, difficulty)
-        irc.reply("The probability to generate a block at %s h/s within %s, given difficulty of %s, is %s" % \
+        irc.reply("The probability to generate a block at %.0f h/s within %s, given difficulty of %.0f, is %s" % \
                 (hashrate, utils.timeElapsed(interval), difficulty, gp))
     genprob = wrap(genprob, ['hashrate', 'positiveInt', optional('positiveFloat')])
 
