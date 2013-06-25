@@ -399,12 +399,12 @@ class Market(callbacks.Plugin):
         It is up to you to make sure that the three letter code you enter is a valid currency
         that is traded on mtgox. Default currency is USD.
         """
-        supportedmarkets = ['mtgox','btce']
+        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
-        market = od.pop('market','mtgox')
-        if market.lower() not in supportedmarkets:
-            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets,))
+        market = od.pop('market','mtgox').lower()
+        if market not in supportedmarkets.keys():
+            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.values(),))
             return
         if len(od) > 1:
             irc.error("Please only choose at most one result option at a time.")
@@ -423,7 +423,7 @@ class Market(callbacks.Plugin):
         if len(od) == 0:
             irc.reply("%s BTC%s ticker | Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
                 "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s, 24 hour vwap: %s" % \
-                (market, currency, ticker['bid'], ticker['ask'],
+                (supportedmarkets[market], currency, ticker['bid'], ticker['ask'],
                 float(ticker['ask']) - float(ticker['bid']), ticker['last'],
                 ticker['vol'], ticker['low'], ticker['high'],
                 ticker['avg']))
