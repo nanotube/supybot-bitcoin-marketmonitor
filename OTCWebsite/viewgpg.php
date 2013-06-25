@@ -21,7 +21,7 @@
 ?>
 <?php
 	$queryfilter = array();
-	if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string(like($nickfilter, '|')) . "' ESCAPE '|'";
+	if ($nickfilter != "") $queryfilter[] = "nick LIKE :nick ESCAPE '|'";
 	if (sizeof($queryfilter) != 0) {
 		$queryfilter = " WHERE " . join(' AND ', $queryfilter);
 	}
@@ -54,7 +54,7 @@
 <?php
 if ($nickfilter != ""){
 	echo '<a href="viewgpg.php">GPG Key database</a> &rsaquo;';
-	echo "GPG Key for " . htmlentities($nickfilter);
+	echo "GPG Key for " . htmlspecialchars($nickfilter);
 }
 else {
 	echo "GPG Key database";
@@ -62,7 +62,7 @@ else {
 ?>
 </div>
 
-  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user " . htmlentities($nickfilter) ;} ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
+  <h3>#bitcoin-otc gpg key data <?php if ($nickfilter != ""){echo "for user " . htmlspecialchars($nickfilter) ;} ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
   <table class="datadisplay sortable">
    <tr>
 
@@ -75,17 +75,22 @@ else {
 ?>
    </tr>
 <?php
-	$sql = 'SELECT * FROM users ' . $queryfilter . 'ORDER BY ' . sqlite_escape_string($sortby) . ' COLLATE NOCASE ' . sqlite_escape_string($sortorder);
-	if (!$query = $db->Query($sql))
+	$sql = 'SELECT * FROM users ' . $queryfilter . 'ORDER BY nick COLLATE NOCASE ASC';
+	$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
+	$sth->setFetchMode(PDO::FETCH_ASSOC);
+	if ($nickfilter != "") $sth->bindValue(':nick', like($nickfilter, '|'));
+	$sth->execute();
+
+	if (!$sth)
 		echo "<tr><td>No users found</td></tr>\n";
 	else {
 		$color = 0;
-		while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
+		while ($entry = $sth->fetch(PDO::FETCH_BOTH)) {
 			if ($color++ % 2) $class="even"; else $class="odd";
 ?>
    <tr class="<?php echo $class; ?>">
     <td><?php echo $entry['id']; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>&sign=ANY&type=RECV"><?php echo htmlentities($entry['nick']); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlspecialchars($entry['nick']); ?>&sign=ANY&type=RECV"><?php echo htmlspecialchars($entry['nick']); ?></a></td>
     <td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['registered_at']); ?></td>
     <td><?php echo $entry['keyid']; ?></td>
 	<td><a href ="http://pool.sks-keyservers.net:11371/pks/lookup?op=vindex&search=0x<?php echo $entry['fingerprint']; ?>"><?php echo $entry['fingerprint']; ?></a></td>

@@ -28,12 +28,12 @@
   include("somefunctions.php");
   
   $queryfilter = array();
-  if ($typefilter != "") $queryfilter[] = "buysell LIKE '" . sqlite_escape_string($typefilter) . "'";
-  if ($thingfilter != "") $queryfilter[] = "thing LIKE '" . sqlite_escape_string($thingfilter) . "'";
-  if ($nickfilter != "") $queryfilter[] = "nick LIKE '" . sqlite_escape_string($nickfilter) . "'";
-  if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE '" . sqlite_escape_string($otherthingfilter) . "'";
-  if ($eitherthingfilter != "") $queryfilter[] = "(thing LIKE '" . sqlite_escape_string($eitherthingfilter) . "' OR otherthing LIKE '" . sqlite_escape_string($eitherthingfilter) . "')";
-  if ($notesfilter != "") $queryfilter[] = "notes LIKE '%" . sqlite_escape_string($notesfilter) . "%'";
+  if ($typefilter != "") $queryfilter[] = "buysell LIKE :buysell";
+  if ($thingfilter != "") $queryfilter[] = "thing LIKE :thing";
+  if ($nickfilter != "") $queryfilter[] = "nick LIKE :nick";
+  if ($otherthingfilter != "") $queryfilter[] = "otherthing LIKE :otherthing";
+  if ($eitherthingfilter != "") $queryfilter[] = "(thing LIKE :eitherthing OR otherthing LIKE :eitherthing)";
+  if ($notesfilter != "") $queryfilter[] = "notes LIKE :notes";
 
 ?>
 
@@ -91,9 +91,9 @@ if (sizeof($queryfilter) != 0) {
 <?php
 if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE NOCASE ASC')){
   while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-    echo '<option value="' . htmlentities($entry['nick']) . '"';
+    echo '<option value="' . htmlspecialchars($entry['nick']) . '"';
     if (strcasecmp($nickfilter, $entry['nick']) == 0) {echo " selected";}
-    echo '>' . htmlentities($entry['nick']) . "</option>\n";
+    echo '>' . htmlspecialchars($entry['nick']) . "</option>\n";
   }
 }
 ?>
@@ -104,9 +104,9 @@ if ($query = $db->Query('SELECT distinct nick FROM orders ORDER BY nick COLLATE 
 if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDER BY uthing ASC')){
   $thingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
   foreach ($thingdata as $thing) {
-    echo '<option value="' . htmlentities($thing) . '"';
+    echo '<option value="' . htmlspecialchars($thing) . '"';
     if (strcasecmp($thingfilter, $thing) == 0) {echo " selected";}
-    echo '>' . htmlentities($thing) . "</option>\n";
+    echo '>' . htmlspecialchars($thing) . "</option>\n";
   }
 }
 ?>
@@ -117,9 +117,9 @@ if ($query = $db->Query('SELECT distinct upper(thing) AS uthing FROM orders ORDE
 if ($query = $db->Query('SELECT distinct upper(otherthing) AS uotherthing FROM orders ORDER BY uotherthing ASC')){
   $otherthingdata = $query->fetchAll(PDO::FETCH_COLUMN, 0);
   foreach ($otherthingdata as $otherthing) {
-    echo '<option value="' . htmlentities($otherthing) . '"';
+    echo '<option value="' . htmlspecialchars($otherthing) . '"';
     if (strcasecmp($otherthingfilter, $otherthing) == 0) {echo " selected";}
-    echo '>' . htmlentities($otherthing) . "</option>\n";
+    echo '>' . htmlspecialchars($otherthing) . "</option>\n";
   }
 }
 ?>
@@ -131,13 +131,13 @@ $eitherthingdata = array_merge($thingdata, $otherthingdata);
 sort($eitherthingdata, SORT_STRING);
 $eitherthingdata = array_unique($eitherthingdata);
 foreach ($eitherthingdata as $eitherthing) {
-  echo '<option value="' . htmlentities($eitherthing) . '"';
+  echo '<option value="' . htmlspecialchars($eitherthing) . '"';
   if (strcasecmp($eitherthingfilter, $eitherthing) == 0) {echo " selected";}
-  echo '>' . htmlentities($eitherthing) . "</option>\n";
+  echo '>' . htmlspecialchars($eitherthing) . "</option>\n";
 }
 ?>
 </select>
-<label>Search notes: <input type="text" name="notes" <?php if ($notesfilter != "") {echo 'value="' . htmlentities($notesfilter) . '"';} ?> /></label>
+<label>Search notes: <input type="text" name="notes" <?php if ($notesfilter != "") {echo 'value="' . htmlspecialchars($notesfilter) . '"';} ?> /></label>
 <input type="submit" value="Filter" />
 </form>
 </td></tr>
@@ -161,29 +161,40 @@ foreach ($colheaders as $by => $colhdr) {
 }
 ?>   </tr>
 <?php
-   if (sizeof($queryfilter) != 0) {
-     $queryfilter = " WHERE " . join(' AND ', $queryfilter);
-   }
-   else {
-     $queryfilter = "";
-   }
-   $sql = 'SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ' . $queryfilter . ' ORDER BY ' . sqlite_escape_string($sortby) . ' COLLATE NOCASE ' . sqlite_escape_string($sortorder);
-   if (!$query = $db->Query($sql))
-     echo "   <tr><td>No outstanding orders found</td></tr>\n";
-   else {
-     $color = 0;
-     while ($entry = $query->fetch(PDO::FETCH_BOTH)) {
-       if ($color++ % 2) $class="even"; else $class="odd";
+  if (sizeof($queryfilter) != 0) {
+    $queryfilter = " WHERE " . join(' AND ', $queryfilter);
+  }
+  else {
+    $queryfilter = "";
+  }
+  $sql = 'SELECT id, created_at, refreshed_at, buysell, nick, host, amount, thing, price, otherthing, notes FROM orders ' . $queryfilter . ' ORDER BY id COLLATE NOCASE ASC';
+  $sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
+  $sth->setFetchMode(PDO::FETCH_ASSOC);
+  
+  if ($typefilter != "") $sth->bindValue(':buysell',$typefilter);
+  if ($thingfilter != "") $sth->bindValue(':thing',$thingfilter);
+  if ($nickfilter != "") $sth->bindValue(':nick',$nickfilter);
+  if ($otherthingfilter != "") $sth->bindValue(':otherthing',$otherthingfilter);
+  if ($eitherthingfilter != "") $sth->bindValue(':eitherthing',$eitherthingfilter);
+  if ($notesfilter != "") $sth->bindValue(':notes','%' . $notesfilter . '%');
+
+  $sth->execute();
+  if (!$sth)
+    echo "   <tr><td>No outstanding orders found</td></tr>\n";
+  else {
+    $color = 0;
+    while ($entry = $sth->fetch(PDO::FETCH_BOTH)) {
+      if ($color++ % 2) $class="even"; else $class="odd";
 ?>
    <tr class="<?php echo $class; ?>"> 
     <td><a href="vieworder.php?id=<?php echo $entry["id"]; ?>"><?php echo $entry["id"]; ?></a></td>
     <td class="type"><?php echo $entry["buysell"]; ?></td>
-    <td><a href="viewratingdetail.php?nick=<?php echo htmlentities($entry['nick']); ?>"><?php echo htmlentities($entry["nick"]); ?></a></td>
+    <td><a href="viewratingdetail.php?nick=<?php echo htmlspecialchars($entry['nick']); ?>"><?php echo htmlspecialchars($entry["nick"]); ?></a></td>
     <td><?php echo $entry["amount"]; ?></td>
-    <td class="currency"><?php echo htmlentities($entry["thing"]); ?></td>
+    <td class="currency"><?php echo htmlspecialchars($entry["thing"]); ?></td>
     <td class="price"><?php $indp = index_prices($entry["price"]); if (is_numeric($indp)) {printf("%.5g", $indp);} else {echo $indp; } ?></td>
-    <td class="currency"><?php echo htmlentities($entry["otherthing"]); ?></td>
-    <td><?php echo htmlentities($entry["notes"]); ?></td>
+    <td class="currency"><?php echo htmlspecialchars($entry["otherthing"]); ?></td>
+    <td><?php echo htmlspecialchars($entry["notes"]); ?></td>
    </tr>
 <?
      }
