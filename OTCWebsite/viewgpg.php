@@ -33,10 +33,15 @@
 	include('querytojson.php');
 	if ($outformat == 'json'){
 		$sql = 'SELECT * FROM users ' . $queryfilter;
-		if (!$query = $db->Query($sql, PDO::FETCH_ASSOC))
+		$sth = $db->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
+		$sth->setFetchMode(PDO::FETCH_ASSOC);
+		if ($nickfilter != "") $sth->bindValue(':nick', like($nickfilter, '|'));
+		$sth->execute();
+
+		if (!$sth)
 			echo "[]";
 		else
-			jsonOutput($query);
+			jsonOutput($sth);
 		exit();
 	}
 ?>
