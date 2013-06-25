@@ -40,6 +40,7 @@ import re
 import json
 from urllib2 import urlopen
 import time
+import traceback
 
 def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
     try:
@@ -88,16 +89,58 @@ class Market(callbacks.Plugin):
         except:
             pass # oh well, try again later.
 
-    def _getTicker(self, currency):
-        json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
+    def _getMtgoxTicker(self, currency):
+        if not world.testing or currency != 'USD':
+            json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
+            ticker = json.loads(json_data)
+            ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
+            tf = json.loads(ftj)
+            if ticker['result'] != 'error' and tf['result'] != 'error': # use fast ticker where available
+                ticker['data']['buy']['value'] = tf['data']['buy']['value']
+                ticker['data']['sell']['value'] = tf['data']['sell']['value']
+                ticker['data']['last']['value'] = tf['data']['last']['value']
+        else:
+            ticker = json.load(open('/tmp/mtgox.ticker.json'))
+        if ticker['result'] == 'error':
+             stdticker = {'error':ticker['error']}
+        else:
+            stdticker = {'bid': ticker['data']['buy']['value'],
+                                'ask': ticker['data']['sell']['value'],
+                                'last': ticker['data']['last']['value'],
+                                'vol': ticker['data']['vol']['value'],
+                                'low': ticker['data']['low']['value'],
+                                'high': ticker['data']['high']['value'],
+                                'avg': ticker['data']['vwap']['value']}
+        return stdticker
+
+    def _getBtceTicker(self, currency):
+        if currency.lower() == 'ltc':
+            pair = 'ltc_btc'
+        else:
+            pair = 'btc_%s' % (currency.lower(),)
+        json_data = urlopen("https://btc-e.com/api/2/%s/ticker" % (pair,)).read()
         ticker = json.loads(json_data)
-        ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
-        tf = json.loads(ftj)
-        if ticker['result'] != 'error' and tf['result'] != 'error': # use fast ticker where available
-            ticker['data']['buy']['value'] = tf['data']['buy']['value']
-            ticker['data']['sell']['value'] = tf['data']['sell']['value']
-            ticker['data']['last']['value'] = tf['data']['last']['value']
-        return ticker
+        if ticker.has_key('error'):
+            stdticker = {'error':ticker['error']}
+        else:
+            ticker = ticker['ticker']
+            if currency.lower() == 'ltc':
+                stdticker = {'bid': round(1.0/ticker['buy'],6),
+                                'ask': round(1.0/ticker['sell'],6),
+                                'last': round(1.0/ticker['last'],6),
+                                'vol': ticker['vol'],
+                                'low': round(1.0/ticker['low'],6),
+                                'high': round(1.0/ticker['high'],6),
+                                'avg': round(1.0/ticker['avg'],6)}
+            else:
+                stdticker = {'bid': ticker['sell'],
+                                'ask': ticker['buy'],
+                                'last': ticker['last'],
+                                'vol': ticker['vol_cur'],
+                                'low': ticker['low'],
+                                'high': ticker['high'],
+                                'avg': ticker['avg']}
+        return stdticker
 
     def _sellbtc(self, bids, value):
         n_coins = value
@@ -346,9 +389,9 @@ class Market(callbacks.Plugin):
     obip = wrap(obip, ['nonNegativeFloat'])
 
     def ticker(self, irc, msg, args, optlist):
-        """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX]
+        """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market mtgox|btce]
         
-        Return pretty-printed mtgox ticker. 
+        Return pretty-printed ticker. Default market is Mtgox. 
         If one of the result options is given, returns only that numeric result
         (useful for nesting in calculations).
         
@@ -356,34 +399,39 @@ class Market(callbacks.Plugin):
         It is up to you to make sure that the three letter code you enter is a valid currency
         that is traded on mtgox. Default currency is USD.
         """
+        supportedmarkets = ['mtgox','btce']
         od = dict(optlist)
-        if ('currency' not in od.keys() and len(od) > 1) or ('currency' in od.keys() and len(od) > 2):
+        currency = od.pop('currency', 'USD')
+        market = od.pop('market','mtgox')
+        if market.lower() not in supportedmarkets:
+            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets,))
+            return
+        if len(od) > 1:
             irc.error("Please only choose at most one result option at a time.")
             return
-        currency = od.pop('currency', 'USD')
+        dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker}
         try:
-            ticker = self._getTicker(currency)
+            ticker = dispatch[market](currency)
         except:
             irc.error("Failure to retrieve ticker. Try again later.")
+            traceback.print_exc()
             return
-        if ticker['result'] == 'error':
+        if ticker.has_key('error'):
             irc.error('Error retrieving ticker. Details: %s' % (ticker['error'],))
             return
 
         if len(od) == 0:
-            irc.reply("BTC%s ticker | Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
+            irc.reply("%s BTC%s ticker | Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
                 "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s, 24 hour vwap: %s" % \
-                (currency, ticker['data']['buy']['value'], ticker['data']['sell']['value'],
-                float(ticker['data']['sell']['value']) - float(ticker['data']['buy']['value']),
-                ticker['data']['last']['value'], ticker['data']['vol']['value'],
-                ticker['data']['low']['value'], ticker['data']['high']['value'],
-                ticker['data']['vwap']['value']))
+                (market, currency, ticker['bid'], ticker['ask'],
+                float(ticker['ask']) - float(ticker['bid']), ticker['last'],
+                ticker['vol'], ticker['low'], ticker['high'],
+                ticker['avg']))
         else:
             key = od.keys()[0]
-            key = {'bid':'buy', 'ask':'sell', 'avg':'vwap'}.setdefault(key, key)
-            irc.reply(ticker['data'][key]['value'])
+            irc.reply(ticker[key])
     ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
-            'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode'})])
+            'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode', 'market': 'something'})])
 
     def goxlag(self, irc, msg, args, optlist):
         """[--raw]
