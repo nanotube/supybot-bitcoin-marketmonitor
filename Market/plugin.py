@@ -388,6 +388,31 @@ class Market(callbacks.Plugin):
                 % (width, obip,(time.time() - self.lastdepthfetch),))
     obip = wrap(obip, ['nonNegativeFloat'])
 
+    def baratio(self, irc, msg, args):
+        """takes no arguments
+        
+        Calculate the ratio of total usd volume of bids to total btc volume of asks.
+        """
+        self._getMarketDepth()
+        try:
+            asks =self.mdepth['asks']
+            bids = self.mdepth['bids']
+        except KeyError:
+            irc.error("Failure to retrieve order book data. Try again later.")
+            return
+
+        totalasks = 0
+        for ask in asks:
+            totalasks += ask['amount']
+        totalbids = 0
+        for bid in bids:
+            totalbids += bid['amount'] * bid['price']
+        ratio = totalbids / totalasks
+        irc.reply("Total bids: %d USD. Total asks: %d BTC. Ratio: %.5f USD/BTC."
+                " | Data vintage: %.4f seconds"
+                % (totalbids, totalasks, ratio, (time.time() - self.lastdepthfetch),))
+    baratio = wrap(baratio)
+
     def ticker(self, irc, msg, args, optlist):
         """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market mtgox|btce]
         
