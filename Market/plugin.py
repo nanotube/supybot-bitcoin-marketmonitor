@@ -142,6 +142,21 @@ class Market(callbacks.Plugin):
                                 'avg': ticker['avg']}
         return stdticker
 
+    def _getBitstampTicker(self, currency):
+        json_data = urlopen("https://www.bitstamp.net/api/ticker/").read()
+        ticker = json.loads(json_data)
+        if currency != 'USD':
+            stdticker = {'error':'unsupported currency'}
+        else:
+            stdticker = {'bid': ticker['bid'],
+                                'ask': ticker['ask'],
+                                'last': ticker['last'],
+                                'vol': ticker['volume'],
+                                'low': ticker['low'],
+                                'high': ticker['high'],
+                                'avg': None}
+        return stdticker
+
     def _sellbtc(self, bids, value):
         n_coins = value
         total = 0.0
@@ -414,7 +429,7 @@ class Market(callbacks.Plugin):
     baratio = wrap(baratio)
 
     def ticker(self, irc, msg, args, optlist):
-        """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market mtgox|btce]
+        """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market mtgox|btce|bitstamp]
         
         Return pretty-printed ticker. Default market is Mtgox. 
         If one of the result options is given, returns only that numeric result
@@ -424,7 +439,7 @@ class Market(callbacks.Plugin):
         It is up to you to make sure that the three letter code you enter is a valid currency
         that is traded on mtgox. Default currency is USD.
         """
-        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E'}
+        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
         market = od.pop('market','mtgox').lower()
@@ -434,7 +449,8 @@ class Market(callbacks.Plugin):
         if len(od) > 1:
             irc.error("Please only choose at most one result option at a time.")
             return
-        dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker}
+        dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
+                'bitstamp':self._getBitstampTicker}
         try:
             ticker = dispatch[market](currency)
         except:
