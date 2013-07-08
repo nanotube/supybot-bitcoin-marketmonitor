@@ -187,6 +187,23 @@ class Market(callbacks.Plugin):
                                 'avg': None}
         return stdticker
 
+    def _getBtcdeTicker(self, currency):
+        json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
+        ticker = json.loads(json_data)
+        trades = urlopen('http://api.bitcoincharts.com/v1/trades.csv?symbol=btcdeEUR').readlines()
+        last = float(trades[0].split(',')[1])
+        if currency != 'EUR':
+            stdticker = {'error':'unsupported currency'}
+        else:
+            ticker = filter(lambda x: x['symbol'] == 'btcdeEUR', ticker)[0]
+            stdticker = {'bid': ticker['bid'],
+                                'ask': ticker['ask'],
+                                'last': last,
+                                'vol': ticker['volume'],
+                                'low': ticker['low'],
+                                'high': ticker['high'],
+                                'avg': ticker['avg']}
+        return stdticker
 
     def _sellbtc(self, bids, value):
         n_coins = value
@@ -471,7 +488,7 @@ class Market(callbacks.Plugin):
         that is traded on mtgox. Default currency is USD.
         """
         supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
-                'bitfinex':'Bitfinex'}
+                'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
         market = od.pop('market','mtgox').lower()
@@ -482,7 +499,8 @@ class Market(callbacks.Plugin):
             irc.error("Please only choose at most one result option at a time.")
             return
         dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
-                'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker}
+                'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
+                'btcde':self._getBtcdeTicker}
         try:
             ticker = dispatch[market](currency)
         except:
