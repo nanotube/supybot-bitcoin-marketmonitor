@@ -129,8 +129,8 @@ class Market(callbacks.Plugin):
                                 'ask': round(1.0/ticker['sell'],6),
                                 'last': round(1.0/ticker['last'],6),
                                 'vol': ticker['vol'],
-                                'low': round(1.0/ticker['low'],6),
-                                'high': round(1.0/ticker['high'],6),
+                                'low': round(1.0/ticker['high'],6),
+                                'high': round(1.0/ticker['low'],6),
                                 'avg': round(1.0/ticker['avg'],6)}
             else:
                 stdticker = {'bid': ticker['sell'],
@@ -156,6 +156,37 @@ class Market(callbacks.Plugin):
                                 'high': ticker['high'],
                                 'avg': None}
         return stdticker
+
+    def _getBitfinexTicker(self, currency):
+        if currency.lower() == 'ltc':
+            pair = 'ltcbtc'
+        else:
+            pair = 'btc%s' % (currency.lower(),)
+        json_data = urlopen("https://bitfinex.com/api/v1/ticker/%s" % (pair,)).read()
+        spotticker = json.loads(json_data)
+        json_data = urlopen("https://bitfinex.com/api/v1/today/%s" % (pair,)).read()
+        dayticker = json.loads(json_data)
+        if spotticker.has_key('message') or dayticker.has_key('message'):
+            stdticker = {'error':spotticker.get('message') or dayticker.get('message')}
+        else:
+            if currency.lower() == 'ltc':
+                stdticker = {'bid': round(1.0/float(spotticker['ask']),6),
+                                'ask': round(1.0/float(spotticker['bid']),6),
+                                'last': round(1.0/float(spotticker['last_price']),6),
+                                'vol': dayticker['volume'],
+                                'low': round(1.0/float(dayticker['high']),6),
+                                'high': round(1.0/float(dayticker['low']),6),
+                                'avg': None}
+            else:
+                stdticker = {'bid': spotticker['bid'],
+                                'ask': spotticker['ask'],
+                                'last': spotticker['last_price'],
+                                'vol': dayticker['volume'],
+                                'low': dayticker['low'],
+                                'high': dayticker['high'],
+                                'avg': None}
+        return stdticker
+
 
     def _sellbtc(self, bids, value):
         n_coins = value
@@ -439,7 +470,8 @@ class Market(callbacks.Plugin):
         It is up to you to make sure that the three letter code you enter is a valid currency
         that is traded on mtgox. Default currency is USD.
         """
-        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp'}
+        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
+                'bitfinex':'Bitfinex'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
         market = od.pop('market','mtgox').lower()
@@ -450,7 +482,7 @@ class Market(callbacks.Plugin):
             irc.error("Please only choose at most one result option at a time.")
             return
         dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
-                'bitstamp':self._getBitstampTicker}
+                'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker}
         try:
             ticker = dispatch[market](currency)
         except:
