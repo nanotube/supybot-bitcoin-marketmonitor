@@ -493,7 +493,7 @@ class Market(callbacks.Plugin):
         currency = od.pop('currency', 'USD')
         market = od.pop('market','mtgox').lower()
         if market not in supportedmarkets.keys():
-            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.values(),))
+            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.keys(),))
             return
         if len(od) > 1:
             irc.error("Please only choose at most one result option at a time.")
