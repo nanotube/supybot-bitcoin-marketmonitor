@@ -104,9 +104,8 @@ on *:SOCKREAD:otcdl.*:{
     }
     elseif ($1 == GET) {
       ; Downloading ...
-      var %file = $+(",$scriptdir,$nopath($3),")
+      var %file = $qt($scriptdir $+ $nopath($3))
       bwrite %file -1 &b
-      var %file = $qt($scriptdir $+ $nopath($gettok($sock($sockname).mark,3,32)))
       echo @otcgpg [*] Downloaded $file(%file).size bytes to %file
 
     }
@@ -119,7 +118,7 @@ on *:SOCKREAD:otcdl.*:{
     run -n cmd.exe /C echo %otcgpgpass $+ $chr(124) %otcgpgpath --batch --yes --passphrase-fd 0 --decrypt %in > %out
     unset %otcgpgpass
     sockclose $sockname
-    timer 1 1 otcgpg_everify %out %in
+    .timer 1 1 otcgpg_everify %out %in
   }
 }
 
