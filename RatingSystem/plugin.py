@@ -296,6 +296,9 @@ class RatingSystem(callbacks.Plugin):
         must be the user's GPG-registered username, Your previously existing rating,
         if any, will be overwritten.
         """
+        if irc.nested:
+            irc.error("This command cannot be used in a nested context.")
+            return
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
             irc.error("For identification purposes, you must be authenticated "
