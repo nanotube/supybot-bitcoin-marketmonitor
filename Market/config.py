@@ -44,6 +44,8 @@ Market = conf.registerPlugin('Market')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(Market, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
-
+conf.registerGlobalValue(Market, 'fullDepthCachePeriod',
+     registry.PositiveInteger(245, """Number of seconds to cache the
+     full depth data from mtgox, to avoid getting banned."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

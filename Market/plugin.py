@@ -84,7 +84,7 @@ class Market(callbacks.Plugin):
             self.mdepth = json.load(open('/tmp/mtgox.depth.json'))['return']
             return
         try:
-            if time.time() - self.lastdepthfetch > 120: # don't fetch from gox more often than every 2 min
+            if time.time() - self.lastdepthfetch > self.registryValue('fullDepthCachePeriod'): 
                 data = urlopen('http://data.mtgox.com/api/1/BTCUSD/depth/full').read()
                 self.mdepth = json.loads(data)
                 self.mdepth = self.mdepth['return']
