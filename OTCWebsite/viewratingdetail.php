@@ -7,7 +7,7 @@
 	$sortby = "rating";
 	$sortorder = "ASC";
 	$sign = isset($_GET["sign"]) ? $_GET["sign"] : "ANY";
-	$validvalues = array("ANY","POS","NEG");
+	$validvalues = array("ANY","NEG");
 	if (!in_array($sign, $validvalues)) $sign = "ANY";
 	$type = isset($_GET["type"]) ? $_GET["type"] : "RECV";
 	$validvalues = array("RECV","SENT");
@@ -66,7 +66,6 @@ Rating for <?php echo htmlentities($nick); ?>
    [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&sign=<?php echo $sign; ?>&type=SENT">view sent</a>]
   </p>
   <p>
-   [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&type=<?php echo $type; ?>&sign=POS">view positive</a>] ||
    [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&type=<?php echo $type; ?>&sign=NEG">view negative</a>] ||
    [<a href="viewratingdetail.php?nick=<?php echo htmlentities($nick); ?>&type=<?php echo $type; ?>&sign=ANY">view all</a>]
   </p>
