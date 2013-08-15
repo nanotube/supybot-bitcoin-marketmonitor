@@ -428,7 +428,7 @@ class RatingSystem(callbacks.Plugin):
         if authhost is not None:
             authstatus = "Currently authenticated from hostmask %s ." % (authhost,)
         else:
-            authstatus = "WARNING: Currently not authenticated."
+            authstatus = "\x02WARNING: Currently not authenticated.\x02"
         data = self.db.get(nick)
         if len(data) == 0:
             irc.reply("This user has not yet been rated. " + authstatus)
@@ -452,7 +452,7 @@ class RatingSystem(callbacks.Plugin):
                    data[4],
                    data[5],
                    data[6],
-                   "http://bitcoin-otc.com/viewratingdetail.php?nick=%s" % (data[7],)))
+                   "http://b-otc.com/vrd?nick=%s" % (data[7],)))
     getrating = wrap(getrating, ['something'])
 
     def _gettrust(self, sourcenick, destnick):
@@ -488,11 +488,23 @@ class RatingSystem(callbacks.Plugin):
         if destnick is None:
             destnick = sourcenick
             sourcenick = sn
+
+        authhost = self._checkGPGAuthByNick(irc, destnick)
+        if authhost is not None:
+            authstatus = "Currently authenticated from hostmask %s." % (authhost,)
+        else:
+            authstatus = "\x02WARNING: Currently not authenticated.\x02"
+        if authhost is not None and authhost.split('!')[0].upper() != destnick.upper():
+            authstatus += " \x02CAUTION: irc nick differs from otc registered nick.\x02"
+
         trust = self._gettrust(sourcenick, destnick)
-        irc.reply("Trust relationship from user %s to user %s: "
+        irc.reply("%s Trust relationship from user %s to user %s: "
                         "Level 1: %s, Level 2: %s via %s connections. "
-                        "Graph: http://serajewelks.bitcoin-otc.com/trustgraph.php?source=%s&dest=%s" % \
-                        (sourcenick, destnick, trust[0][0], trust[1][0], trust[1][1], sourcenick, destnick,))
+                        "Graph: http://b-otc.com/stg?source=%s&dest=%s | "
+                        "WoT data: http://b-otc.com/vrd?nick=%s"% \
+                        (authstatus, sourcenick, destnick,
+                        trust[0][0], trust[1][0], trust[1][1],
+                        sourcenick, destnick, destnick))
     gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):
