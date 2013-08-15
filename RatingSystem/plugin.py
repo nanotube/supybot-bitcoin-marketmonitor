@@ -296,6 +296,9 @@ class RatingSystem(callbacks.Plugin):
         must be the user's GPG-registered username, Your previously existing rating,
         if any, will be overwritten.
         """
+        if nick.upper() in self.registryValue('blockedNicks'):
+            irc.noReply()
+            return
         if irc.nested:
             irc.error("This command cannot be used in a nested context.")
             return
@@ -475,10 +478,9 @@ class RatingSystem(callbacks.Plugin):
     def gettrust(self, irc, msg, args, sourcenick, destnick):
         """[<sourcenick>] <destnick>
         
-        Get second-level trust for <destnick>, starting from <sourcenick>.
+        Get trust paths for <destnick>, starting from <sourcenick>.
         If <sourcenick> is not supplied, your own nick is used as the source.
-        The result is the sum of min(link1, link2) from <sourcenick> to
-        <destnick>.
+        See http://wiki.bitcoin-otc.com/wiki/OTC_Rating_System#Notes_about_gettrust
         """
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is not None:

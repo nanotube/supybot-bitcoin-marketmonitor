@@ -69,7 +69,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertError('rate nanOtube 10') #can't self-rate
             self.assertError('rate unknownguy 4') #user not in db and not authed
             self.assertRegexp('rate registeredguy 4', 'rating of 4 for user registeredguy has been recorded')
-            self.assertRegexp('getrating registeredguy', 'Cumulative rating 4.*viewratingdetail.php\?nick=registeredguy')
+            self.assertRegexp('getrating registeredguy', 'Cumulative rating 4.*vrd\?nick=registeredguy')
             self.assertRegexp('getrating registeredguy', '1 total ratings')
             self.assertRegexp('rate registeredguy 6', 'changed from 4 to 6')
             self.assertRegexp('getrating registeredguy', 'Currently not authenticated.*Cumulative rating 6')

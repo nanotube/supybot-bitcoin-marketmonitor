@@ -54,4 +54,9 @@ conf.registerGlobalValue(RatingSystem, 'ratingMin',
     registry.Integer(-10, """Minimum possible trust rating that can be
     given to a user."""))
 
+conf.registerGlobalValue(RatingSystem, 'blockedNicks',
+    registry.SpaceSeparatedListOfStrings([], """Nicks that do not take
+    any incoming ratings. Uppercased.""", private=True))
+
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
