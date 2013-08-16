@@ -312,8 +312,10 @@ class RatingSystem(callbacks.Plugin):
             irc.error("You have to have received some ratings in order to rate "
                       "other users.")
             return
-        if self.registryValue('requirePositiveRating') and userrating[0][1] <= 0:
-            irc.error("You must have a positive rating in order to rate others.")
+        trust = self._gettrust('nanotube', gpgauth['nick'])
+        sumtrust = sum([t for t,n in trust])
+        if self.registryValue('requirePositiveRating') and sumtrust < 0:
+            irc.error("You do not meet qualifications for entering ratings.")
             return
         if gpgauth['nick'].lower() == nick.lower():
             irc.error("You cannot rate yourself.")
