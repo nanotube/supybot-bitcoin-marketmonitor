@@ -29,7 +29,7 @@ if (sizeof($notesfilter) != 0) {
 <tr>
 <td style="text-align: left;">
 <form method="GET" action="ratingsfilter.php?">
-<label>Search notes: <input type="text" name="notes" value="<?php echo $notesfilter; ?>"/></label>
+<label>Search notes: <input type="text" name="notes" value="<?php echo htmlspecialchars($notesfilter); ?>"/></label>
 <input type="submit" value="Filter" />
 </form>
 </td>
