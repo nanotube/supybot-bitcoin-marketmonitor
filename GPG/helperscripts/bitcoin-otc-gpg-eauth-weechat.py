@@ -146,9 +146,6 @@ def priv_msg_cb(data, bufferp, uber_empty, tagsn, isdisplayed,
             # Get the challenge and decrypt it
             decrypt_challenge(get_challenge(gpg_id))
 
-            # Clear the buffer to fix any issues from gpg
-            w.buffer_clear(w.current_buffer())
-
     return w.WEECHAT_RC_OK
 
 #-------------------------#
