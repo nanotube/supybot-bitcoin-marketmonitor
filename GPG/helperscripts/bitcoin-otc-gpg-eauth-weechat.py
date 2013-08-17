@@ -64,6 +64,12 @@ settings = { 'gpg'     : 'yes'   # using gpg auth vs. bitcoin
            , 'pw_to'   : '25'    # no. of secs to allow gpg pw entry
            }
 
+
+#-----------------------------------------------------------#
+#                                                           #
+#                      GPG Functions                        #
+#                                                           #
+#-----------------------------------------------------------#
 def get_challenge(gpg_id):
     # Make a request to the site
     r = requests.get(OTC_URL.format(gpg_id))
@@ -73,28 +79,30 @@ def get_challenge(gpg_id):
 
 def decrypt_challenge(challenge):
     # Use a temporary file for decryption
-    with open('/tmp/e', 'w') as tf:
+    with tempfile.NamedTemporaryFile(mode='w+') as tf:
         # Write out the challenge to the file
         tf.write(challenge)
 
         # Use GPG to decrypt this (df == decrypted file)
         with tempfile.NamedTemporaryFile(mode='w+') as df:
             tf.seek(0)
-            cmd = 'gpg --yes --batch -o {} -d {}'.format(df.name, '/tmp/e')
+            cmd = 'gpg --yes --batch -o {} -d {}'.format(df.name, tf.name)
             w.command( ''
                      , '/shell {}'.format(cmd)
                      )
             time.sleep(int(settings['pw_to']))
             df.seek(0)
             result = df.read()
-            w.command( ''
-                     , '/shell rm /tmp/e'
-                     )
 
     w.command( ''
              , '/query gribble ;;gpg everify {}'.format(result)
              )
 
+#-----------------------------------------------------------#
+#                                                           #
+#             WeeChat Functions and Callbacks               #
+#                                                           #
+#-----------------------------------------------------------#
 def otc_auth_cmd(data, buffer, args):
     '''
     Run when /otc-auth is entered into weechat.
@@ -168,15 +176,14 @@ if __name__ == '__main__':
                 # Move the saved config values into the dict
                 configp = w.config_get('plugins.var.python.otc-auth.%s' % opt)
                 config_val = w.config_string(configp)
-
                 settings[opt] = config_val
 
         # Create the command
         w.hook_command( 'otc-auth'
-                      , 'Authenticates with gribble bot in #bitcoin-otc'
+                      , 'Authenticate with gribble bot in #bitcoin-otc.'
                       , '[username] [password timeout]'
                       , 'Currently only supports gpg authentication.\n'
-                        'Requires a username if the name you auth.\n'
+                        'Requires a username if the name you auth\n'
                         'with is different from your nick on freenode.\n\n'
                         'Password timeout is the number of seconds you\n'
                         'have to enter in your private key\'s password.\n'
