@@ -60,7 +60,7 @@ OTC_RE = re.compile(r'http://bitcoin-otc.com/otps/[A-Z0-9]+')
 
 # Default config values
 settings = { 'gpg_id'  : '-'     # gpg id for auth'ing w/ gribble
-           , 'pw_to'   : '15'    # no. of secs to allow gpg pw entry
+           , 'pw_to'   : '25'    # no. of secs to allow gpg pw entry
            }
 
 def get_challenge(gpg_id):
@@ -76,15 +76,15 @@ def decrypt_challenge(challenge):
         # Write out the challenge to the file
         tf.write(challenge)
 
-    # Use GPG to decrypt this (df == decrypted file)
-    with tempfile.NamedTemporaryFile() as df:
-        cmd = 'gpg --yes --batch -o {} -d {}'.format(df.name, '/tmp/e')
-        w.command( ''
-                 , '/shell {}'.format(cmd)
-                 )
-        time.sleep(int(settings['pw_to']))
-        result = df.read()
-        os.remove('/tmp/e')
+        # Use GPG to decrypt this (df == decrypted file)
+        with tempfile.NamedTemporaryFile() as df:
+            cmd = 'gpg --yes --batch -o {} -d {}'.format(df.name, '/tmp/e')
+            w.command( ''
+                     , '/shell {}'.format(cmd)
+                     )
+            time.sleep(int(settings['pw_to']))
+            result = df.read()
+            os.remove('/tmp/e')
 
     w.command( ''
              , '/query gribble ;;gpg everify {}'.format(result)
