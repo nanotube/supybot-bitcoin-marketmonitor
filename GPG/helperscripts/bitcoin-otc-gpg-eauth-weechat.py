@@ -60,7 +60,7 @@ OTC_URL = 'http://bitcoin-otc.com/otps/{}'
 OTC_RE = re.compile(r'http://bitcoin-otc.com/otps/[A-Z0-9]+')
 
 # Default config values
-settings = { 'gpg_id'  : '-'     # gpg id for auth'ing w/ gribble
+settings = { 'gpg'     : 'yes'   # using gpg auth vs. bitcoin
            , 'pw_to'   : '25'    # no. of secs to allow gpg pw entry
            }
 
@@ -165,8 +165,10 @@ if __name__ == '__main__':
             if not w.config_is_set_plugin(opt):
                 w.config_set_plugin(opt, def_val)
             else:
+                # Move the saved config values into the dict
                 configp = w.config_get('plugins.var.python.otc-auth.%s' % opt)
                 config_val = w.config_string(configp)
+
                 settings[opt] = config_val
 
         # Create the command
