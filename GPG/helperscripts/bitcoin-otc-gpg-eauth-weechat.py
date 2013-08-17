@@ -20,12 +20,6 @@
 
 # Imports
 try:
-    import weechat as w
-except ImportError:
-    print 'This script must be run under WeeChat.'
-    print 'Get WeeChat now at: http://www.weechat.org'
-    quit()
-try:
     import requests
 except ImportError:
     print 'This script requires the requests module.'
@@ -35,6 +29,13 @@ except ImportError:
 import re
 import tempfile
 import time
+
+try:
+    import weechat as w
+except ImportError:
+    print 'This script must be run under WeeChat.'
+    print 'Get WeeChat now at: http://www.weechat.org'
+    quit()
 
 # Constants
 SCRIPT_NAME = 'otc-auth'
@@ -77,14 +78,18 @@ def decrypt_challenge(challenge):
         tf.write(challenge)
 
         # Use GPG to decrypt this (df == decrypted file)
-        with tempfile.NamedTemporaryFile() as df:
+        with tempfile.NamedTemporaryFile(mode='w+') as df:
+            tf.seek(0)
             cmd = 'gpg --yes --batch -o {} -d {}'.format(df.name, '/tmp/e')
             w.command( ''
                      , '/shell {}'.format(cmd)
                      )
             time.sleep(int(settings['pw_to']))
+            df.seek(0)
             result = df.read()
-            os.remove('/tmp/e')
+            w.command( ''
+                     , '/shell rm /tmp/e'
+                     )
 
     w.command( ''
              , '/query gribble ;;gpg everify {}'.format(result)
@@ -94,29 +99,26 @@ def otc_auth_cmd(data, buffer, args):
     '''
     Run when /otc-auth is entered into weechat.
     '''
-    # Check for gpg_id config option
-    if settings['gpg_id'] != '-':
-        decrypt_challenge(get_challenge(settings['gpg_id']))
+    global settings
+
+    # Obtain the gpg ID 
+    if args:
+        try:
+            nick, pw_to = args.split()
+
+            # Save the pw_to in the settings dict
+            settings['pw_to'] = pw_to
+        except ValueError:
+            nick = args
     else:
-        # Obtain the gpg ID 
-        if args:
-            try:
-                nick, pw_to = args.split()
+        server = w.buffer_get_string(w.current_buffer(), 'localvar_server')
+        nick = w.info_get('irc_nick', server)
 
-                # Save the pw_to in the settings dict
-                global settings
-                settings['pw_to'] = pw_to
-            except ValueError:
-                nick = args
-        else:
-            server = w.buffer_get_string(w.current_buffer(), 'localvar_server')
-            nick = w.info_get('irc_nick', server)
-
-        # Query gribble for eauth
-        # Will open up a new window
-        w.command( ''
-                 , '/query gribble ;;gpg eauth {}'.format(nick)
-                 ) 
+    # Query gribble for eauth
+    # Will open up a new window
+    w.command( ''
+             , '/query gribble ;;gpg eauth {}'.format(nick)
+             ) 
 
     return w.WEECHAT_RC_OK
     
@@ -128,13 +130,16 @@ def priv_msg_cb(data, bufferp, uber_empty, tagsn, isdisplayed,
     is_pm = w.buffer_get_string(bufferp, 'localvar_type') == 'private'
     if is_pm:
         # Parse out the gpg_id
-        gpg_id = OTC_RE.findall(message)[0].split('/')[-1]
+        btc_urls = OTC_RE.findall(message)
+        if btc_urls:
+            # Get the gpg id for fetching the challenge
+            gpg_id = btc_urls[0].split('/')[-1]
 
-        # Get the challenge and decrypt it
-        decrypt_challenge(get_challenge(gpg_id))
+            # Get the challenge and decrypt it
+            decrypt_challenge(get_challenge(gpg_id))
 
-        # Clear the buffer to fix any issues from gpg
-        w.buffer_clear(w.current_buffer())
+            # Clear the buffer to fix any issues from gpg
+            w.buffer_clear(w.current_buffer())
 
     return w.WEECHAT_RC_OK
 
@@ -154,8 +159,8 @@ if __name__ == '__main__':
                  , ''
                  ):
 
+
         # Check the config value
-        global settings
         for opt, def_val in settings.items():
             if not w.config_is_set_plugin(opt):
                 w.config_set_plugin(opt, def_val)
@@ -182,4 +187,4 @@ if __name__ == '__main__':
                       )
 
         # Get notifications of gribble query
-        w.hook_print('', 'irc_privmsg', '', 1, 'priv_msg_cb', '')
+        w.hook_print('', 'irc_privmsg', 'http://bitcoin-otc.com', 1, 'priv_msg_cb', '')
