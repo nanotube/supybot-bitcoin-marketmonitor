@@ -39,6 +39,11 @@ import json
 import re
 import time
 import math
+import urllib2
+
+opener = urllib2.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
+urllib2.install_opener(opener)
 
 def getPositiveFloat(irc, msg, args, state, type='positiveFloat'):
     v = args[0]
