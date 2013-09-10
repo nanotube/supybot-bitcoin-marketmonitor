@@ -149,16 +149,18 @@ class Market(callbacks.Plugin):
     def _getBitstampTicker(self, currency):
         json_data = urlopen("https://www.bitstamp.net/api/ticker/").read()
         ticker = json.loads(json_data)
+        bcharts = json.loads(urlopen("http://api.bitcoincharts.com/v1/markets.json").read())
         if currency != 'USD':
             stdticker = {'error':'unsupported currency'}
         else:
+            bcharts = filter(lambda x: x['symbol'] == 'bitstampUSD', bcharts)[0]
             stdticker = {'bid': ticker['bid'],
                                 'ask': ticker['ask'],
                                 'last': ticker['last'],
                                 'vol': ticker['volume'],
                                 'low': ticker['low'],
                                 'high': ticker['high'],
-                                'avg': None}
+                                'avg': bcharts['avg']}
         return stdticker
 
     def _getBitfinexTicker(self, currency):
