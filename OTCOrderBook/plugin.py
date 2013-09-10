@@ -32,6 +32,7 @@ import time
 import os.path
 import re
 import json
+import traceback
 
 class OTCOrderDB(object):
     def __init__(self, filename):
@@ -181,9 +182,10 @@ def getIndexedPrice(irc, msg, args, state, type='price input'):
     try:
         v = args[0]
         v = re.sub(r'{mtgox(ask|bid|last|high|low|avg)}', '1', v)
+        v = re.sub(r'{bitstamp(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{... in ...}', '1', v, 1)
         if not set(v).issubset(set('1234567890*-+./() ')) or '**' in v:
-            raise ValueError, "only {mtgoxask}, {mtgoxbid}, {mtgoxlast}, {mtgoxhigh}, {mtgoxlow}, {mtgoxavg}, one {... in ...}, and arithmetic allowed."
+            raise ValueError, "only {mtgox(ask|bid|last|high|low|avg)}, {bitstamp(ask|bid|last|high|low|avg)}, one {... in ...}, and arithmetic allowed."
         eval(v)
         state.args.append(args[0])
         del args[0]
@@ -230,6 +232,7 @@ class OTCOrderBook(callbacks.Plugin):
         self.filename = conf.supybot.directories.data.dirize('OTCOrderBook.db')
         self.db = OTCOrderDB(self.filename)
         self.db.open()
+        self.irc = irc
 
     def die(self):
         self.__parent.die()
@@ -267,13 +270,24 @@ class OTCOrderBook(callbacks.Plugin):
         return googlerate['rhs'].split()[0]
 
     def _getIndexedValue(self, rawprice):
+        goxtic = self.irc.getCallback('Market')._getMtgoxTicker('USD')
+        btsptic = self.irc.getCallback('Market')._getBitstampTicker('USD')
+        indexedprice = rawprice
         try:
-            indexedprice = re.sub(r'{mtgoxask}', self.ticker['sell']['value'], rawprice)
-            indexedprice = re.sub(r'{mtgoxbid}', self.ticker['buy']['value'], indexedprice)
-            indexedprice = re.sub(r'{mtgoxlast}', self.ticker['last']['value'], indexedprice)
-            indexedprice = re.sub(r'{mtgoxhigh}', self.ticker['high']['value'], indexedprice)
-            indexedprice = re.sub(r'{mtgoxlow}', self.ticker['low']['value'], indexedprice)
-            indexedprice = re.sub(r'{mtgoxavg}', self.ticker['vwap']['value'], indexedprice)
+            if re.search('mtgox', rawprice):
+                indexedprice = re.sub(r'{mtgoxask}', str(goxtic['ask']), indexedprice)
+                indexedprice = re.sub(r'{mtgoxbid}', str(goxtic['bid']), indexedprice)
+                indexedprice = re.sub(r'{mtgoxlast}', str(goxtic['last']), indexedprice)
+                indexedprice = re.sub(r'{mtgoxhigh}', str(goxtic['high']), indexedprice)
+                indexedprice = re.sub(r'{mtgoxlow}', str(goxtic['low']), indexedprice)
+                indexedprice = re.sub(r'{mtgoxavg}', str(goxtic['avg']), indexedprice)
+            if re.search('bitstamp', rawprice):
+                indexedprice = re.sub(r'{bitstampask}', str(btsptic['ask']), indexedprice)
+                indexedprice = re.sub(r'{bitstampbid}', str(btsptic['bid']), indexedprice)
+                indexedprice = re.sub(r'{bitstamplast}', str(btsptic['last']), indexedprice)
+                indexedprice = re.sub(r'{bitstamphigh}', str(btsptic['high']), indexedprice)
+                indexedprice = re.sub(r'{bitstamplow}', str(btsptic['low']), indexedprice)
+                indexedprice = re.sub(r'{bitstampavg}', str(btsptic['avg']), indexedprice)
             indexedprice = self._getCurrencyConversion(indexedprice)
             return "%.5g" % eval(indexedprice)
         except:
@@ -447,7 +461,6 @@ class OTCOrderBook(callbacks.Plugin):
         if raw:
             f = lambda x: '"%s"' % x
         else:
-            self._getMtgoxQuote()
             f = self._getIndexedValue
         if query is None:
             if gpgauth is None:
@@ -508,7 +521,6 @@ class OTCOrderBook(callbacks.Plugin):
                       "order book, http://bitcoin-otc.com/vieworderbook.php?eitherthing=%s "
                       "to see list of orders for this item." % (thing,))
             return
-        self._getMtgoxQuote()
         L = ["#%s %s %s %s %s %s @ %s %s (%s)" % (id,
                                                       time.ctime(refreshed_at),
                                                       nick,
