@@ -4,10 +4,13 @@ error_reporting(E_ALL & ~ E_NOTICE & ~E_WARNING);
 
 try {
 	$f = fopen("mtgox.json", "r");
-	$ticker = fread($f, 2048);
+	$goxtic = fread($f, 2048);
 	fclose($f);
-	$ticker = json_decode($ticker, true);
-	$ticker = $ticker['data'];
+	$goxtic = json_decode($goxtic, true);
+	$f = fopen("bitstamp.json", "r");
+	$btsptic = fread($f, 2048);
+	fclose($f);
+	$btsptic = json_decode($btsptic, true);
 	$f = fopen("exchangerates.json", "r");
 	$rates = fread($f, 4096);
 	fclose($f);
@@ -47,14 +50,26 @@ function query_google_rate($cur1, $cur2){
 function doNothing() { return(true); }
 
 function index_prices($rawprice){
-	global $ticker;
+	global $goxtic;
+	global $btsptic;
+	$indexedprice = $rawprice;
 	try {
-		$indexedprice = preg_replace("/{mtgoxask}/", $ticker['sell']['value'], $rawprice);
-		$indexedprice = preg_replace("/{mtgoxbid}/", $ticker['buy']['value'], $indexedprice);
-		$indexedprice = preg_replace("/{mtgoxlast}/", $ticker['last']['value'], $indexedprice);
-		$indexedprice = preg_replace("/{mtgoxhigh}/", $ticker['high']['value'], $indexedprice);
-		$indexedprice = preg_replace("/{mtgoxlow}/", $ticker['low']['value'], $indexedprice);
-		$indexedprice = preg_replace("/{mtgoxavg}/", $ticker['vwap']['value'], $indexedprice);
+		if ( preg_match("/mtgox/", $rawprice) ){
+			$indexedprice = preg_replace("/{mtgoxask}/", $goxtic['ask'], $indexedprice);
+			$indexedprice = preg_replace("/{mtgoxbid}/", $goxtic['bid'], $indexedprice);
+			$indexedprice = preg_replace("/{mtgoxlast}/", $goxtic['last'], $indexedprice);
+			$indexedprice = preg_replace("/{mtgoxhigh}/", $goxtic['high'], $indexedprice);
+			$indexedprice = preg_replace("/{mtgoxlow}/", $goxtic['low'], $indexedprice);
+			$indexedprice = preg_replace("/{mtgoxavg}/", $goxtic['avg'], $indexedprice);
+		}
+		if (preg_match("/bitstamp/", $rawprice) ){
+			$indexedprice = preg_replace("/{bitstampask}/", $btsptic['ask'], $indexedprice);
+			$indexedprice = preg_replace("/{bitstampbid}/", $btsptic['bid'], $indexedprice);
+			$indexedprice = preg_replace("/{bitstamplast}/", $btsptic['last'], $indexedprice);
+			$indexedprice = preg_replace("/{bitstamphigh}/", $btsptic['high'], $indexedprice);
+			$indexedprice = preg_replace("/{bitstamplow}/", $btsptic['low'], $indexedprice);
+			$indexedprice = preg_replace("/{bitstampavg}/", $btsptic['avg'], $indexedprice);
+		}
 		$indexedprice = get_currency_conversion($indexedprice);
 		$code = 'set_error_handler("doNothing");return(' . $indexedprice . ');restore_error_handler();';
 		ob_start();
