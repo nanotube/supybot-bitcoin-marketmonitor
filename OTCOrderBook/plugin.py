@@ -299,7 +299,7 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a buy order for <amount> units of <thing>, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {mtgox(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
+        and {(mtgox|bitstamp)(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
         high, low, or avg price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
@@ -347,7 +347,7 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a sell order for <amount> units of <thing, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {mtgox(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
+        and {(mtgox|bitstamp)(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
         high, low, or avg price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
