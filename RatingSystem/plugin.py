@@ -422,7 +422,7 @@ class RatingSystem(callbacks.Plugin):
         if len(data) == 0:
             return None
         data = data[0]
-        return data[1]
+        return data
 
     def getrating(self, irc, msg, args, nick):
         """<nick>
@@ -501,14 +501,20 @@ class RatingSystem(callbacks.Plugin):
         if authhost is not None and authhost.split('!')[0].upper() != destnick.upper():
             authstatus += " \x02CAUTION: irc nick differs from otc registered nick.\x02"
 
+        rs = self._getrating(destnick)
+        if rs is not None:
+            rs = time.ctime(rs[2])
+        else:
+            rs = 'never'
         trust = self._gettrust(sourcenick, destnick)
         irc.reply("%s Trust relationship from user %s to user %s: "
                         "Level 1: %s, Level 2: %s via %s connections. "
                         "Graph: http://b-otc.com/stg?source=%s&dest=%s | "
-                        "WoT data: http://b-otc.com/vrd?nick=%s"% \
+                        "WoT data: http://b-otc.com/vrd?nick=%s | "
+                        "Rated since: %s" % \
                         (authstatus, sourcenick, destnick,
                         trust[0][0], trust[1][0], trust[1][1],
-                        sourcenick, destnick, destnick))
+                        sourcenick, destnick, destnick, rs))
     gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):
