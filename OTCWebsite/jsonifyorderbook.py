@@ -5,6 +5,7 @@ class JsonifyOrderBook:
     def __init__(self, orderbook_db_path, json_path):
         self.json_path = json_path
         self.db = sqlite3.connect(orderbook_db_path)
+        self.db.text_factory = str
 
     def run(self):
         i = True
@@ -16,7 +17,10 @@ class JsonifyOrderBook:
             d = dict(zip(['id','created_at','refreshed_at','buysell','nick','amount','thing','price','otherthing','notes'],row))
             if not i:
                 f.write(',')
-            f.write(json.dumps(d))
+            try:
+                f.write(json.dumps(d, encoding='latin1'))
+            except:
+                pass # if it's not decodable, skip it without further ado.
             i = False
         f.write(']')
 
