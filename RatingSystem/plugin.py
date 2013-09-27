@@ -377,7 +377,7 @@ class RatingSystem(callbacks.Plugin):
             irc.reply("You have not yet rated user %s" % (nick,))
             return
         data = data[0]
-        irc.reply("You rated user %s on %s, giving him a rating of %s, and "
+        irc.reply("You rated user %s on %s, with a rating of %s, and "
                   "supplied these additional notes: %s." % \
                   (nick,
                    time.ctime(data[0]),
