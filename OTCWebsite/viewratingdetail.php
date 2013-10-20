@@ -82,7 +82,23 @@ Rating for <?php echo htmlentities($nick); ?>
 		$entry = $sth->fetch(PDO::FETCH_BOTH);
 		echo "<li>Count of " . $signs[$sign] . " ratings " . $types[$type] . ": " . number_format($entry['ratingcount']) . ". Total of points: " . number_format($entry['ratingsum']) . ".</li>\n";
 	}
-	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a></li>';
+	
+	if ($nickfilter != ""){
+		try { $gpgdb = new PDO('sqlite:./otc/GPG.db'); }
+		catch (PDOException $e) { die($e->getMessage()); }
+		$sqlgpg = "SELECT * FROM users WHERE nick LIKE :nick ESCAPE '|'";
+		$stg = $gpgdb->prepare($sqlgpg, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
+		$stg->setFetchMode(PDO::FETCH_ASSOC);
+		$stg->bindValue(':nick', like($nickfilter, '|'));
+		$stg->execute();
+		if($stg) {
+			$gpgentry = $stg->fetch(PDO::FETCH_BOTH);
+			$keyprint = $gpgentry['fingerprint'];
+		} else {
+			$keyprint = "";
+		}
+	}
+	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a> (<a href=" http://nosuchlabs.com/gpgfp/' . $keyprint . '">check GPG key quality</a>)</li>';
 	echo '<li><a href="ratingreciprocity.php?nick=' . htmlentities($nick) . '">Rating reciprocity</a></li>';
 ?>
   </ul>
