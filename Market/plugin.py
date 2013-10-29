@@ -79,6 +79,15 @@ class Market(callbacks.Plugin):
         self.lastdepthfetch = 0
         self.mdepth = None
 
+    def _queryGoogleRate(self, cur1, cur2):
+        googlerate = utils.web.getUrl('http://www.google.com/ig/calculator?hl=en&q=1%s=?%s' % \
+                (cur1, cur2,))
+        googlerate = re.sub(r'(\w+):', r'"\1":', googlerate) # badly formed json, missing quotes
+        googlerate = json.loads(googlerate, parse_float=str, parse_int=str)
+        if googlerate['error']:
+            raise ValueError, googlerate['error']
+        return googlerate['rhs'].split()[0]
+
     def _getMarketDepth(self):
         if world.testing: # avoid hammering mtgox api when testing.
             self.mdepth = json.load(open('/tmp/mtgox.depth.json'))['return']
@@ -199,16 +208,22 @@ class Market(callbacks.Plugin):
         trades = urlopen('http://api.bitcoincharts.com/v1/trades.csv?symbol=btcdeEUR').readlines()
         last = float(trades[0].split(',')[1])
         if currency != 'EUR':
-            stdticker = {'error':'unsupported currency'}
+            stdticker = {'warning':'using google conversion'}
+            try:
+                googlerate = self._queryGoogleRate('EUR', currency)
+            except:
+                stdticker = {'error':'failed to get currency conversion from google.'}
+                return stdticker
         else:
-            ticker = filter(lambda x: x['symbol'] == 'btcdeEUR', ticker)[0]
-            stdticker = {'bid': ticker['bid'],
-                                'ask': ticker['ask'],
-                                'last': last,
-                                'vol': ticker['volume'],
-                                'low': ticker['low'],
-                                'high': ticker['high'],
-                                'avg': ticker['avg']}
+            googlerate = 1
+        ticker = filter(lambda x: x['symbol'] == 'btcdeEUR', ticker)[0]
+        stdticker = {'bid': float(ticker['bid'])*float(googlerate),
+                            'ask':float(ticker['ask'])*float(googlerate),
+                            'last': float(last)*float(googlerate),
+                            'vol': ticker['volume'],
+                            'low': float(ticker['low'])*float(googlerate),
+                            'high': float(ticker['high'])*float(googlerate),
+                            'avg': float(ticker['avg'])*float(googlerate)}
         return stdticker
 
     def _getCbxTicker(self, currency):
@@ -233,19 +248,29 @@ class Market(callbacks.Plugin):
             json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
             bcharts = json.loads(json_data)
         except:
-            bcharts = {'avg':None}
+            bcharts = [{'symbol':'btcnCNY','avg':None}]
         btcchina = json.loads(urlopen('https://www.btcchina.com/bc/ticker').read())['ticker']
         if currency not in ['CNY', 'RMB']:
-            stdticker = {'error':'unsupported currency'}
+            stdticker = {'warning':'using google conversion'}
+            try:
+                googlerate = self._queryGoogleRate('CNY', currency)
+            except:
+                stdticker = {'error':'failed to get currency conversion from google.'}
+                return stdticker
         else:
-            bcharts = filter(lambda x: x['symbol'] == 'btcnCNY', bcharts)[0]
-            stdticker = {'bid': btcchina['buy'],
-                                'ask': btcchina['sell'],
-                                'last': btcchina['last'],
-                                'vol': btcchina['vol'],
-                                'low': btcchina['low'],
-                                'high': btcchina['high'],
-                                'avg': bcharts['avg']}
+            googlerate = 1
+        bcharts = filter(lambda x: x['symbol'] == 'btcnCNY', bcharts)[0]
+        if bcharts['avg'] is not None:
+            avg = float(bcharts['avg'])*float(googlerate)
+        else:
+            avg = None
+        stdticker = {'bid': float(btcchina['buy'])*float(googlerate),
+                            'ask': float(btcchina['sell'])*float(googlerate),
+                            'last': float(btcchina['last'])*float(googlerate),
+                            'vol': btcchina['vol'],
+                            'low': float(btcchina['low'])*float(googlerate),
+                            'high': float(btcchina['high'])*float(googlerate),
+                            'avg': avg}
         return stdticker
 
     def _sellbtc(self, bids, value):
@@ -519,6 +544,34 @@ class Market(callbacks.Plugin):
                 % (totalbids, totalasks, ratio, (time.time() - self.lastdepthfetch),))
     baratio = wrap(baratio)
 
+    def premium(self, irc, msg, args, market1, market2):
+        '''<market1> <market2>
+        
+        Calculate the premium of market1 over market2, using last trade price.
+        Uses USD exchange rate. If USD is not traded on one of the target
+        markets, queries currency conversion from google.
+        '''
+        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
+                'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
+                'btcn':'BTCChina', 'all':'all'}
+        if market1 not in supportedmarkets.keys() or market2 not in supportedmarkets.keys():
+            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.keys(),))
+            return
+        dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
+                'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
+                'btcde':self._getBtcdeTicker, 'cbx':self._getCbxTicker,
+                'btcn':self._getBtcchinaTicker,}
+        try:
+            last1 = float(dispatch[market1]('USD')['last'])
+            last2 = float(dispatch[market2]('USD')['last'])
+        except:
+                irc.error("Failure to retrieve ticker. Try again later.")
+                return
+        prem = (last1-last2)/last2*100
+        irc.reply("Premium of %s over %s is currently %s %%." % \
+                (supportedmarkets[market1], supportedmarkets[market2], prem,))
+    premium = wrap(premium, ['something','something'])
+    
     def ticker(self, irc, msg, args, optlist):
         """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market <market>|all]
         
@@ -549,9 +602,10 @@ class Market(callbacks.Plugin):
         if market != 'all':
             try:
                 ticker = dispatch[market](currency)
-            except:
+            except Exception, e:
                 irc.error("Failure to retrieve ticker. Try again later.")
-                traceback.print_exc()
+                self.log.info("Problem retrieving ticker. Market %s, Error: %s" %\
+                            (market, e,))
                 return
             if ticker.has_key('error'):
                 irc.error('Error retrieving ticker. Details: %s' % (ticker['error'],))
@@ -574,7 +628,7 @@ class Market(callbacks.Plugin):
             response = ""
             sumvol = 0
             sumprc = 0
-            for mkt in ['mtgox','bitstamp','btce','bitfinex','cbx']:
+            for mkt in ['mtgox','bitstamp','btce','bitfinex','cbx','btcn']:
                 try:
                     tck = dispatch[mkt](currency)
                     response += "%s BTCUSD last: %s, vol: %s | " % \
