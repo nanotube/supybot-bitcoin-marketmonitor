@@ -78,15 +78,24 @@ class Market(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.lastdepthfetch = 0
         self.mdepth = None
+        self.currency_cache = {}
+        self.ticker_cache = {}
 
-    def _queryGoogleRate(self, cur1, cur2):
-        googlerate = utils.web.getUrl('http://www.google.com/ig/calculator?hl=en&q=1%s=?%s' % \
-                (cur1, cur2,))
-        googlerate = re.sub(r'(\w+):', r'"\1":', googlerate) # badly formed json, missing quotes
-        googlerate = json.loads(googlerate, parse_float=str, parse_int=str)
-        if googlerate['error']:
-            raise ValueError, googlerate['error']
-        return googlerate['rhs'].split()[0]
+    def _queryYahooRate(self, cur1, cur2):
+        try:
+            cachedvalue = self.currency_cache[cur1+cur2]
+            if time.time() - cachedvalue['time'] < 60:
+                return cachedvalue['rate']
+        except KeyError:
+            pass
+        queryurl = "http://query.yahooapis.com/v1/public/yql?q=select%%20*%%20from%%20yahoo.finance.xchange%%20where%%20pair=%%22%s%s%%22&env=store://datatables.org/alltableswithkeys&format=json"
+        yahoorate = utils.web.getUrl(queryurl % (cur1, cur2,))
+        yahoorate = json.loads(yahoorate, parse_float=str, parse_int=str)
+        rate = yahoorate['query']['results']['rate']['Rate']
+        if float(rate) == 0:
+            raise ValueError, "no data"
+        self.currency_cache[cur1 + cur2] = {'time':time.time(), 'rate':rate}
+        return rate
 
     def _getMarketDepth(self):
         if world.testing: # avoid hammering mtgox api when testing.
@@ -104,6 +113,12 @@ class Market(callbacks.Plugin):
 
     def _getMtgoxTicker(self, currency):
         if not world.testing or currency != 'USD':
+            try:
+                cachedvalue = self.ticker_cache['mtgox'+currency]
+                if time.time() - cachedvalue['time'] < 3:
+                    return cachedvalue['ticker']
+            except KeyError:
+                pass
             json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
             ticker = json.loads(json_data)
             ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
@@ -124,9 +139,16 @@ class Market(callbacks.Plugin):
                                 'low': ticker['data']['low']['value'],
                                 'high': ticker['data']['high']['value'],
                                 'avg': ticker['data']['vwap']['value']}
+        self.ticker_cache['mtgox'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBtceTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['btce'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
         if currency.lower() == 'ltc':
             pair = 'ltc_btc'
         else:
@@ -153,9 +175,16 @@ class Market(callbacks.Plugin):
                                 'low': ticker['low'],
                                 'high': ticker['high'],
                                 'avg': ticker['avg']}
+        self.ticker_cache['btce'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBitstampTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['bitstamp'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
         json_data = urlopen("https://www.bitstamp.net/api/ticker/").read()
         ticker = json.loads(json_data)
         bcharts = json.loads(urlopen("http://api.bitcoincharts.com/v1/markets.json").read())
@@ -170,9 +199,16 @@ class Market(callbacks.Plugin):
                                 'low': ticker['low'],
                                 'high': ticker['high'],
                                 'avg': bcharts['avg']}
+        self.ticker_cache['bitstamp'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBitfinexTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['bitfinex'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
         if currency.lower() == 'ltc':
             pair = 'ltcbtc'
         else:
@@ -200,9 +236,16 @@ class Market(callbacks.Plugin):
                                 'low': dayticker['low'],
                                 'high': dayticker['high'],
                                 'avg': None}
+        self.ticker_cache['bitfinex'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBtcdeTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['btcde'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
         json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
         ticker = json.loads(json_data)
         trades = urlopen('http://api.bitcoincharts.com/v1/trades.csv?symbol=btcdeEUR').readlines()
@@ -210,23 +253,30 @@ class Market(callbacks.Plugin):
         if currency != 'EUR':
             stdticker = {'warning':'using google conversion'}
             try:
-                googlerate = self._queryGoogleRate('EUR', currency)
+                yahoorate = self._queryYahooRate('EUR', currency)
             except:
-                stdticker = {'error':'failed to get currency conversion from google.'}
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
         else:
-            googlerate = 1
+            yahoorate = 1
         ticker = filter(lambda x: x['symbol'] == 'btcdeEUR', ticker)[0]
-        stdticker = {'bid': float(ticker['bid'])*float(googlerate),
-                            'ask':float(ticker['ask'])*float(googlerate),
-                            'last': float(last)*float(googlerate),
+        stdticker = {'bid': float(ticker['bid'])*float(yahoorate),
+                            'ask':float(ticker['ask'])*float(yahoorate),
+                            'last': float(last)*float(yahoorate),
                             'vol': ticker['volume'],
-                            'low': float(ticker['low'])*float(googlerate),
-                            'high': float(ticker['high'])*float(googlerate),
-                            'avg': float(ticker['avg'])*float(googlerate)}
+                            'low': float(ticker['low'])*float(yahoorate),
+                            'high': float(ticker['high'])*float(yahoorate),
+                            'avg': float(ticker['avg'])*float(yahoorate)}
+        self.ticker_cache['btcde'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getCbxTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['campbx'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
         json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
         ticker = json.loads(json_data)
         cbx = json.loads(urlopen('http://campbx.com/api/xticker.php').read())
@@ -241,9 +291,16 @@ class Market(callbacks.Plugin):
                                 'low': ticker['low'],
                                 'high': ticker['high'],
                                 'avg': ticker['avg']}
+        self.ticker_cache['campbx'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBtcchinaTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['btcchina'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
         try:
             json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
             bcharts = json.loads(json_data)
@@ -253,24 +310,25 @@ class Market(callbacks.Plugin):
         if currency not in ['CNY', 'RMB']:
             stdticker = {'warning':'using google conversion'}
             try:
-                googlerate = self._queryGoogleRate('CNY', currency)
+                yahoorate = self._queryYahooRate('CNY', currency)
             except:
-                stdticker = {'error':'failed to get currency conversion from google.'}
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
         else:
-            googlerate = 1
+            yahoorate = 1
         bcharts = filter(lambda x: x['symbol'] == 'btcnCNY', bcharts)[0]
         if bcharts['avg'] is not None:
-            avg = float(bcharts['avg'])*float(googlerate)
+            avg = float(bcharts['avg'])*float(yahoorate)
         else:
             avg = None
-        stdticker = {'bid': float(btcchina['buy'])*float(googlerate),
-                            'ask': float(btcchina['sell'])*float(googlerate),
-                            'last': float(btcchina['last'])*float(googlerate),
+        stdticker = {'bid': float(btcchina['buy'])*float(yahoorate),
+                            'ask': float(btcchina['sell'])*float(yahoorate),
+                            'last': float(btcchina['last'])*float(yahoorate),
                             'vol': btcchina['vol'],
-                            'low': float(btcchina['low'])*float(googlerate),
-                            'high': float(btcchina['high'])*float(googlerate),
+                            'low': float(btcchina['low'])*float(yahoorate),
+                            'high': float(btcchina['high'])*float(yahoorate),
                             'avg': avg}
+        self.ticker_cache['btcchina'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _sellbtc(self, bids, value):
