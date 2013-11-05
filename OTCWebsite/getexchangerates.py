@@ -12,17 +12,17 @@ class ExchangeRates:
     def _getCurrencyConversion(self, rawprice):
         conv = re.search(r'{(...) in (...)}', rawprice)
         if (conv is not None) and (conv.group(0).lower() not in self.currency_rates.keys()):
-            googlerate = self._queryGoogleRate(conv.group(1), conv.group(2))
-            self.currency_rates[conv.group(0).lower()] = googlerate
+            yahoorate = self._queryYahooRate(conv.group(1), conv.group(2))
+            self.currency_rates[conv.group(0).lower()] = yahoorate
 
-    def _queryGoogleRate(self, cur1, cur2):
-        googlerate =urllib2.urlopen('http://www.google.com/ig/calculator?hl=en&q=1%s=?%s' % \
-                (cur1, cur2,)).read()
-        googlerate = re.sub(r'(\w+):', r'"\1":', googlerate) # badly formed json, missing quotes
-        googlerate = json.loads(googlerate, parse_float=str, parse_int=str)
-        if googlerate['error']:
-            raise ValueError, googlerate['error']
-        return googlerate['rhs'].split()[0]
+    def _queryYahooRate(self, cur1, cur2):
+        queryurl = "http://query.yahooapis.com/v1/public/yql?q=select%%20*%%20from%%20yahoo.finance.xchange%%20where%%20pair=%%22%s%s%%22&env=store://datatables.org/alltableswithkeys&format=json"
+        yahoorate = urllib2.urlopen(queryurl % (cur1, cur2,)).read()
+        yahoorate = json.loads(yahoorate, parse_float=str, parse_int=str)
+        rate = yahoorate['query']['results']['rate']['Rate']
+        if float(rate) == 0:
+            raise ValueError, "no data"
+        return rate
 
     def write_json(self):
         f = open(self.json_path, 'w')
