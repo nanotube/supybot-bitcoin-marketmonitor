@@ -233,6 +233,7 @@ class OTCOrderBook(callbacks.Plugin):
         self.db = OTCOrderDB(self.filename)
         self.db.open()
         self.irc = irc
+        self.currency_cache = {}
 
     def die(self):
         self.__parent.die()
@@ -256,18 +257,25 @@ class OTCOrderBook(callbacks.Plugin):
         conv = re.search(r'{(...) in (...)}', rawprice)
         if conv is None:
             return rawprice
-        googlerate = self._queryGoogleRate(conv.group(1), conv.group(2))
-        indexedprice = re.sub(r'{... in ...}', googlerate, rawprice)
+        yahoorate = self._queryYahooRate(conv.group(1), conv.group(2))
+        indexedprice = re.sub(r'{... in ...}', yahoorate, rawprice)
         return indexedprice
 
-    def _queryGoogleRate(self, cur1, cur2):
-        googlerate = utils.web.getUrl('http://www.google.com/ig/calculator?hl=en&q=1%s=?%s' % \
-                (cur1, cur2,))
-        googlerate = re.sub(r'(\w+):', r'"\1":', googlerate) # badly formed json, missing quotes
-        googlerate = json.loads(googlerate, parse_float=str, parse_int=str)
-        if googlerate['error']:
-            raise ValueError, googlerate['error']
-        return googlerate['rhs'].split()[0]
+    def _queryYahooRate(self, cur1, cur2):
+        try:
+            cachedvalue = self.currency_cache[cur1+cur2]
+            if time.time() - cachedvalue['time'] < 60:
+                return cachedvalue['rate']
+        except KeyError:
+            pass
+        queryurl = "http://query.yahooapis.com/v1/public/yql?q=select%%20*%%20from%%20yahoo.finance.xchange%%20where%%20pair=%%22%s%s%%22&env=store://datatables.org/alltableswithkeys&format=json"
+        yahoorate = utils.web.getUrl(queryurl % (cur1, cur2,))
+        yahoorate = json.loads(yahoorate, parse_float=str, parse_int=str)
+        rate = yahoorate['query']['results']['rate']['Rate']
+        if float(rate) == 0:
+            raise ValueError, "no data"
+        self.currency_cache[cur1 + cur2] = {'time':time.time(), 'rate':rate}
+        return rate
 
     def _getIndexedValue(self, rawprice):
         goxtic = self.irc.getCallback('Market')._getMtgoxTicker('USD')
