@@ -674,14 +674,14 @@ class Market(callbacks.Plugin):
         '''
         supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
                 'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
-                'btcn':'BTCChina', 'all':'all'}
+                'btcn':'BTCChina', 'coinbase':'Coinbase'}
         if market1 not in supportedmarkets.keys() or market2 not in supportedmarkets.keys():
             irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.keys(),))
             return
         dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
                 'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
                 'btcde':self._getBtcdeTicker, 'cbx':self._getCbxTicker,
-                'btcn':self._getBtcchinaTicker,}
+                'btcn':self._getBtcchinaTicker,'coinbase':self._getCoinbaseTicker}
         try:
             last1 = float(dispatch[market1]('USD')['last'])
             last2 = float(dispatch[market2]('USD')['last'])
