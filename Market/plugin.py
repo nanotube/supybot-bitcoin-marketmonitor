@@ -336,6 +336,31 @@ class Market(callbacks.Plugin):
         self.ticker_cache['btcchina'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
+    def _getBitcoinaverageTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['bitcoinaverage'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        try:
+            ticker = json.loads(urlopen('https://api.bitcoinaverage.com/ticker/%s' % (currency,)).read())
+        except urllib2.HTTPError:
+            irc.error('Unsupported currency.')
+            return
+        except:
+            irc.error('Problem retrieving data.')
+            return
+        stdticker = {'bid': ticker['bid'],
+                            'ask': ticker['ask'],
+                            'last': ticker['last'],
+                            'vol': ticker['total_vol'],
+                            'low': None,
+                            'high': None,
+                            'avg': ticker['24h_avg']}
+        self.ticker_cache['bitcoinaverage'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
     def _sellbtc(self, bids, value):
         n_coins = value
         total = 0.0
@@ -648,7 +673,7 @@ class Market(callbacks.Plugin):
         """
         supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
                 'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
-                'btcn':'BTCChina', 'all':'all'}
+                'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'all':'all'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
         market = od.pop('market','mtgox').lower()
@@ -661,7 +686,7 @@ class Market(callbacks.Plugin):
         dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
                 'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
                 'btcde':self._getBtcdeTicker, 'cbx':self._getCbxTicker,
-                'btcn':self._getBtcchinaTicker,}
+                'btcn':self._getBtcchinaTicker, 'btcavg':self._getBitcoinaverageTicker}
         if market != 'all':
             try:
                 ticker = dispatch[market](currency)
