@@ -821,17 +821,20 @@ class Market(callbacks.Plugin):
         irc.reply(result)
     goxlag = wrap(goxlag, [getopts({'raw': ''})])
 
-    def convert(self, irc, msg, args, currency1, currency2):
-        """<currency1> [to|in] <currency2>
+    def convert(self, irc, msg, args, amount, currency1, currency2):
+        """[<amount>] <currency1> [to|in] <currency2>
         
         Convert <currency1> to <currency2> using Yahoo api.
+        If optional <amount> is given, converts <amount> units of currency1.
         """
+        if amount is None:
+            amount = 1
         try:
             result = self._queryYahooRate(currency1, currency2)
-            irc.reply(result)
+            irc.reply(float(result)*amount)
         except:
             irc.error("Problem retrieving data.")
-    convert = wrap(convert, ['currencyCode', 'to', 'currencyCode'])
+    convert = wrap(convert, [optional('nonNegativeFloat'), 'currencyCode', 'to', 'currencyCode'])
 
 Class = Market
 
