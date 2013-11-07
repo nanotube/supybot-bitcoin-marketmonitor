@@ -346,19 +346,52 @@ class Market(callbacks.Plugin):
         try:
             ticker = json.loads(urlopen('https://api.bitcoinaverage.com/ticker/%s' % (currency,)).read())
         except urllib2.HTTPError:
-            irc.error('Unsupported currency.')
-            return
+            stdticker = {'error':'Unsupported currency.'}
+            return stdticker
         except:
-            irc.error('Problem retrieving data.')
-            return
-        stdticker = {'bid': ticker['bid'],
-                            'ask': ticker['ask'],
-                            'last': ticker['last'],
+            stdticker = {'error':'Problem retrieving data.'}
+            return stdticker
+        stdticker = {'bid': float(ticker['bid']),
+                            'ask': float(ticker['ask']),
+                            'last': float(ticker['last']),
                             'vol': ticker['total_vol'],
                             'low': None,
                             'high': None,
-                            'avg': ticker['24h_avg']}
+                            'avg': float(ticker['24h_avg'])}
         self.ticker_cache['bitcoinaverage'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
+    def _getCoinbaseTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['coinbase'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        try:
+            last = json.loads(urlopen('https://coinbase.com/api/v1/prices/spot_rate').read())['amount']
+            ask = json.loads(urlopen('https://coinbase.com/api/v1/prices/buy').read())['amount']
+            bid = json.loads(urlopen('https://coinbase.com/api/v1/prices/sell').read())['amount']
+        except:
+            stdticker = {'error':'Problem retrieving data.'}
+            return
+        if currency not in ['USD']:
+            stdticker = {'warning':'using google conversion'}
+            try:
+                yahoorate = self._queryYahooRate('USD', currency)
+            except:
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                return stdticker
+        else:
+            yahoorate = 1
+        stdticker = {'bid': float(bid)*float(yahoorate),
+                            'ask': float(ask)*float(yahoorate),
+                            'last': float(last)*float(yahoorate),
+                            'vol': None,
+                            'low': None,
+                            'high': None,
+                            'avg': None}
+        self.ticker_cache['coinbase'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _sellbtc(self, bids, value):
@@ -673,7 +706,8 @@ class Market(callbacks.Plugin):
         """
         supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
                 'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
-                'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'all':'all'}
+                'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'coinbase':'Coinbase',
+                'all':'all'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
         market = od.pop('market','mtgox').lower()
@@ -686,7 +720,8 @@ class Market(callbacks.Plugin):
         dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
                 'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
                 'btcde':self._getBtcdeTicker, 'cbx':self._getCbxTicker,
-                'btcn':self._getBtcchinaTicker, 'btcavg':self._getBitcoinaverageTicker}
+                'btcn':self._getBtcchinaTicker, 'btcavg':self._getBitcoinaverageTicker,
+                'coinbase':self._getCoinbaseTicker}
         if market != 'all':
             try:
                 ticker = dispatch[market](currency)
