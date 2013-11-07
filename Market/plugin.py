@@ -65,8 +65,13 @@ def getCurrencyCode(irc, msg, args, state, type='currency code'):
     state.args.append(m.group(1).upper())
     del args[0]
 
+def getTo(irc, msg, args, state):
+    if args[0].lower() in ['in', 'to']:
+        args.pop(0)
+
 addConverter('nonNegativeFloat', getNonNegativeFloat)
 addConverter('currencyCode', getCurrencyCode)
+addConverter('to', getTo)
 
 class Market(callbacks.Plugin):
     """Add the help for "@plugin help Market" here
@@ -755,6 +760,18 @@ class Market(callbacks.Plugin):
         result += " During this time, light travels %s AU. You could have sent a bitcoin %s (%s AU)." % (au, objectname, bestdist)
         irc.reply(result)
     goxlag = wrap(goxlag, [getopts({'raw': ''})])
+
+    def convert(self, irc, msg, args, currency1, currency2):
+        """<currency1> [to|in] <currency2>
+        
+        Convert <currency1> to <currency2> using Yahoo api.
+        """
+        try:
+            result = self._queryYahooRate(currency1, currency2)
+            irc.reply(result)
+        except:
+            irc.error("Problem retrieving data.")
+    convert = wrap(convert, ['currencyCode', 'to', 'currencyCode'])
 
 Class = Market
 
