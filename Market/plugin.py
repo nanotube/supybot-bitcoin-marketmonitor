@@ -43,7 +43,7 @@ import time
 import traceback
 
 opener = urllib2.build_opener()
-opener.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
+opener.addheaders = [('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
 urlopen = opener.open
 
 def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
@@ -117,33 +117,50 @@ class Market(callbacks.Plugin):
             pass # oh well, try again later.
 
     def _getMtgoxTicker(self, currency):
-        if not world.testing or currency != 'USD':
+        if world.testing and currency == 'USD':
+            ticker = json.load(open('/tmp/mtgox.ticker.json'))
+        else:
             try:
                 cachedvalue = self.ticker_cache['mtgox'+currency]
                 if time.time() - cachedvalue['time'] < 3:
                     return cachedvalue['ticker']
             except KeyError:
                 pass
-            json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
+            stdticker = {}
+            try:
+                json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
+            except urllib2.HTTPError:
+                json_data = '{"result":"error"}'
+            try:
+                ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
+            except urllib2.HTTPError:
+                ftj = '{"result":"error"}'
             ticker = json.loads(json_data)
-            ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
+            yahoorate = 1
+            if ticker['result'] == 'error' and currency != 'USD':
+                # maybe currency just doesn't exist, so try USD and convert.
+                ticker = json.loads(urlopen("https://data.mtgox.com/api/2/BTCUSD/money/ticker").read())
+                try:
+                    stdticker = {'warning':'using yahoo currency conversion'}
+                    yahoorate = float(self._queryYahooRate('USD', currency))
+                except:
+                    stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                    return stdticker
             tf = json.loads(ftj)
             if ticker['result'] != 'error' and tf['result'] != 'error': # use fast ticker where available
                 ticker['data']['buy']['value'] = tf['data']['buy']['value']
                 ticker['data']['sell']['value'] = tf['data']['sell']['value']
                 ticker['data']['last']['value'] = tf['data']['last']['value']
-        else:
-            ticker = json.load(open('/tmp/mtgox.ticker.json'))
         if ticker['result'] == 'error':
              stdticker = {'error':ticker['error']}
         else:
-            stdticker = {'bid': ticker['data']['buy']['value'],
-                                'ask': ticker['data']['sell']['value'],
-                                'last': ticker['data']['last']['value'],
+            stdticker.update({'bid': float(ticker['data']['buy']['value'])*yahoorate,
+                                'ask': float(ticker['data']['sell']['value'])*yahoorate,
+                                'last': float(ticker['data']['last']['value'])*yahoorate,
                                 'vol': ticker['data']['vol']['value'],
-                                'low': ticker['data']['low']['value'],
-                                'high': ticker['data']['high']['value'],
-                                'avg': ticker['data']['vwap']['value']}
+                                'low': float(ticker['data']['low']['value'])*yahoorate,
+                                'high': float(ticker['data']['high']['value'])*yahoorate,
+                                'avg': float(ticker['data']['vwap']['value'])*yahoorate})
         self.ticker_cache['mtgox'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -154,32 +171,43 @@ class Market(callbacks.Plugin):
                 return cachedvalue['ticker']
         except KeyError:
             pass
+        stdticker = {}
         if currency.lower() == 'ltc':
             pair = 'ltc_btc'
         else:
             pair = 'btc_%s' % (currency.lower(),)
         json_data = urlopen("https://btc-e.com/api/2/%s/ticker" % (pair,)).read()
         ticker = json.loads(json_data)
+        yahoorate = 1
         if ticker.has_key('error'):
-            stdticker = {'error':ticker['error']}
+            # maybe we have unsupported currency
+            ticker = json.loads(urlopen("https://btc-e.com/api/2/btc_usd/ticker").read())
+            if ticker.has_key('error'):
+                stdticker = {'error':ticker['error']}
+                return stdticker
+            try:
+                stdticker = {'warning':'using yahoo currency conversion'}
+                yahoorate = float(self._queryYahooRate('USD', currency))
+            except:
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                return stdticker
+        ticker = ticker['ticker']
+        if currency.lower() == 'ltc':
+            stdticker = {'bid': round(1.0/ticker['buy'],6),
+                            'ask': round(1.0/ticker['sell'],6),
+                            'last': round(1.0/ticker['last'],6),
+                            'vol': ticker['vol'],
+                            'low': round(1.0/ticker['high'],6),
+                            'high': round(1.0/ticker['low'],6),
+                            'avg': round(1.0/ticker['avg'],6)}
         else:
-            ticker = ticker['ticker']
-            if currency.lower() == 'ltc':
-                stdticker = {'bid': round(1.0/ticker['buy'],6),
-                                'ask': round(1.0/ticker['sell'],6),
-                                'last': round(1.0/ticker['last'],6),
-                                'vol': ticker['vol'],
-                                'low': round(1.0/ticker['high'],6),
-                                'high': round(1.0/ticker['low'],6),
-                                'avg': round(1.0/ticker['avg'],6)}
-            else:
-                stdticker = {'bid': ticker['sell'],
-                                'ask': ticker['buy'],
-                                'last': ticker['last'],
-                                'vol': ticker['vol_cur'],
-                                'low': ticker['low'],
-                                'high': ticker['high'],
-                                'avg': ticker['avg']}
+            stdticker.update({'bid': float(ticker['sell'])*yahoorate,
+                            'ask': float(ticker['buy'])*yahoorate,
+                            'last': float(ticker['last'])*yahoorate,
+                            'vol': ticker['vol_cur'],
+                            'low': float(ticker['low'])*yahoorate,
+                            'high': float(ticker['high'])*yahoorate,
+                            'avg': float(ticker['avg'])*yahoorate})
         self.ticker_cache['btce'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -190,20 +218,26 @@ class Market(callbacks.Plugin):
                 return cachedvalue['ticker']
         except KeyError:
             pass
+        stdticker = {}
         json_data = urlopen("https://www.bitstamp.net/api/ticker/").read()
         ticker = json.loads(json_data)
         bcharts = json.loads(urlopen("http://api.bitcoincharts.com/v1/markets.json").read())
+        yahoorate = 1
         if currency != 'USD':
-            stdticker = {'error':'unsupported currency'}
-        else:
-            bcharts = filter(lambda x: x['symbol'] == 'bitstampUSD', bcharts)[0]
-            stdticker = {'bid': ticker['bid'],
-                                'ask': ticker['ask'],
-                                'last': ticker['last'],
-                                'vol': ticker['volume'],
-                                'low': ticker['low'],
-                                'high': ticker['high'],
-                                'avg': bcharts['avg']}
+            try:
+                stdticker = {'warning':'using yahoo currency conversion'}
+                yahoorate = float(self._queryYahooRate('USD', currency))
+            except:
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                return stdticker
+        bcharts = filter(lambda x: x['symbol'] == 'bitstampUSD', bcharts)[0]
+        stdticker.update({'bid': float(ticker['bid'])*yahoorate,
+                            'ask': float(ticker['ask'])*yahoorate,
+                            'last': float(ticker['last'])*yahoorate,
+                            'vol': ticker['volume'],
+                            'low': float(ticker['low'])*yahoorate,
+                            'high': float(ticker['high'])*yahoorate,
+                            'avg': float(bcharts['avg'])*yahoorate})
         self.ticker_cache['bitstamp'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -251,27 +285,27 @@ class Market(callbacks.Plugin):
                 return cachedvalue['ticker']
         except KeyError:
             pass
+        stdticker = {}
         json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
         ticker = json.loads(json_data)
         trades = urlopen('http://api.bitcoincharts.com/v1/trades.csv?symbol=btcdeEUR').readlines()
         last = float(trades[0].split(',')[1])
+        yahoorate = 1
         if currency != 'EUR':
-            stdticker = {'warning':'using google conversion'}
+            stdticker = {'warning':'using yahoo currency conversion'}
             try:
-                yahoorate = self._queryYahooRate('EUR', currency)
+                yahoorate = float(self._queryYahooRate('EUR', currency))
             except:
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
-        else:
-            yahoorate = 1
         ticker = filter(lambda x: x['symbol'] == 'btcdeEUR', ticker)[0]
-        stdticker = {'bid': float(ticker['bid'])*float(yahoorate),
-                            'ask':float(ticker['ask'])*float(yahoorate),
-                            'last': float(last)*float(yahoorate),
+        stdticker.update({'bid': float(ticker['bid'])*yahoorate,
+                            'ask':float(ticker['ask'])*yahoorate,
+                            'last': float(last)*yahoorate,
                             'vol': ticker['volume'],
-                            'low': float(ticker['low'])*float(yahoorate),
-                            'high': float(ticker['high'])*float(yahoorate),
-                            'avg': float(ticker['avg'])*float(yahoorate)}
+                            'low': float(ticker['low'])*yahoorate,
+                            'high': float(ticker['high'])*yahoorate,
+                            'avg': float(ticker['avg'])*yahoorate})
         self.ticker_cache['btcde'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -282,20 +316,26 @@ class Market(callbacks.Plugin):
                 return cachedvalue['ticker']
         except KeyError:
             pass
+        stdticker = {}
         json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
         ticker = json.loads(json_data)
         cbx = json.loads(urlopen('http://campbx.com/api/xticker.php').read())
+        yahoorate = 1
         if currency != 'USD':
-            stdticker = {'error':'unsupported currency'}
-        else:
-            ticker = filter(lambda x: x['symbol'] == 'cbxUSD', ticker)[0]
-            stdticker = {'bid': cbx['Best Bid'],
-                                'ask': cbx['Best Ask'],
-                                'last': cbx['Last Trade'],
-                                'vol': ticker['volume'],
-                                'low': ticker['low'],
-                                'high': ticker['high'],
-                                'avg': ticker['avg']}
+            stdticker = {'warning':'using yahoo currency conversion'}
+            try:
+                yahoorate = float(self._queryYahooRate('USD', currency))
+            except:
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                return stdticker
+        ticker = filter(lambda x: x['symbol'] == 'cbxUSD', ticker)[0]
+        stdticker.update({'bid': float(cbx['Best Bid'])*yahoorate,
+                            'ask': float(cbx['Best Ask'])*yahoorate,
+                            'last': float(cbx['Last Trade'])*yahoorate,
+                            'vol': ticker['volume'],
+                            'low': float(ticker['low'])*yahoorate,
+                            'high': float(ticker['high'])*yahoorate,
+                            'avg': float(ticker['avg'])*yahoorate})
         self.ticker_cache['campbx'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -306,33 +346,33 @@ class Market(callbacks.Plugin):
                 return cachedvalue['ticker']
         except KeyError:
             pass
+        stdticker = {}
         try:
             json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
             bcharts = json.loads(json_data)
         except:
             bcharts = [{'symbol':'btcnCNY','avg':None}]
         btcchina = json.loads(urlopen('https://www.btcchina.com/bc/ticker').read())['ticker']
+        yahoorate = 1
         if currency not in ['CNY', 'RMB']:
-            stdticker = {'warning':'using google conversion'}
+            stdticker = {'warning':'using yahoo currency conversion'}
             try:
-                yahoorate = self._queryYahooRate('CNY', currency)
+                yahoorate = float(self._queryYahooRate('CNY', currency))
             except:
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
-        else:
-            yahoorate = 1
         bcharts = filter(lambda x: x['symbol'] == 'btcnCNY', bcharts)[0]
         if bcharts['avg'] is not None:
-            avg = float(bcharts['avg'])*float(yahoorate)
+            avg = float(bcharts['avg'])*yahoorate
         else:
             avg = None
-        stdticker = {'bid': float(btcchina['buy'])*float(yahoorate),
-                            'ask': float(btcchina['sell'])*float(yahoorate),
-                            'last': float(btcchina['last'])*float(yahoorate),
+        stdticker.update({'bid': float(btcchina['buy'])*yahoorate,
+                            'ask': float(btcchina['sell'])*yahoorate,
+                            'last': float(btcchina['last'])*yahoorate,
                             'vol': btcchina['vol'],
-                            'low': float(btcchina['low'])*float(yahoorate),
-                            'high': float(btcchina['high'])*float(yahoorate),
-                            'avg': avg}
+                            'low': float(btcchina['low'])*yahoorate,
+                            'high': float(btcchina['high'])*yahoorate,
+                            'avg': avg})
         self.ticker_cache['btcchina'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -368,6 +408,7 @@ class Market(callbacks.Plugin):
                 return cachedvalue['ticker']
         except KeyError:
             pass
+        stdticker = {}
         try:
             last = json.loads(urlopen('https://coinbase.com/api/v1/prices/spot_rate').read())['amount']
             ask = json.loads(urlopen('https://coinbase.com/api/v1/prices/buy').read())['amount']
@@ -375,22 +416,22 @@ class Market(callbacks.Plugin):
         except:
             stdticker = {'error':'Problem retrieving data.'}
             return
-        if currency not in ['USD']:
-            stdticker = {'warning':'using google conversion'}
+        if currency != 'USD':
+            stdticker = {'warning':'using yahoo currency conversion'}
             try:
-                yahoorate = self._queryYahooRate('USD', currency)
+                yahoorate = float(self._queryYahooRate('USD', currency))
             except:
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
         else:
             yahoorate = 1
-        stdticker = {'bid': float(bid)*float(yahoorate),
-                            'ask': float(ask)*float(yahoorate),
-                            'last': float(last)*float(yahoorate),
+        stdticker.update({'bid': float(bid)*yahoorate,
+                            'ask': float(ask)*yahoorate,
+                            'last': float(last)*yahoorate,
                             'vol': None,
                             'low': None,
                             'high': None,
-                            'avg': None}
+                            'avg': None})
         self.ticker_cache['coinbase'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
