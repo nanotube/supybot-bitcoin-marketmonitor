@@ -289,7 +289,7 @@ class Market(callbacks.Plugin):
         json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
         ticker = json.loads(json_data)
         trades = urlopen('http://api.bitcoincharts.com/v1/trades.csv?symbol=btcdeEUR').readlines()
-        last = float(trades[0].split(',')[1])
+        last = float(trades[-1].split(',')[1])
         yahoorate = 1
         if currency != 'EUR':
             stdticker = {'warning':'using yahoo currency conversion'}
@@ -352,7 +352,7 @@ class Market(callbacks.Plugin):
             bcharts = json.loads(json_data)
         except:
             bcharts = [{'symbol':'btcnCNY','avg':None}]
-        btcchina = json.loads(urlopen('https://www.btcchina.com/bc/ticker').read())['ticker']
+        btcchina = json.loads(urlopen('https://data.btcchina.com/data/ticker').read())['ticker']
         yahoorate = 1
         if currency not in ['CNY', 'RMB']:
             stdticker = {'warning':'using yahoo currency conversion'}
