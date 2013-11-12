@@ -904,7 +904,10 @@ class GPG(callbacks.Plugin):
                                 authinfo['fingerprint'],
                                 authinfo['bitcoinaddress'])
         except KeyError:
-            response += "not identified."
+            if irc.nested:
+                response = ""
+            else:
+                response += "not identified."
         irc.reply(response)
     ident = wrap(ident, [optional('something')])
 
