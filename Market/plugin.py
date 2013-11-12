@@ -252,9 +252,9 @@ class Market(callbacks.Plugin):
             pair = 'ltcbtc'
         else:
             pair = 'btc%s' % (currency.lower(),)
-        json_data = urlopen("https://bitfinex.com/api/v1/ticker/%s" % (pair,)).read()
+        json_data = urlopen("https://api.bitfinex.com/v1/ticker/%s" % (pair,)).read()
         spotticker = json.loads(json_data)
-        json_data = urlopen("https://bitfinex.com/api/v1/today/%s" % (pair,)).read()
+        json_data = urlopen("https://api.bitfinex.com/v1/today/%s" % (pair,)).read()
         dayticker = json.loads(json_data)
         if spotticker.has_key('message') or dayticker.has_key('message'):
             stdticker = {'error':spotticker.get('message') or dayticker.get('message')}
