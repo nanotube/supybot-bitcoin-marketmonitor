@@ -436,6 +436,7 @@ class GPG(callbacks.Plugin):
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
+            data = None
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
                 raise ValueError, "problem encrypting otp"
