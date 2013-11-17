@@ -446,8 +446,12 @@ class GPG(callbacks.Plugin):
             f.close()
         except Exception, e:
             irc.error("Problem creating encrypted OTP file.")
+            if 'stderr' in dir(data):
+                gpgerroroutput = data.stderr
+            else:
+                gpgerroroutput = None
             self.log.info("GPG eauth: key %s, otp creation %s, exception %s" % \
-                    (keyid, data.stderr, e,))
+                    (keyid, gpgerroroutput, e,))
             return
         request = {msg.prefix: {'nick':userdata[0][5],
                                 'expiry':time.time(), 'keyid':keyid,
