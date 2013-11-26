@@ -85,6 +85,9 @@ class Market(callbacks.Plugin):
         self.mdepth = None
         self.currency_cache = {}
         self.ticker_cache = {}
+        self.supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'btsp':'Bitstamp',
+                'bfx':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
+                'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'coinbase':'Coinbase'}
 
     def _queryYahooRate(self, cur1, cur2):
         try:
@@ -211,7 +214,7 @@ class Market(callbacks.Plugin):
         self.ticker_cache['btce'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
-    def _getBitstampTicker(self, currency):
+    def _getBtspTicker(self, currency):
         try:
             cachedvalue = self.ticker_cache['bitstamp'+currency]
             if time.time() - cachedvalue['time'] < 3:
@@ -245,7 +248,7 @@ class Market(callbacks.Plugin):
         self.ticker_cache['bitstamp'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
-    def _getBitfinexTicker(self, currency):
+    def _getBfxTicker(self, currency):
         try:
             cachedvalue = self.ticker_cache['bitfinex'+currency]
             if time.time() - cachedvalue['time'] < 3:
@@ -346,7 +349,7 @@ class Market(callbacks.Plugin):
         self.ticker_cache['campbx'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
-    def _getBtcchinaTicker(self, currency):
+    def _getBtcnTicker(self, currency):
         try:
             cachedvalue = self.ticker_cache['btcchina'+currency]
             if time.time() - cachedvalue['time'] < 3:
@@ -383,7 +386,7 @@ class Market(callbacks.Plugin):
         self.ticker_cache['btcchina'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
-    def _getBitcoinaverageTicker(self, currency):
+    def _getBtcavgTicker(self, currency):
         try:
             cachedvalue = self.ticker_cache['bitcoinaverage'+currency]
             if time.time() - cachedvalue['time'] < 3:
@@ -713,6 +716,16 @@ class Market(callbacks.Plugin):
                 % (totalbids, totalasks, ratio, (time.time() - self.lastdepthfetch),))
     baratio = wrap(baratio)
 
+    def _getMarketInfo(self, input):
+        if input.lower() in self.supportedmarkets.keys():
+            return [input.lower(), self.supportedmarkets[input.lower()],
+                    getattr(self, '_get' + input.capitalize() + 'Ticker'),]
+        r = filter(lambda x: self.supportedmarkets[x].lower() == input.lower(), self.supportedmarkets)
+        if len(r) == 1:
+            return [r[0], self.supportedmarkets[r[0]],
+                    getattr(self, '_get' + r[0].capitalize() + 'Ticker'),]
+        return None
+        
     def premium(self, irc, msg, args, market1, market2):
         '''<market1> <market2>
         
@@ -720,25 +733,20 @@ class Market(callbacks.Plugin):
         Uses USD exchange rate. If USD is not traded on one of the target
         markets, queries currency conversion from google.
         '''
-        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
-                'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
-                'btcn':'BTCChina', 'coinbase':'Coinbase'}
-        if market1 not in supportedmarkets.keys() or market2 not in supportedmarkets.keys():
-            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.keys(),))
+        r1 = self._getMarketInfo(market1)
+        r2 = self._getMarketInfo(market2)
+        if r1 is None or r2 is None:
+            irc.error("This is not one of the supported markets. Please choose one of %s." % (self.supportedmarkets.keys(),))
             return
-        dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
-                'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
-                'btcde':self._getBtcdeTicker, 'cbx':self._getCbxTicker,
-                'btcn':self._getBtcchinaTicker,'coinbase':self._getCoinbaseTicker}
         try:
-            last1 = float(dispatch[market1]('USD')['last'])
-            last2 = float(dispatch[market2]('USD')['last'])
+            last1 = float(r1[2]('USD')['last'])
+            last2 = float(r2[2]('USD')['last'])
         except:
-                irc.error("Failure to retrieve ticker. Try again later.")
-                return
+            irc.error("Failure to retrieve ticker. Try again later.")
+            return
         prem = (last1-last2)/last2*100
         irc.reply("Premium of %s over %s is currently %s %%." % \
-                (supportedmarkets[market1], supportedmarkets[market2], prem,))
+                (r1[1], r2[1], prem,))
     premium = wrap(premium, ['something','something'])
     
     def ticker(self, irc, msg, args, optlist):
@@ -752,27 +760,19 @@ class Market(callbacks.Plugin):
         It is up to you to make sure the code is a valid currency on your target market.
         Default currency is USD.
         """
-        supportedmarkets = {'mtgox':'MtGox','btce':'BTC-E', 'bitstamp':'Bitstamp',
-                'bitfinex':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
-                'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'coinbase':'Coinbase',
-                'all':'all'}
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
-        market = od.pop('market','mtgox').lower()
-        if market not in supportedmarkets.keys():
-            irc.error("This is not one of the supported markets. Please choose one of %s." % (supportedmarkets.keys(),))
+        market = od.pop('market','mtgox')
+        r = self._getMarketInfo(market)
+        if r is None and market.lower() != 'all':
+            irc.error("This is not one of the supported markets. Please choose one of %s or 'all'" % (self.supportedmarkets.keys(),))
             return
         if len(od) > 1:
             irc.error("Please only choose at most one result option at a time.")
             return
-        dispatch = {'mtgox':self._getMtgoxTicker, 'btce':self._getBtceTicker,
-                'bitstamp':self._getBitstampTicker, 'bitfinex': self._getBitfinexTicker,
-                'btcde':self._getBtcdeTicker, 'cbx':self._getCbxTicker,
-                'btcn':self._getBtcchinaTicker, 'btcavg':self._getBitcoinaverageTicker,
-                'coinbase':self._getCoinbaseTicker}
         if market != 'all':
             try:
-                ticker = dispatch[market](currency)
+                ticker = r[2](currency)
             except Exception, e:
                 irc.error("Failure to retrieve ticker. Try again later.")
                 self.log.info("Problem retrieving ticker. Market %s, Error: %s" %\
@@ -785,7 +785,7 @@ class Market(callbacks.Plugin):
             if len(od) == 0:
                 irc.reply("%s BTC%s ticker | Best bid: %s, Best ask: %s, Bid-ask spread: %.5f, Last trade: %s, "
                     "24 hour volume: %s, 24 hour low: %s, 24 hour high: %s, 24 hour vwap: %s" % \
-                    (supportedmarkets[market], currency, ticker['bid'], ticker['ask'],
+                    (r[1], currency, ticker['bid'], ticker['ask'],
                     float(ticker['ask']) - float(ticker['bid']), ticker['last'],
                     ticker['vol'], ticker['low'], ticker['high'],
                     ticker['avg']))
@@ -793,17 +793,15 @@ class Market(callbacks.Plugin):
                 key = od.keys()[0]
                 irc.reply(ticker[key])
         else:
-            if currency != 'USD':
-                irc.error('Only USD averages supported.')
-                return
             response = ""
             sumvol = 0
             sumprc = 0
-            for mkt in ['mtgox','bitstamp','btce','bitfinex','cbx','btcn']:
+            for mkt in ['mtgox','btsp','btce','bfx','cbx','btcn']:
                 try:
-                    tck = dispatch[mkt](currency)
-                    response += "%s BTCUSD last: %s, vol: %s | " % \
-                            (supportedmarkets[mkt], tck['last'], tck['vol'])
+                    r = self._getMarketInfo(mkt)
+                    tck = r[2](currency)
+                    response += "%s BTC%s last: %s, vol: %s | " % \
+                            (r[1], currency, tck['last'], tck['vol'])
                 except:
                     continue # we'll just skip this one then
                 sumvol += float(tck['vol'])
