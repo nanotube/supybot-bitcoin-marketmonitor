@@ -221,7 +221,12 @@ class Market(callbacks.Plugin):
         stdticker = {}
         json_data = urlopen("https://www.bitstamp.net/api/ticker/").read()
         ticker = json.loads(json_data)
-        bcharts = json.loads(urlopen("http://api.bitcoincharts.com/v1/markets.json").read())
+        try:
+            bcharts = json.loads(urlopen("http://api.bitcoincharts.com/v1/markets.json").read())
+            bcharts = filter(lambda x: x['symbol'] == 'bitstampUSD', bcharts)[0]
+            avg = float(bcharts['avg'])
+        except:
+            avg = 0
         yahoorate = 1
         if currency != 'USD':
             try:
@@ -230,14 +235,13 @@ class Market(callbacks.Plugin):
             except:
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
-        bcharts = filter(lambda x: x['symbol'] == 'bitstampUSD', bcharts)[0]
         stdticker.update({'bid': float(ticker['bid'])*yahoorate,
                             'ask': float(ticker['ask'])*yahoorate,
                             'last': float(ticker['last'])*yahoorate,
                             'vol': ticker['volume'],
                             'low': float(ticker['low'])*yahoorate,
                             'high': float(ticker['high'])*yahoorate,
-                            'avg': float(bcharts['avg'])*yahoorate})
+                            'avg': avg*yahoorate})
         self.ticker_cache['bitstamp'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
@@ -317,8 +321,12 @@ class Market(callbacks.Plugin):
         except KeyError:
             pass
         stdticker = {}
-        json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
-        ticker = json.loads(json_data)
+        try:
+            json_data = urlopen("http://api.bitcoincharts.com/v1/markets.json").read()
+            ticker = json.loads(json_data)
+            ticker = filter(lambda x: x['symbol'] == 'cbxUSD', ticker)[0]
+        except:
+            ticker = {'low':0, 'high':0, 'volume':0, 'avg':0}
         cbx = json.loads(urlopen('http://campbx.com/api/xticker.php').read())
         yahoorate = 1
         if currency != 'USD':
@@ -328,7 +336,6 @@ class Market(callbacks.Plugin):
             except:
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
-        ticker = filter(lambda x: x['symbol'] == 'cbxUSD', ticker)[0]
         stdticker.update({'bid': float(cbx['Best Bid'])*yahoorate,
                             'ask': float(cbx['Best Ask'])*yahoorate,
                             'last': float(cbx['Last Trade'])*yahoorate,
