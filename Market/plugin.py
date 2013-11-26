@@ -89,7 +89,8 @@ class Market(callbacks.Plugin):
         self.ticker_supported_markets = {'mtgox':'MtGox','btce':'BTC-E', 'btsp':'Bitstamp',
                 'bfx':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
                 'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'coinbase':'Coinbase'}
-        self.depth_supported_markets = {'mtgox':'MtGox','btsp':'Bitstamp',}
+        self.depth_supported_markets = {'mtgox':'MtGox','btsp':'Bitstamp', 
+                'btcn':'BTCChina'}
 
     def _queryYahooRate(self, cur1, cur2):
         try:
@@ -123,7 +124,7 @@ class Market(callbacks.Plugin):
             data = urlopen('http://data.mtgox.com/api/1/BTCUSD/depth/full').read()
             vintage = time.time()
             depth = json.loads(data)['return']
-            depth['bids'].reverse() # bids are listed in ascending order
+            depth['bids'].reverse() # bids should be listed in descending order
             self.depth_cache['mtgox'] = {'time':vintage, 'depth':depth}
         except:
             pass # oh well, try again later.
@@ -149,6 +150,33 @@ class Market(callbacks.Plugin):
             depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
             self.depth_cache['btsp'] = {'time':vintage, 'depth':depth}
+        except:
+            pass # oh well, try again later.
+
+    def _getBtcnDepth(self):
+        yahoorate = float(self._queryYahooRate('CNY', 'USD'))
+        if world.testing: # avoid hammering api when testing.
+            depth = json.load(open('/tmp/btcchina.depth.json'))
+            depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
+            depth['asks'].reverse() # asks should be listed in ascending order
+            self.depth_cache['btcn'] = {'time':time.time(), 'depth':depth}
+            return
+        try:
+            cachedvalue = self.depth_cache['btcn']
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+        try:
+            data = urlopen('https://data.btcchina.com/data/orderbook').read()
+            vintage = time.time()
+            depth = json.loads(data)
+            # make consistent format with mtgox
+            depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
+            depth['asks'].reverse() # asks should be listed in ascending order
+            self.depth_cache['btcn'] = {'time':vintage, 'depth':depth}
         except:
             pass # oh well, try again later.
 
