@@ -35,13 +35,19 @@ class MarketTestCase(PluginTestCase):
 
     def testAsks(self):
         self.assertError('asks blabla')
+        self.assertError('asks --market nosuchthing 1000')
         self.assertRegexp('asks 0', 'There are currently 0 bitcoins offered at or under 0')
         self.assertRegexp('asks --over 5.5', 'There are currently .* bitcoins offered at or over 5')
+        self.assertRegexp('asks --market bitstamp 1000', 'There are currently .* bitcoins offered')
+        self.assertRegexp('asks --market btsp --over 5.5', 'There are currently .* bitcoins offered at or over 5')
 
     def testBids(self):
         self.assertError('bids blabla')
+        self.assertError('bids --market nosuchthing 1000')
         self.assertRegexp('bids 10000000', 'There are currently 0 bitcoins demanded at or over 1')
         self.assertRegexp('bids --under 5.5', 'There are currently .* bitcoins demanded at or under 5')
+        self.assertRegexp('bids --market bitstamp 1000', 'There are currently .* bitcoins demanded')
+        self.assertRegexp('bids --market bitstamp --under 5.5', 'There are currently .* bitcoins demanded at or under 5')
 
     def testTicker(self):
         self.assertRegexp('ticker', 'Best bid')
@@ -60,20 +66,30 @@ class MarketTestCase(PluginTestCase):
         self.assertError('ticker --last --bid --currency USD') # can't have multiple result options
         self.assertError('ticker --currency ZZZ') # no such currency on mtgox
         self.assertError('ticker --currency blablabla') # invalid currency code
+        self.assertRegexp('ticker --market bitstamp --currency USD', 'Bitstamp BTCUSD')
         
     def testBuy(self):
         self.assertError('buy blabla')
         self.assertRegexp('buy 100', 'market order to buy .* bitcoins right now would')
         self.assertRegexp('buy --usd 100', 'market order to buy .* USD worth of bitcoins right now would buy')
+        self.assertRegexp('buy --market bitstamp 100', 'market order to buy .* bitcoins right now would')
+        self.assertRegexp('buy --market btsp --usd 100', 'market order to buy .* USD worth of bitcoins right now would buy')
 
     def testSell(self):
         self.assertError('sell blabla')
         self.assertRegexp('sell 100', 'market order to sell .* bitcoins right now would')
         self.assertRegexp('sell --usd 100', 'market order to sell .* USD worth of bitcoins right now would')
+        self.assertRegexp('sell --market btsp 100', 'market order to sell .* bitcoins right now would')
+        self.assertRegexp('sell --market bitstamp --usd 100', 'market order to sell .* USD worth of bitcoins right now would')
 
     def testObip(self):
         self.assertError('obip blabla')
         self.assertRegexp('obip 100', 'weighted average price of BTC, .* coins up and down')
+        self.assertRegexp('obip --market btsp 100', 'weighted average price of BTC, .* coins up and down')
 
+    def testBaratio(self):
+        self.assertError('baratio blabla')
+        self.assertRegexp('baratio', 'Total bids.*Total asks')
+        self.assertRegexp('baratio --market bitstamp', 'Total bids.*Total asks')
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
