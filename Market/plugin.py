@@ -35,6 +35,7 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot import conf
 from supybot import world
+from supybot.utils.seq import dameraulevenshtein
 
 import re
 import json
@@ -794,10 +795,16 @@ class Market(callbacks.Plugin):
 
     def _getMarketInfo(self, input, action='ticker'):
         sm = getattr(self, action + '_supported_markets')
-        if input.lower() in sm.keys():
-            return [input.lower(), sm[input.lower()],
-                    getattr(self, '_get' + input.capitalize() + action.capitalize()),]
-        r = filter(lambda x: sm[x].lower() == input.lower(), sm)
+        sml = sm.keys()+sm.values()
+        dl = [dameraulevenshtein(input, i) for i in sml]
+        if (min(dl) <= 2):
+            mkt = (sm.keys()+sm.values())[dl.index(min(dl))]
+        else:
+            return None
+        if mkt.lower() in sm.keys():
+            return [mkt.lower(), sm[mkt.lower()],
+                    getattr(self, '_get' + mkt.capitalize() + action.capitalize()),]
+        r = filter(lambda x: sm[x].lower() == mkt.lower(), sm)
         if len(r) == 1:
             return [r[0], sm[r[0]],
                     getattr(self, '_get' + r[0].capitalize() + action.capitalize()),]
