@@ -824,9 +824,9 @@ class Market(callbacks.Plugin):
     def _getMarketInfo(self, input, action='ticker'):
         sm = getattr(self, action + '_supported_markets')
         sml = sm.keys()+sm.values()
-        dl = [dameraulevenshtein(input, i) for i in sml]
+        dl = [dameraulevenshtein(input.lower(), i.lower()) for i in sml]
         if (min(dl) <= 2):
-            mkt = (sm.keys()+sm.values())[dl.index(min(dl))]
+            mkt = (sml)[dl.index(min(dl))]
         else:
             return None
         if mkt.lower() in sm.keys():
