@@ -280,7 +280,7 @@ class OTCOrderBook(callbacks.Plugin):
     def _getIndexedValue(self, rawprice):
         try:
             goxtic = self.irc.getCallback('Market')._getMtgoxTicker('USD')
-            btsptic = self.irc.getCallback('Market')._getBitstampTicker('USD')
+            btsptic = self.irc.getCallback('Market')._getBtspTicker('USD')
             indexedprice = rawprice
             if re.search('mtgox', rawprice):
                 indexedprice = re.sub(r'{mtgoxask}', str(goxtic['ask']), indexedprice)
