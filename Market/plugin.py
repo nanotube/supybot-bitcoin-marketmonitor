@@ -236,8 +236,8 @@ class Market(callbacks.Plugin):
         except KeyError:
             pass
         stdticker = {}
-        if currency.lower() == 'ltc':
-            pair = 'ltc_btc'
+        if currency.lower() in ['ltc', 'nmc']:
+            pair = '%s_btc' % (currency.lower(),)
         else:
             pair = 'btc_%s' % (currency.lower(),)
         json_data = urlopen("https://btc-e.com/api/2/%s/ticker" % (pair,)).read()
@@ -256,7 +256,7 @@ class Market(callbacks.Plugin):
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
         ticker = ticker['ticker']
-        if currency.lower() == 'ltc':
+        if currency.lower() in ['ltc', 'nmc']:
             stdticker = {'bid': round(1.0/ticker['buy'],6),
                             'ask': round(1.0/ticker['sell'],6),
                             'last': round(1.0/ticker['last'],6),
