@@ -994,6 +994,30 @@ class Market(callbacks.Plugin):
             irc.error("Problem retrieving data.")
     convert = wrap(convert, [optional('nonNegativeFloat'), 'currencyCode', 'to', 'currencyCode'])
 
+    def avgprc(self, irc, msg, args, currency, timeframe):
+        """<currency> <timeframe>
+
+        Returns volume-weighted average price data from BitcoinCharts.
+        <currency> is a three-letter currency code, <timeframe> is
+        the time window for the average, and can be '24h', '7d', or '30d'.
+        """
+        try:
+            data = urlopen('http://api.bitcoincharts.com/v1/weighted_prices.json').read()
+            j = json.loads(data)
+            curs = j.keys()
+            curs.remove('timestamp')
+        except:
+            irc.error("Failed to retrieve data. Try again later.")
+            return
+        try:
+            result = j[currency.upper()][timeframe]
+        except KeyError:
+            irc.error("Data not available. Available currencies are %s, and "
+                    "available timeframes are 24h, 7d, 30d." % (', '.join(curs),))
+            return
+        irc.reply(result)
+    avgprc = wrap(avgprc, ['something','something'])
+
 Class = Market
 
 
