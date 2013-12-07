@@ -485,8 +485,7 @@ class Market(callbacks.Plugin):
             ask = json.loads(urlopen('https://coinbase.com/api/v1/prices/buy').read())['amount']
             bid = json.loads(urlopen('https://coinbase.com/api/v1/prices/sell').read())['amount']
         except:
-            stdticker = {'error':'Problem retrieving data.'}
-            return
+            raise # will get caught later
         if currency != 'USD':
             stdticker = {'warning':'using yahoo currency conversion'}
             try:
