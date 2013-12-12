@@ -194,13 +194,14 @@ class Market(callbacks.Plugin):
                 pass
             try:
                 json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
-            except urllib2.HTTPError:
-                json_data = '{"result":"error"}'
+                ticker = json.loads(json_data)
+            except Exception, e:
+                ticker = {"result":"error", "error":e}
             try:
-                ftj = urlopen("http://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
-            except urllib2.HTTPError:
-                ftj = '{"result":"error"}'
-            ticker = json.loads(json_data)
+                ftj = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
+                tf = json.loads(ftj)
+            except Exception, e:
+                tf = {"result":"error", "error":e}
             if ticker['result'] == 'error' and currency != 'USD':
                 # maybe currency just doesn't exist, so try USD and convert.
                 ticker = json.loads(urlopen("https://data.mtgox.com/api/2/BTCUSD/money/ticker").read())
@@ -210,7 +211,6 @@ class Market(callbacks.Plugin):
                 except:
                     stdticker = {'error':'failed to get currency conversion from yahoo.'}
                     return stdticker
-            tf = json.loads(ftj)
             if ticker['result'] != 'error' and tf['result'] != 'error': # use fast ticker where available
                 ticker['data']['buy']['value'] = tf['data']['buy']['value']
                 ticker['data']['sell']['value'] = tf['data']['sell']['value']
