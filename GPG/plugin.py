@@ -894,16 +894,18 @@ class GPG(callbacks.Plugin):
                         "If you want information about a registered gpg user, "
                         "try the 'gpg info' command instead.")
                 return
-            response = "Nick '%s', with hostmask '%s', is " % (nick, hostmask,)
         else:
             hostmask = msg.prefix
-            response = "You are "
+            nick = msg.nick
+        response = "Nick '%s', with hostmask '%s', is " % (nick, hostmask,)
         try:
             authinfo = self.authed_users[hostmask]
             if irc.nested:
                 response = authinfo['nick']
             else:
-                response += ("identified as user %s, with GPG key id %s, " + \
+                if authinfo['nick'].upper() != nick.upper():
+                    response = "\x02CAUTION: irc nick differs from otc registered nick.\x02 " + response
+                response += ("identified as user '%s', with GPG key id %s, " + \
                         "key fingerprint %s, and bitcoin address %s") % (authinfo['nick'],
                                 authinfo['keyid'],
                                 authinfo['fingerprint'],

@@ -116,7 +116,7 @@ class GPGTestCase(PluginTestCase):
                     'Registration successful. You are now authenticated')
 
         #are we identified?
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.assertRegexp('gpg ident test', 'is identified')
 
         #duplicate nick/key registrations
@@ -137,7 +137,7 @@ class GPGTestCase(PluginTestCase):
                     'Registration successful. You are now authenticated')
 
         #are we identified?
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.assertRegexp('gpg ident test', 'is identified')
 
         #duplicate nick/key registrations
@@ -159,11 +159,11 @@ class GPGTestCase(PluginTestCase):
         time.sleep(1)
         self.assertRegexp('bcverify %s' % (sig,),
                     'Registration successful. You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
 
     def testIdent(self):
         self.prefix = 'authedguy!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.assertRegexp('gpg ident authedguy', 'is identified')
         self.assertResponse('echo [gpg ident]', 'authedguy')
 
@@ -174,7 +174,7 @@ class GPGTestCase(PluginTestCase):
 
     def testUnauth(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.assertRegexp('gpg unauth', 'has been terminated')
         self.assertRegexp('gpg ident', 'not identified')
 
@@ -191,7 +191,7 @@ class GPGTestCase(PluginTestCase):
         pasteid = rc['id']
         self.assertRegexp('verify http://paste.debian.net/plain/%s/' % (pasteid,),
                     'You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
 
     def testEauth(self):
         self.assertNotError('gpg register bla %s' % (self.testkeyid,)) # just to get the pubkey into the keyring
@@ -204,7 +204,7 @@ class GPGTestCase(PluginTestCase):
         encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
         decrypted = self.cb.gpg.decrypt(encrypteddata)
         self.assertRegexp('everify %s' % (decrypted.data.strip(),), 'You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
 
     def testBcauth(self):
         # create the test ecdsa keypair and resulting bitcoin address
@@ -225,7 +225,7 @@ class GPGTestCase(PluginTestCase):
     #~ def testChangenick(self):
         #~ self.assertError('gpg changenick somethingnew') #not authed
         #~ self.prefix = 'authedguy2!stuff@123.345.234.34'
-        #~ self.assertRegexp('gpg ident', 'are identified')
+        #~ self.assertRegexp('gpg ident', 'is identified')
         #~ self.assertRegexp('gpg changenick mycoolnewnick',
                 #~ 'changed your nick from authedguy2 to mycoolnewnick')
         #~ self.assertRegexp('gpg ident authedguy2', 'identified as user mycoolnewnick')
@@ -234,7 +234,7 @@ class GPGTestCase(PluginTestCase):
     def testChangekey(self):
         self.assertError('gpg changekey AAAAAAAAAAAAAAA1') #not authed
         self.prefix = 'authedguy2!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         m = self.getMsg('gpg changekey %s' % (self.testkeyid,))
         self.failUnless('Request successful' in str(m))
         challenge = str(m).split('is: ')[1]
@@ -243,19 +243,19 @@ class GPGTestCase(PluginTestCase):
         pasteid = rc['id']
         self.assertRegexp('verify http://paste.debian.net/plain/%s/' % (pasteid,),
                     'Successfully changed key.*You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified.*key id %s' % (self.testkeyid,))
+        self.assertRegexp('gpg ident', 'is identified.*key id %s' % (self.testkeyid,))
 
     def testEchangekey(self):
         self.assertError('gpg echangekey AAAAAAAAAAAAAAA1') #not authed
         self.prefix = 'authedguy2!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         m = self.getMsg('gpg echangekey %s' % (self.testkeyid,))
         self.failUnless('Request successful' in str(m))
         encrypteddata = open(os.path.join(os.getcwd(), 'test-data/otps/%s' % (self.testkeyid,)), 'r').read()
         decrypted = self.cb.gpg.decrypt(encrypteddata)
         self.assertRegexp('everify %s' % (decrypted.data.strip(),),
                     'Successfully changed key.*You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified.*key id %s' % (self.testkeyid,))
+        self.assertRegexp('gpg ident', 'is identified.*key id %s' % (self.testkeyid,))
 
     def testChangeaddress(self):
         # create the test ecdsa keypair and resulting bitcoin address
@@ -265,7 +265,7 @@ class GPGTestCase(PluginTestCase):
 
         self.assertError('gpg changeaddress 1sntoheu') #not authed
         self.prefix = 'authedguy2!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         m = self.getMsg('gpg changeaddress %s' % (bitcoinaddress,))
         self.failUnless('Request successful' in str(m))
         challenge = str(m).split('is: ')[1].strip()
@@ -273,16 +273,16 @@ class GPGTestCase(PluginTestCase):
         time.sleep(1)
         self.assertRegexp('bcverify %s' % (sig,),
                     'Successfully changed address.*You are now authenticated')
-        self.assertRegexp('gpg ident', 'You are identified.*address %s' % (bitcoinaddress,))
+        self.assertRegexp('gpg ident', 'is identified.*address %s' % (bitcoinaddress,))
         self.assertRegexp('gpg info authedguy2', 'address %s' % (bitcoinaddress,))
 
     def testNick(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.irc.feedMsg(msg=ircmsgs.nick('newnick', prefix=self.prefix))
         self.assertRegexp('gpg ident', 'not identified')
         self.prefix = 'newnick' + '!' + self.prefix.split('!',1)[1]
-        self.assertRegexp('gpg ident', 'You are identified')
+        self.assertRegexp('gpg ident', 'is identified')
 
     def testOuit(self):
         self.prefix = 'authedguy!stuff@123.345.234.34'
@@ -292,7 +292,7 @@ class GPGTestCase(PluginTestCase):
 
     def testPart(self):
         self.prefix = 'authedguy!stuff@123.345.234.34'
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.irc.feedMsg(msg=ircmsgs.part("#test", prefix=self.prefix))
         self.assertRegexp('gpg ident', 'not identified')
 
@@ -303,7 +303,7 @@ class GPGTestCase(PluginTestCase):
                 'keyid':'AAAAAAAAAAAAAAA4', 'fingerprint':'AAAAAAAAAAAAAAAAAAA1AAAAAAAAAAAAAAA4',
                 'bitcoinaddress':'1blabsanthoeu'}
         self.prefix = 'test!user@host.domain.tld' 
-        self.assertRegexp('gpg ident', 'are identified')
+        self.assertRegexp('gpg ident', 'is identified')
         self.irc.feedMsg(msg=ircmsgs.kick("#test", 'test', prefix=self.prefix))
         self.assertRegexp('gpg ident', 'not identified')
 

@@ -4,8 +4,8 @@
 	}
 
 	//error_reporting(-1); ini_set('display_errors', 1);
-	$sortby = "rating";
-	$sortorder = "ASC";
+	//$sortby = "rating";
+	//$sortorder = "ASC";
 	$sign = isset($_GET["sign"]) ? $_GET["sign"] : "ANY";
 	$validvalues = array("ANY","NEG");
 	if (!in_array($sign, $validvalues)) $sign = "ANY";
@@ -14,8 +14,12 @@
 	if (!in_array($type, $validvalues)) $type = "RECV";
 	if ($type == "RECV") {
 		$validkeys = array('id', 'rater_nick', 'rater_total_rating', 'rated_nick', 'created_at', 'rating', 'notes');
+		$sortby = "rater_total_rating";
+		$sortorder = "DESC";
 	} else {
 		$validkeys = array('id', 'rater_nick', 'rated_nick', 'ratee_total_rating', 'created_at', 'rating', 'notes');
+		$sortby = "ratee_total_rating";
+		$sortorder = "DESC";
 	}
 	$nick = isset($_GET["nick"]) ? $_GET["nick"] : "";
 	$nickfilter = html_entity_decode(like($nick, '|'));
