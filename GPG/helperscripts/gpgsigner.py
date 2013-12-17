@@ -15,7 +15,7 @@ import StringIO
 
 input = " ".join(sys.argv[1:])
 
-p1 = subprocess.Popen(['gpg','--clearsign'], stdin = subprocess.PIPE, stdout=subprocess.PIPE)
+p1 = subprocess.Popen(['gpg','--clearsign','--cipher-algo AES256'], stdin = subprocess.PIPE, stdout=subprocess.PIPE)
 p1.stdin.write(input)
 output = p1.communicate()[0]
 

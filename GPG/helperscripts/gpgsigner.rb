@@ -3,7 +3,7 @@ require 'xmlrpc/client'
 # Sign it
 response = ""
 STDOUT.sync = true
-IO.popen("echo " + ARGV[0] + " | gpg --clearsign") do |pipe|
+IO.popen("echo " + ARGV[0] + " | gpg --clearsign --cipher-algo AES256") do |pipe|
   pipe.sync = true
   while str = pipe.gets
     response += str
