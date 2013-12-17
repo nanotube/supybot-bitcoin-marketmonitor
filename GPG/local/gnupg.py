@@ -308,6 +308,7 @@ class GPG(object):
             args.append("--detach-sign")
         elif clearsign:
             args.append("--clearsign")
+            args.append("--cipher-algo AES256")
         if keyid:
             args.append("--default-key %s" % keyid)
         result = Sign(self.encoding)
