@@ -86,18 +86,19 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.assertNotError('otcorderbook buy 2000 bitcoins @ 0.06 LRUSD')
             self.assertNotError('otcorderbook buy 3000 bitcoin at 0.07 PPUSD really nice offer!')
             self.assertNotError('otcorderbook buy 4000 btc at 10 LRUSD some text')
-            self.assertNotError('otcorderbook buy 5000 btc at max(10,20) LRUSD some text')
-            self.assertNotError('otcorderbook buy 6000 btc at min(10,20) LRUSD some text')
             self.assertNotError('view')
             self.assertRegexp('view 1', 'buy 1000')
-            self.assertRegexp('view 5', '20')
-            self.assertRegexp('view 6', '10')
             self.assertError('otcorderbook buy 5000 btc at 0.06 LRUSD mooo') # max orders
             self.assertRegexp('view', '1000.*2000')
             self.assertError('otcorderbook buy --long 5000 btc at 0.06 USD this is a long order') #not enough trust
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertNotError('otcorderbook buy --long 5000 btc at 0.06 USD this is a long order') #now we have 20 total trust
             self.assertRegexp('view', '5000')
+            # Test min/max:
+            self.assertNotError('otcorderbook buy 6000 btc at max(10,20) LRUSD some text')
+            self.assertNotError('otcorderbook buy 7000 btc at min(10,20) LRUSD some text')
+            self.assertRegexp('view 6', '20')
+            self.assertRegexp('view 7', '10')
         finally:
             self.prefix = origuser
 

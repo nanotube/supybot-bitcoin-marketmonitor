@@ -184,8 +184,8 @@ def getIndexedPrice(irc, msg, args, state, type='price input'):
         v = args[0]
         v = re.sub(r'{mtgox(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{bitstamp(ask|bid|last|high|low|avg)}', '1', v)
-        v = re.sub(r'(min|max)', '(0)+', v)
         v = re.sub(r'{... in ...}', '1', v, 1)
+        v = re.sub(r'(min|max)', '(1)+', v)
         v = v.replace(',', '+')
         if not set(v).issubset(set('1234567890*-+./() ')) or '**' in v:
             raise ValueError, "only {mtgox(ask|bid|last|high|low|avg)}, {bitstamp(ask|bid|last|high|low|avg)}, one {... in ...}, min, max and arithmetic allowed."
