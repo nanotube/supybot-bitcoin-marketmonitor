@@ -7,7 +7,7 @@
 # Once you edit this script to your unique specs, save it as a run-only application.
 # This will not work if gribble is lagging and doesn't generate a new OTP before the event that decrypts it. Increase delay '5' (seconds) if you don't mind waiting longer.
 # If Terminal prompts because of running processes on quit, change Terminal Shell settings to Prompt before closing: *Never
-# This can be run regardless of whether Adium is running or not. "delay 60" provides time for Adium's boot sequence, if necessary
+# This can be run regardless of whether Adium is already running or not. "delay 60" provides time for Adium's boot sequence, if necessary
 
 do shell script "open /Applications/Adium.app"
 delay 60
