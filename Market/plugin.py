@@ -826,9 +826,9 @@ class Market(callbacks.Plugin):
         for bid in bids:
             totalbids += bid['amount'] * bid['price']
         ratio = totalbids / totalasks
-        irc.reply("Total bids: %d USD. Total asks: %d BTC. Ratio: %.5f USD/BTC."
+        irc.reply("%s Total bids: %d USD. Total asks: %d BTC. Ratio: %.5f USD/BTC."
                 " | Data vintage: %.4f seconds"
-                % (totalbids, totalasks, ratio, (time.time() - self.depth_cache[m[0]]['time']),))
+                % (m[1], totalbids, totalasks, ratio, (time.time() - self.depth_cache[m[0]]['time']),))
     baratio = wrap(baratio, [getopts({'market':'something'})])
 
     def _getMarketInfo(self, input, action='ticker'):
