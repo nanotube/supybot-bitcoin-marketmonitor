@@ -86,6 +86,8 @@ class MarketTestCase(PluginTestCase):
         self.assertError('obip blabla')
         self.assertRegexp('obip 100', 'weighted average price of BTC, .* coins up and down')
         self.assertRegexp('obip --market btsp 100', 'weighted average price of BTC, .* coins up and down')
+        self.assertError('obip 0')
+        self.assertError('obip -100')
 
     def testBaratio(self):
         self.assertError('baratio blabla')

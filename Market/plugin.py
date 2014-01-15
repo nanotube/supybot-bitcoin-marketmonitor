@@ -57,6 +57,16 @@ def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
     except ValueError:
         state.errorInvalid(type, args[0])
 
+def getPositiveFloat(irc, msg, args, state, type='floating point number'):
+    try:
+        v = float(args[0])
+        if v < 0:
+            raise ValueError, "only positive numbers allowed."
+        state.args.append(v)
+        del args[0]
+    except ValueError:
+        state.errorInvalid(type, args[0])
+
 def getCurrencyCode(irc, msg, args, state, type='currency code'):
     v = args[0]
     m = re.search(r'^([A-Za-z]{3})$', v)
@@ -71,6 +81,7 @@ def getTo(irc, msg, args, state):
         args.pop(0)
 
 addConverter('nonNegativeFloat', getNonNegativeFloat)
+addConverter('positiveFloat', getPositiveFloat)
 addConverter('currencyCode', getCurrencyCode)
 addConverter('to', getTo)
 
@@ -786,7 +797,7 @@ class Market(callbacks.Plugin):
         irc.reply("The weighted average price of BTC, %s coins up and down from the spread, is %.5f USD."
                 " | Data vintage: %.4f seconds"
                 % (width, obip,(time.time() - self.depth_cache[m[0]]['time']),))
-    obip = wrap(obip, [getopts({'market':'something'}), 'nonNegativeFloat'])
+    obip = wrap(obip, [getopts({'market':'something'}), 'positiveFloat'])
 
     def baratio(self, irc, msg, args, optlist):
         """[--market <market>]
