@@ -457,7 +457,7 @@ class RatingSystem(callbacks.Plugin):
                    data[4],
                    data[5],
                    data[6],
-                   "http://b-otc.com/vrd?nick=%s" % (data[7],)))
+                   "http://b-otc.com/vrd?nick=%s" % (utils.web.urlquote(data[7]),)))
     getrating = wrap(getrating, ['something'])
 
     def _gettrust(self, sourcenick, destnick):
@@ -514,7 +514,8 @@ class RatingSystem(callbacks.Plugin):
                         "Rated since: %s" % \
                         (authstatus, sourcenick, destnick,
                         trust[0][0], trust[1][0], trust[1][1],
-                        sourcenick, destnick, destnick, rs))
+                        utils.web.urlquote(sourcenick), utils.web.urlquote(destnick),
+                        utils.web.urlquote(destnick), rs))
     gettrust = wrap(gettrust, ['something', optional('something')])
 
     def deleteuser(self, irc, msg, args, nick):
