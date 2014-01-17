@@ -60,7 +60,7 @@ def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
 def getPositiveFloat(irc, msg, args, state, type='floating point number'):
     try:
         v = float(args[0])
-        if v < 0:
+        if v <= 0:
             raise ValueError, "only positive numbers allowed."
         state.args.append(v)
         del args[0]
