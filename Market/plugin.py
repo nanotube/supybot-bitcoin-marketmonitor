@@ -47,7 +47,7 @@ opener = urllib2.build_opener()
 opener.addheaders = [('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
 urlopen = opener.open
 
-def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
+def getNonNegativeFloat(irc, msg, args, state, type='non-negative floating point number'):
     try:
         v = float(args[0])
         if v < 0:
@@ -57,7 +57,7 @@ def getNonNegativeFloat(irc, msg, args, state, type='floating point number'):
     except ValueError:
         state.errorInvalid(type, args[0])
 
-def getPositiveFloat(irc, msg, args, state, type='floating point number'):
+def getPositiveFloat(irc, msg, args, state, type='positive floating point number'):
     try:
         v = float(args[0])
         if v <= 0:
