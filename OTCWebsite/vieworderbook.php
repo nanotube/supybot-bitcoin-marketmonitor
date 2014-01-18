@@ -148,7 +148,7 @@ foreach ($eitherthingdata as $eitherthing) {
 <?php
 foreach ($validkeys as $key) $colheaders[$key] = array('linktext' => str_replace("_", " ", $key));
 $colheaders["buysell"]["linktext"] = "type";
-$colheaders["amount"]["linktext"] = "amount";
+$colheaders["amount"]["linktext"] = "quantity";
 $colheaders["thing"]["linktext"] = "thing";
 $colheaders["otherthing"]["linktext"] = "otherthing";
 foreach ($colheaders as $by => $colhdr) {
