@@ -493,8 +493,8 @@ class Market(callbacks.Plugin):
         stdticker = {}
         try:
             last = json.loads(urlopen('https://coinbase.com/api/v1/prices/spot_rate').read())['amount']
-            ask = json.loads(urlopen('https://coinbase.com/api/v1/prices/buy').read())['amount']
-            bid = json.loads(urlopen('https://coinbase.com/api/v1/prices/sell').read())['amount']
+            ask = json.loads(urlopen('https://coinbase.com/api/v1/prices/buy').read())['subtotal']['amount']
+            bid = json.loads(urlopen('https://coinbase.com/api/v1/prices/sell').read())['subtotal']['amount']
         except:
             raise # will get caught later
         if currency != 'USD':
