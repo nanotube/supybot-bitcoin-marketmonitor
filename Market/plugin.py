@@ -874,7 +874,7 @@ class Market(callbacks.Plugin):
     def ticker(self, irc, msg, args, optlist):
         """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market <market>|all]
         
-        Return pretty-printed ticker. Default market is Mtgox. 
+        Return pretty-printed ticker. Default market is Bitstamp. 
         If one of the result options is given, returns only that numeric result
         (useful for nesting in calculations).
         
@@ -884,7 +884,7 @@ class Market(callbacks.Plugin):
         """
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         r = self._getMarketInfo(market)
         if r is None and market.lower() != 'all':
             irc.error("This is not one of the supported markets. Please choose one of %s or 'all'" % (self.ticker_supported_markets.keys(),))
