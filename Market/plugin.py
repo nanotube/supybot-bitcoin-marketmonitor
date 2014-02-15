@@ -555,12 +555,12 @@ class Market(callbacks.Plugin):
         
         Calculate the effect on the market depth of a market sell order of
         <value> bitcoins. 
-        If <market> is provided, uses that exchange. Default is mtgox.
+        If <market> is provided, uses that exchange. Default is Bitstamp.
         If '--usd' option is given, <value> denotes the 
         size of the order in USD.
         """
         od = dict(optlist)
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
@@ -644,12 +644,12 @@ class Market(callbacks.Plugin):
         
         Calculate the effect on the market depth of a market buy order of
         <value> bitcoins. 
-        If <market> is provided, uses that exchange. Default is mtgox.
+        If <market> is provided, uses that exchange. Default is Bitstamp.
         If '--usd' option is given, <value> denotes the 
         size of the order in USD.
         """
         od = dict(optlist)
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
@@ -696,10 +696,10 @@ class Market(callbacks.Plugin):
         
         Calculate the amount of bitcoins for sale at or under <pricetarget>.
         If '--over' option is given, find coins or at or over <pricetarget>.
-        If market is supplied, uses that exchange. Default is mtgox.
+        If market is supplied, uses that exchange. Default is Bitstamp.
         """
         od = dict(optlist)
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
@@ -734,10 +734,10 @@ class Market(callbacks.Plugin):
         
         Calculate the amount of bitcoin demanded at or over <pricetarget>.
         If '--under' option is given, find coins or at or under <pricetarget>.
-        If market is supplied, uses that exchange. Default is mtgox.
+        If market is supplied, uses that exchange. Default is Bitstamp.
         """
         od = dict(optlist)
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
@@ -772,10 +772,10 @@ class Market(callbacks.Plugin):
         
         Calculate the "order book implied price", by finding the weighted
         average price of coins <width> BTC up and down from the spread.
-        If market is supplied, uses that exchange. Default is mtgox.
+        If market is supplied, uses that exchange. Default is Bitstamp.
         """
         od = dict(optlist)
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
@@ -803,10 +803,10 @@ class Market(callbacks.Plugin):
         """[--market <market>]
         
         Calculate the ratio of total usd volume of bids to total btc volume of asks.
-        If market is supplied, uses that exchange. Default is mtgox.
+        If market is supplied, uses that exchange. Default is Bitstamp.
         """
         od = dict(optlist)
-        market = od.pop('market','mtgox')
+        market = od.pop('market','btsp')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
