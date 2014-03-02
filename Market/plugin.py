@@ -146,22 +146,26 @@ class Market(callbacks.Plugin):
             depth = json.load(open('/tmp/bitstamp.depth.json'))
             depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
-            self.depth_cache['btsp'] = {'time':time.time(), 'depth':depth}
+            self.depth_cache['btsp'+currency] = {'time':time.time(), 'depth':depth}
             return
         try:
-            cachedvalue = self.depth_cache['btsp']
+            cachedvalue = self.depth_cache['btsp'+currency]
             if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
                 return
         except KeyError:
             pass
+        yahoorate = 1
+        if currency != 'USD':
+            yahoorate = float(self._queryYahooRate('USD', currency))
         try:
+            stddepth = {}
             data = urlopen('https://www.bitstamp.net/api/order_book/').read()
             vintage = time.time()
             depth = json.loads(data)
             # make consistent format with mtgox
-            depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
-            depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
-            self.depth_cache['btsp'] = {'time':vintage, 'depth':depth}
+            depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
+            self.depth_cache['btsp'+currency] = {'time':vintage, 'depth':depth}
         except:
             pass # oh well, try again later.
 
@@ -171,10 +175,10 @@ class Market(callbacks.Plugin):
             depth = depth['result'][depth['result'].keys()[0]]
             depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
-            self.depth_cache['krk'] = {'time':time.time(), 'depth':depth}
+            self.depth_cache['krk'+currency] = {'time':time.time(), 'depth':depth}
             return
         try:
-            cachedvalue = self.depth_cache['krk']
+            cachedvalue = self.depth_cache['krk'+currency]
             if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
                 return
         except KeyError:
@@ -202,27 +206,29 @@ class Market(callbacks.Plugin):
             # make consistent format with mtgox
             stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
-            self.depth_cache['krk'] = {'time':vintage, 'depth':stddepth}
+            self.depth_cache['krk'+currency] = {'time':vintage, 'depth':stddepth}
         except:
             traceback.print_exc()
             pass # oh well, try again later.
 
 
     def _getBtcnDepth(self, currency='CNY'):
-        yahoorate = float(self._queryYahooRate('CNY', 'USD'))
+        yahoorate = 1
         if world.testing: # avoid hammering api when testing.
             depth = json.load(open('/tmp/btcchina.depth.json'))
             depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
             depth['asks'].reverse() # asks should be listed in ascending order
-            self.depth_cache['btcn'] = {'time':time.time(), 'depth':depth}
+            self.depth_cache['btcn'+currency] = {'time':time.time(), 'depth':depth}
             return
         try:
-            cachedvalue = self.depth_cache['btcn']
+            cachedvalue = self.depth_cache['btcn'+currency]
             if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
                 return
         except KeyError:
             pass
+        if currency != 'CNY':
+            yahoorate = float(self._queryYahooRate('CNY', currency))
         try:
             data = urlopen('https://data.btcchina.com/data/orderbook').read()
             vintage = time.time()
@@ -231,7 +237,7 @@ class Market(callbacks.Plugin):
             depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
             depth['asks'].reverse() # asks should be listed in ascending order
-            self.depth_cache['btcn'] = {'time':vintage, 'depth':depth}
+            self.depth_cache['btcn'+currency] = {'time':vintage, 'depth':depth}
         except:
             pass # oh well, try again later.
 
@@ -633,57 +639,61 @@ class Market(callbacks.Plugin):
         return({'n_coins':n_coins, 'total':total, 'top':top, 'all':all})
 
     def sell(self, irc, msg, args, optlist, value):
-        """[--usd] [--market <market>] <value>
+        """[--fiat] [--market <market>] [--currency XXX] <value>
         
         Calculate the effect on the market depth of a market sell order of
         <value> bitcoins. 
         If <market> is provided, uses that exchange. Default is Bitstamp.
-        If '--usd' option is given, <value> denotes the 
-        size of the order in USD.
+        If --currency XXX is provided, converts to that fiat currency. Default is USD.
+        If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
         od = dict(optlist)
         market = od.pop('market','btsp')
+        currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
             return
-        m[2]()
+        m[2](currency)
+        cachename = m[0]+currency
         try:
-            bids = self.depth_cache[m[0]]['depth']['bids']
+            bids = self.depth_cache[cachename]['depth']['bids']
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             traceback.print_exc()
             return
-        if od.has_key('usd'):
+        if od.has_key('fiat'):
             r = self._sellusd(bids, value)
             if r['all']:
                 irc.reply("%s | This order would exceed the size of the order book. "
-                        "You would sell %.8g bitcoins for a total of %.4f USD and "
+                        "You would sell %.8g bitcoins for a total of %.4f %s and "
                         "take the price to 0."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], r['n_coins'], value - r['total'], (time.time() - self.depth_cache[m[0]]['time']),))
+                        % (m[1], r['n_coins'], value - r['total'], currency, (time.time() - self.depth_cache[cachename]['time']),))
             else:
-                irc.reply("%s | A market order to sell %.4f USD worth of bitcoins right "
+                irc.reply("%s | A market order to sell %.4f %s worth of bitcoins right "
                         "now would sell %.8g bitcoins and would take the last "
-                        "price down to %.4f USD, resulting in an average price of "
-                        "%.4f USD/BTC."
+                        "price down to %.4f %s, resulting in an average price of "
+                        "%.4f %s/BTC."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], value, r['n_coins'], r['top'], (value/r['n_coins']), (time.time() - self.depth_cache[m[0]]['time']),))
+                        % (m[1], value, currency, r['n_coins'], r['top'], currency,
+                        (value/r['n_coins']), currency, (time.time() - self.depth_cache[cachename]['time']),))
         else:
             r = self._sellbtc(bids, value)
             if r['all']:
                 irc.reply("%s | This order would exceed the size of the order book. "
-                        "You would sell %.8g bitcoins, for a total of %.4f USD and "
+                        "You would sell %.8g bitcoins, for a total of %.4f %s and "
                         "take the price to 0."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], value - r['n_coins'], r['total'], (time.time() - self.depth_cache[m[0]]['time']),))
+                        % (m[1], value - r['n_coins'], r['total'], currency, (time.time() - self.depth_cache[cachename]['time']),))
             else:
                 irc.reply("%s | A market order to sell %.8g bitcoins right now would "
-                        "net %.4f USD and would take the last price down to %.4f USD, "
-                        "resulting in an average price of %.4f USD/BTC."
+                        "net %.4f %s and would take the last price down to %.4f %s, "
+                        "resulting in an average price of %.4f %s/BTC."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], value, r['total'], r['top'], (r['total']/value), (time.time() - self.depth_cache[m[0]]['time'])))
-    sell = wrap(sell, [getopts({'usd':'', 'market':'something'}), 'nonNegativeFloat'])
+                        % (m[1], value, r['total'], currency, r['top'], currency,
+                        (r['total']/value), currency, (time.time() - self.depth_cache[cachename]['time'])))
+    sell = wrap(sell, [getopts({'fiat':'', 'market':'something', 'currency': 'currencyCode'}), 'nonNegativeFloat'])
 
     def _buybtc(self, asks, value):
         n_coins = value
@@ -722,71 +732,80 @@ class Market(callbacks.Plugin):
         return({'n_coins':n_coins, 'total':total, 'top':top, 'all':all})
 
     def buy(self, irc, msg, args, optlist, value):
-        """[--usd] [--market <market>] <value>
+        """[--fiat] [--market <market>] [--currency XXX] <value>
         
         Calculate the effect on the market depth of a market buy order of
         <value> bitcoins. 
         If <market> is provided, uses that exchange. Default is Bitstamp.
-        If '--usd' option is given, <value> denotes the 
-        size of the order in USD.
+        If --currency XXX is provided, converts to that fiat currency. Default is USD.
+        If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
         od = dict(optlist)
         market = od.pop('market','btsp')
+        currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
             return
-        m[2]()
+        m[2](currency)
+        cachename = m[0]+currency
         try:
-            asks = self.depth_cache[m[0]]['depth']['asks']
+            asks = self.depth_cache[cachename]['depth']['asks']
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
-        if dict(optlist).has_key('usd'):
+        if dict(optlist).has_key('fiat'):
             r = self._buyusd(asks, value)
             if r['all']:
                 irc.reply("%s | This order would exceed the size of the order book. "
-                        "You would buy %.8g bitcoins for a total of %.4f USD and "
+                        "You would buy %.8g bitcoins for a total of %.4f %s and "
                         "take the price to %.4f."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], r['n_coins'], value - r['total'], r['top'], (time.time() - self.depth_cache[m[0]]['time']),))
+                        % (m[1], r['n_coins'], value - r['total'], currency,
+                        r['top'], (time.time() - self.depth_cache[cachename]['time']),))
             else:
-                irc.reply("%s | A market order to buy %.4f USD worth of bitcoins right "
+                irc.reply("%s | A market order to buy %.4f %s worth of bitcoins right "
                         "now would buy %.8g bitcoins and would take the last "
-                        "price up to %.4f USD, resulting in an average price of "
-                        "%.4f USD/BTC."
+                        "price up to %.4f %s, resulting in an average price of "
+                        "%.4f %s/BTC."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], value, r['n_coins'], r['top'],(value/r['n_coins']), (time.time() - self.depth_cache[m[0]]['time']),))
+                        % (m[1], value, currency, r['n_coins'], r['top'], currency,
+                        (value/r['n_coins']), currency, (time.time() - self.depth_cache[cachename]['time']),))
         else:
             r = self._buybtc(asks, value)
             if r['all']:
                 irc.reply("%s | This order would exceed the size of the order book. "
-                        "You would buy %.8g bitcoins, for a total of %.4f USD and "
+                        "You would buy %.8g bitcoins, for a total of %.4f %s and "
                         "take the price to %.4f."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], value - r['n_coins'], r['total'], r['top'], (time.time() - self.depth_cache[m[0]]['time']),))
+                        % (m[1], value - r['n_coins'], r['total'], currency, r['top'],
+                        (time.time() - self.depth_cache[cachename]['time']),))
             else:
                 irc.reply("%s | A market order to buy %.8g bitcoins right now would "
-                        "take %.4f USD and would take the last price up to %.4f USD, "
-                        "resulting in an average price of %.4f USD/BTC."
+                        "take %.4f %s and would take the last price up to %.4f %s, "
+                        "resulting in an average price of %.4f %s/BTC."
                         " | Data vintage: %.4f seconds"
-                        % (m[1], value, r['total'], r['top'], (r['total']/value), (time.time() - self.depth_cache[m[0]]['time']),))
-    buy = wrap(buy, [getopts({'usd':'', 'market':'something'}), 'nonNegativeFloat'])
+                        % (m[1], value, r['total'], currency, r['top'], currency,
+                        (r['total']/value), currency, (time.time() - self.depth_cache[cachename]['time']),))
+    buy = wrap(buy, [getopts({'fiat':'', 'market':'something', 'currency': 'currencyCode'}), 'nonNegativeFloat'])
 
     def asks(self, irc, msg, args, optlist, pricetarget):
-        """[--over] [--market <market>] <pricetarget>
+        """[--over] [--market <market>] [--currency XXX] <pricetarget>
         
         Calculate the amount of bitcoins for sale at or under <pricetarget>.
         If '--over' option is given, find coins or at or over <pricetarget>.
         If market is supplied, uses that exchange. Default is Bitstamp.
+        If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
         market = od.pop('market','btsp')
+        currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
             return
-        m[2]()
+        m[2](currency)
+        cachename = m[0]+currency
         response = "under"
         if dict(optlist).has_key('over'):
             f = lambda price,pricetarget: price >= pricetarget
@@ -796,7 +815,7 @@ class Market(callbacks.Plugin):
         n_coins = 0.0
         total = 0.0
         try:
-            asks = self.depth_cache[m[0]]['depth']['asks']
+            asks = self.depth_cache[cachename]['depth']['asks']
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
@@ -806,25 +825,29 @@ class Market(callbacks.Plugin):
                 total += (ask['amount'] * ask['price'])
 
         irc.reply("%s | There are currently %.8g bitcoins offered at "
-                "or %s %s USD, worth %s USD in total."
+                "or %s %s %s, worth %s %s in total."
                 " | Data vintage: %.4f seconds"
-                % (m[1], n_coins, response, pricetarget, total, (time.time() - self.depth_cache[m[0]]['time']),))
-    asks = wrap(asks, [getopts({'over':'', 'market':'something'}), 'nonNegativeFloat'])
+                % (m[1], n_coins, response, pricetarget, currency, total, currency,
+                (time.time() - self.depth_cache[cachename]['time']),))
+    asks = wrap(asks, [getopts({'over':'', 'market':'something', 'currency': 'currencyCode'}), 'nonNegativeFloat'])
 
     def bids(self, irc, msg, args, optlist, pricetarget):
-        """[--under] [--market <market>] <pricetarget>
+        """[--under] [--market <market>] [--currency XXX] <pricetarget>
         
         Calculate the amount of bitcoin demanded at or over <pricetarget>.
         If '--under' option is given, find coins or at or under <pricetarget>.
         If market is supplied, uses that exchange. Default is Bitstamp.
+        If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
         market = od.pop('market','btsp')
+        currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
             return
-        m[2]()
+        m[2](currency)
+        cachename = m[0]+currency
         response = "over"
         if dict(optlist).has_key('under'):
             f = lambda price,pricetarget: price <= pricetarget
@@ -834,7 +857,7 @@ class Market(callbacks.Plugin):
         n_coins = 0.0
         total = 0.0
         try:
-            bids = self.depth_cache[m[0]]['depth']['bids']
+            bids = self.depth_cache[cachename]['depth']['bids']
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
@@ -844,28 +867,32 @@ class Market(callbacks.Plugin):
                 total += (bid['amount'] * bid['price'])
 
         irc.reply("%s | There are currently %.8g bitcoins demanded at "
-                "or %s %s USD, worth %s USD in total."
+                "or %s %s %s, worth %s %s in total."
                 " | Data vintage: %.4f seconds"
-                % (m[1], n_coins, response, pricetarget, total, (time.time() - self.depth_cache[m[0]]['time']),))
-    bids = wrap(bids, [getopts({'under':'', 'market':'something'}), 'nonNegativeFloat'])
+                % (m[1], n_coins, response, pricetarget, currency, total, currency,
+                (time.time() - self.depth_cache[cachename]['time']),))
+    bids = wrap(bids, [getopts({'under':'', 'market':'something', 'currency': 'currencyCode'}), 'nonNegativeFloat'])
 
     def obip(self, irc, msg, args, optlist, width):
-        """[--market <market>] <width>
+        """[--market <market>] [--currency XXX] <width>
         
         Calculate the "order book implied price", by finding the weighted
         average price of coins <width> BTC up and down from the spread.
         If market is supplied, uses that exchange. Default is Bitstamp.
+        If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
         market = od.pop('market','btsp')
+        currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
             return
-        m[2]()
+        m[2](currency)
+        cachename = m[0]+currency
         try:
-            asks = self.depth_cache[m[0]]['depth']['asks']
-            bids = self.depth_cache[m[0]]['depth']['bids']
+            asks = self.depth_cache[cachename]['depth']['asks']
+            bids = self.depth_cache[cachename]['depth']['bids']
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
@@ -876,27 +903,29 @@ class Market(callbacks.Plugin):
             irc.error("The width provided extends past the edge of the order book. Please use a smaller width.")
             return
         obip = (b['total'] + s['total'])/2.0/width
-        irc.reply("%s | The weighted average price of BTC, %s coins up and down from the spread, is %.5f USD."
+        irc.reply("%s | The weighted average price of BTC, %s coins up and down from the spread, is %.5f %s."
                 " | Data vintage: %.4f seconds"
-                % (m[1], width, obip,(time.time() - self.depth_cache[m[0]]['time']),))
-    obip = wrap(obip, [getopts({'market':'something'}), 'positiveFloat'])
+                % (m[1], width, obip, currency, (time.time() - self.depth_cache[cachename]['time']),))
+    obip = wrap(obip, [getopts({'market':'something', 'currency': 'currencyCode'}), 'positiveFloat'])
 
     def baratio(self, irc, msg, args, optlist):
-        """[--market <market>]
+        """[--market <market>] [--currency XXX]
         
-        Calculate the ratio of total usd volume of bids to total btc volume of asks.
+        Calculate the ratio of total volume of bids in currency, to total btc volume of asks.
+        If '--currency XXX' option is given, converts to currency denoted by given three-letter currency code. Default is USD.
         If market is supplied, uses that exchange. Default is Bitstamp.
         """
         od = dict(optlist)
         market = od.pop('market','btsp')
+        currency = od.pop('currency', 'USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
             irc.error("This is not one of the supported markets. Please choose one of %s." % (self.depth_supported_markets.keys(),))
             return
-        m[2]()
+        m[2](currency)
         try:
-            asks = self.depth_cache[m[0]]['depth']['asks']
-            bids = self.depth_cache[m[0]]['depth']['bids']
+            asks = self.depth_cache[m[0]+currency]['depth']['asks']
+            bids = self.depth_cache[m[0]+currency]['depth']['bids']
         except KeyError:
             irc.error("Failure to retrieve order book data. Try again later.")
             return
@@ -908,10 +937,11 @@ class Market(callbacks.Plugin):
         for bid in bids:
             totalbids += bid['amount'] * bid['price']
         ratio = totalbids / totalasks
-        irc.reply("%s | Total bids: %d USD. Total asks: %d BTC. Ratio: %.5f USD/BTC."
+        irc.reply("%s | Total bids: %d %s. Total asks: %d BTC. Ratio: %.5f %s/BTC."
                 " | Data vintage: %.4f seconds"
-                % (m[1], totalbids, totalasks, ratio, (time.time() - self.depth_cache[m[0]]['time']),))
-    baratio = wrap(baratio, [getopts({'market':'something'})])
+                % (m[1], totalbids, currency, totalasks, ratio, currency,
+                (time.time() - self.depth_cache[m[0]+currency]['time']),))
+    baratio = wrap(baratio, [getopts({'market':'something', 'currency': 'currencyCode'})])
 
     def _getMarketInfo(self, input, action='ticker'):
         sm = getattr(self, action + '_supported_markets')
@@ -1000,7 +1030,7 @@ class Market(callbacks.Plugin):
             response = ""
             sumvol = 0
             sumprc = 0
-            for mkt in ['btsp','btce','bfx','cbx','btcn']:
+            for mkt in ['btsp','btce','bfx','cbx','btcn', 'krk']:
                 try:
                     r = self._getMarketInfo(mkt)
                     tck = r[2](currency)
