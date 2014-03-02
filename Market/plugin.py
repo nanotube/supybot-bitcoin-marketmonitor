@@ -100,9 +100,9 @@ class Market(callbacks.Plugin):
         self.ticker_supported_markets = {'btce':'BTC-E', 'btsp':'Bitstamp',
                 'bfx':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
                 'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'coinbase':'Coinbase',
-                'krk':'Kraken', 'bitmynt':'bitmynt.no'}
+                'krk':'Kraken', 'bitmynt':'bitmynt.no', 'bcent':'Bitcoin-Central'}
         self.depth_supported_markets = {'btsp':'Bitstamp', 'krk':'Kraken',
-                'btcn':'BTCChina'}
+                'btcn':'BTCChina', 'bcent':'Bitcoin-Central'}
 
     def _queryYahooRate(self, cur1, cur2):
         try:
@@ -208,9 +208,39 @@ class Market(callbacks.Plugin):
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
             self.depth_cache['krk'+currency] = {'time':vintage, 'depth':stddepth}
         except:
-            traceback.print_exc()
             pass # oh well, try again later.
 
+    def _getBcentDepth(self, currency='EUR'):
+        if world.testing: # avoid hammering api when testing.
+            depth = json.load(open('/tmp/bcent.depth.json'))
+            depth['bids'] = [{'price':float(b['price']), 'amount':float(b['amount'])} for b in depth['bids']]
+            depth['bids'].reverse() # want bids in descending order
+            depth['asks'] = [{'price':float(b['price']), 'amount':float(b['amount'])} for b in depth['asks']]
+            self.depth_cache['bcent'+currency] = {'time':time.time(), 'depth':depth}
+            return
+        try:
+            cachedvalue = self.depth_cache['bcent'+currency]
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+        yahoorate = 1
+        try:
+            stddepth = {}
+            data = urlopen('https://bitcoin-central.net/api/v1/data/eur/depth').read()
+            depth = json.loads(data)
+            vintage = time.time()
+            if currency != 'EUR':
+                yahoorate = float(self._queryYahooRate('EUR', currency))
+            if depth.has_key('errors'):
+                return
+            # make consistent format with mtgox
+            stddepth.update({'bids': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['bids']],
+                    'asks': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['asks']]})
+            stddepth['bids'].reverse()
+            self.depth_cache['bcent'+currency] = {'time':vintage, 'depth':stddepth}
+        except:
+            pass # oh well, try again later.
 
     def _getBtcnDepth(self, currency='CNY'):
         yahoorate = 1
@@ -406,6 +436,37 @@ class Market(callbacks.Plugin):
                             'high': float(ticker['h'][1])*yahoorate,
                             'avg': float(ticker['p'][1])*yahoorate})
         self.ticker_cache['krk'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
+    def _getBcentTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['bcent'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        stdticker = {}
+        json_data = urlopen("https://bitcoin-central.net/api/v1/data/eur/ticker").read()
+        ticker = json.loads(json_data)
+        if ticker.has_key('errors'):
+            stdticker = {'error':ticker['errors']}
+            return stdticker
+        yahoorate = 1
+        if currency != 'EUR':
+            try:
+                stdticker = {'warning':'using yahoo currency conversion'}
+                yahoorate = float(self._queryYahooRate('EUR', currency))
+            except:
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                return stdticker
+        stdticker.update({'bid': float(ticker['bid'])*yahoorate,
+                            'ask': float(ticker['ask'])*yahoorate,
+                            'last': float(ticker['price'])*yahoorate,
+                            'vol': float(ticker['volume']),
+                            'low': float(ticker['low'])*yahoorate,
+                            'high': float(ticker['high'])*yahoorate,
+                            'avg': None})
+        self.ticker_cache['bcent'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBfxTicker(self, currency):
