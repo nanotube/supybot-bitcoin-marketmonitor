@@ -1122,7 +1122,7 @@ class Market(callbacks.Plugin):
             response = ""
             sumvol = 0
             sumprc = 0
-            for mkt in ['btsp','btce','bfx','cbx','btcn', 'krk']:
+            for mkt in ['btsp','btce','bfx','cbx','btcn', 'krk', 'bcent']:
                 try:
                     r = self._getMarketInfo(mkt)
                     tck = r[2](currency)
