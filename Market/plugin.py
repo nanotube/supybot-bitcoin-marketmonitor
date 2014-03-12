@@ -465,7 +465,7 @@ class Market(callbacks.Plugin):
                             'vol': float(ticker['volume']),
                             'low': float(ticker['low'])*yahoorate,
                             'high': float(ticker['high'])*yahoorate,
-                            'avg': None})
+                            'avg': float(ticker['vwap'])*yahoorate})
         self.ticker_cache['bcent'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
