@@ -958,8 +958,9 @@ class GPG(callbacks.Plugin):
                 authstatus += " CAUTION: irc nick differs from otc registered nick."
         else:
             authstatus = " Currently not authenticated."
-        irc.reply("User '%s', with keyid %s, fingerprint %s, and bitcoin address %s, registered on %s. http://b-otc.com/vg?nick=%s .%s" %\
-                (result[5], result[1], result[2], result[3], time.ctime(result[4]), utils.web.urlquote(result[5]), authstatus))
+        irc.reply("User '%s', with keyid %s, fingerprint %s, and bitcoin address %s, registered on %s, last authed on %s. http://b-otc.com/vg?nick=%s .%s" %\
+                (result[5], result[1], result[2], result[3], time.ctime(result[4]),
+                time.ctime(result[6]), utils.web.urlquote(result[5]), authstatus))
     info = wrap(info, [getopts({'key': '','address':'',}),'something'])
 
     def stats(self, irc, msg, args):
