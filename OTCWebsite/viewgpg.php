@@ -5,7 +5,7 @@
 	}
 
 	$sortby = "nick";
-	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress');
+	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress', 'last_authed_at');
 
 	$sortorder = "ASC";
 	
@@ -74,6 +74,7 @@ else {
 <?php
 	foreach ($validkeys as $key) $colheaders[$key] = array('order' => 'ASC', 'linktext' => str_replace("_", " ", $key));
 	$colheaders["registered_at"]["othertext"] = "(UTC)";
+	$colheaders["last_authed_at"]["othertext"] = "(UTC)";
 	foreach ($colheaders as $by => $colhdr) {
 		echo "    <th>" . $colhdr["linktext"] . (!empty($colhdr["othertext"]) ? "<br>".$colhdr["othertext"] : "") . "</th>\n";
 	}
@@ -100,6 +101,7 @@ else {
     <td><?php echo $entry['keyid']; ?></td>
 	<td><a href ="http://pool.sks-keyservers.net:11371/pks/lookup?op=vindex&search=0x<?php echo $entry['fingerprint']; ?>"><?php echo $entry['fingerprint']; ?></a></td>
 	<td><?php echo $entry['bitcoinaddress']; ?></td>
+	<td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['last_authed_at']); ?></td>
    </tr>
 <?
 		}
