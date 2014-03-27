@@ -101,6 +101,7 @@ Rating for <?php echo htmlentities($nick); ?>
 			$lastauthed = $gpgentry['last_authed_at'];
 		} else {
 			$keyprint = "";
+			$lastauthed = "";
 		}
 	}
 	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a> (<a href=" http://nosuchlabs.com/gpgfp/' . $keyprint . '">check GPG key quality</a>)</li>';
@@ -109,10 +110,17 @@ Rating for <?php echo htmlentities($nick); ?>
   </ul>
   
 <?php
-  $sec_since_auth = time() - $lastauthed;
-  if ($sec_since_auth > 2592000){ // 30 days
-	echo '<P><font size="24" color="red">This user has not authenticated for more than ' . intval($sec_since_auth/86400) . ' days. If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
-  }
+if ($lastauthed == ""){ //no matches from gpg db
+    if ($entry['ratingcount'] == 0){ // no such user
+		$lastauthed = time();
+	} else {
+		$lastauthed = 1293858000; //end of 2010
+	}
+}
+$sec_since_auth = time() - $lastauthed;
+if ($sec_since_auth > 2592000){ // 30 days
+	echo '<P><font style="font-size:2em; color: red;">This user has not authenticated for more than ' . intval($sec_since_auth/86400) . ' days. If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
+}
 ?>
 
   <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
