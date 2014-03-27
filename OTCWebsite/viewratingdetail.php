@@ -98,6 +98,7 @@ Rating for <?php echo htmlentities($nick); ?>
 		if($stg) {
 			$gpgentry = $stg->fetch(PDO::FETCH_BOTH);
 			$keyprint = $gpgentry['fingerprint'];
+			$lastauthed = $gpgentry['last_authed_at'];
 		} else {
 			$keyprint = "";
 		}
@@ -106,6 +107,14 @@ Rating for <?php echo htmlentities($nick); ?>
 	echo '<li><a href="ratingreciprocity.php?nick=' . htmlentities($nick) . '">Rating reciprocity</a></li>';
 ?>
   </ul>
+  
+<?php
+  $sec_since_auth = time() - $lastauthed;
+  if ($sec_since_auth > 2592000){ // 30 days
+	echo '<P><font size="32" color="red">This user has not logged in for more than ' . intval($sec_since_auth/86400) . ' days. If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
+  }
+?>
+
   <h3>List of <?php echo $signs[$sign]; ?> ratings <?php echo $types[$type]; ?> <sup>[<a href="<?php jsonlink(); ?>">json</a>]</sup></h3>
   <table class="datadisplay sortable">
    <tr>
