@@ -93,7 +93,7 @@ Rating for <?php echo htmlentities($nick); ?>
 		$sqlgpg = "SELECT * FROM users WHERE nick LIKE :nick ESCAPE '|'";
 		$stg = $gpgdb->prepare($sqlgpg, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 		$stg->setFetchMode(PDO::FETCH_ASSOC);
-		$stg->bindValue(':nick', like($nickfilter, '|'));
+		$stg->bindValue(':nick', $nickfilter);
 		$stg->execute();
 		if($stg) {
 			$gpgentry = $stg->fetch(PDO::FETCH_BOTH);
