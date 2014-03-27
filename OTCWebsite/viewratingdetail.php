@@ -111,7 +111,7 @@ Rating for <?php echo htmlentities($nick); ?>
 <?php
   $sec_since_auth = time() - $lastauthed;
   if ($sec_since_auth > 2592000){ // 30 days
-	echo '<P><font size="32" color="red">This user has not logged in for more than ' . intval($sec_since_auth/86400) . ' days. If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
+	echo '<P><font size="24" color="red">This user has not authenticated for more than ' . intval($sec_since_auth/86400) . ' days. If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
   }
 ?>
 
