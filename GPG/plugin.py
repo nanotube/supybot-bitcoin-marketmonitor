@@ -86,7 +86,8 @@ class GPGDB(object):
                           fingerprint TEXT,
                           bitcoinaddress TEXT,
                           registered_at INTEGER,
-                          nick TEXT)
+                          nick TEXT,
+                          last_authed_at INTEGER)
                            """)
         self._commit()
         return
@@ -118,8 +119,13 @@ class GPGDB(object):
     def register(self, keyid, fingerprint, bitcoinaddress, timestamp, nick):
         cursor = self.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
-                        (NULL, ?, ?, ?, ?, ?)""",
-                        (keyid, fingerprint, bitcoinaddress, timestamp, nick))
+                        (NULL, ?, ?, ?, ?, ?, ?)""",
+                        (keyid, fingerprint, bitcoinaddress, timestamp, nick, timestamp))
+        self._commit()
+
+    def update_auth_date(self, id, timestamp):
+        cursor = self.db.cursor()
+        cursor.execute("""UPDATE users SET last_authed_at = ? WHERE id = ?""", (timestamp, id,))
         self._commit()
 
     def changenick(self, oldnick, newnick):
@@ -604,6 +610,7 @@ class GPG(callbacks.Plugin):
         logmsg = "verify success from hostmask %s for user %s, keyid %s." %\
                 (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response
         self.authlog.info(logmsg)
+        self.db.update_auth_date(userdata[0][0], time.time())
         if not world.testing:
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
@@ -664,6 +671,7 @@ class GPG(callbacks.Plugin):
         logmsg = "everify success from hostmask %s for user %s, keyid %s." %\
                 (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response
         self.authlog.info(logmsg)
+        self.db.update_auth_date(userdata[0][0], time.time())
         if not world.testing:
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user %s with key %s" %\
@@ -729,6 +737,7 @@ class GPG(callbacks.Plugin):
         logmsg = "bcverify success from hostmask %s for user %s, address %s." %\
                 (msg.prefix, authrequest['nick'], authrequest['bitcoinaddress'],) + response
         self.authlog.info(logmsg)
+        self.db.update_auth_date(userdata[0][0], time.time())
         if not world.testing:
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user '%s' with address %s" %\
