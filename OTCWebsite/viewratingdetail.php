@@ -87,6 +87,8 @@ Rating for <?php echo htmlentities($nick); ?>
 		echo "<li>Count of " . $signs[$sign] . " ratings " . $types[$type] . ": " . number_format($entry['ratingcount']) . ". Total of points: " . number_format($entry['ratingsum']) . ".</li>\n";
 	}
 	
+	$keyprint = "";
+	$lastauthed = "";
 	if ($nickfilter != ""){
 		try { $gpgdb = new PDO('sqlite:./otc/GPG.db'); }
 		catch (PDOException $e) { die($e->getMessage()); }
@@ -97,11 +99,8 @@ Rating for <?php echo htmlentities($nick); ?>
 		$stg->execute();
 		if($stg) {
 			$gpgentry = $stg->fetch(PDO::FETCH_BOTH);
-			$keyprint = $gpgentry['fingerprint'];
-			$lastauthed = $gpgentry['last_authed_at'];
-		} else {
-			$keyprint = "";
-			$lastauthed = "";
+			$keyprint = isset($gpgentry['fingerprint']) ? $gpgentry['fingerprint'] : "";
+			$lastauthed = isset($gpgentry['last_authed_at']) ? $gpgentry['last_authed_at'] : "";
 		}
 	}
 	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a> (<a href=" http://nosuchlabs.com/gpgfp/' . $keyprint . '">check GPG key quality</a>)</li>';
