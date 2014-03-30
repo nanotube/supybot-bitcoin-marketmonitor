@@ -142,6 +142,7 @@ class GPGDB(object):
         cursor = self.db.cursor()
         nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
         cursor.execute("""UPDATE users SET is_authed = ? WHERE nick LIKE ? ESCAPE '|'""", (state, nick,))
+        self._commit()
 
     def changenick(self, oldnick, newnick):
         cursor = self.db.cursor()

@@ -101,6 +101,7 @@ Rating for <?php echo htmlentities($nick); ?>
 			$gpgentry = $stg->fetch(PDO::FETCH_BOTH);
 			$keyprint = isset($gpgentry['fingerprint']) ? $gpgentry['fingerprint'] : "";
 			$lastauthed = isset($gpgentry['last_authed_at']) ? $gpgentry['last_authed_at'] : "";
+			$is_authed = isset($gpgentry['is_authed']) ? $gpgentry['is_authed'] : "";
 		}
 	}
 	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a> (<a href=" http://nosuchlabs.com/gpgfp/' . $keyprint . '">check GPG key quality</a>)</li>';
@@ -117,8 +118,12 @@ if ($lastauthed == ""){ //no matches from gpg db
 	}
 }
 $sec_since_auth = time() - $lastauthed;
-if ($sec_since_auth > 2592000){ // 30 days
-	echo '<P><font style="font-size:2em; color: red;">This user has not authenticated for more than ' . intval($sec_since_auth/86400) . ' days. If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
+if ($is_authed == 0){
+	echo '<P><font style="font-size:2em; color: red;">This user is currently NOT AUTHENTICATED. ';
+	if ($sec_since_auth > 2592000){ // 30 days
+		echo 'This user has not authenticated for more than ' . intval($sec_since_auth/86400) . ' days. ';
+	}
+	echo 'If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
 }
 ?>
 
