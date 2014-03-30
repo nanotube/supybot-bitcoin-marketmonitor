@@ -87,7 +87,8 @@ class GPGDB(object):
                           bitcoinaddress TEXT,
                           registered_at INTEGER,
                           nick TEXT,
-                          last_authed_at INTEGER)
+                          last_authed_at INTEGER,
+                          is_authed INTEGER)
                            """)
         self._commit()
         return
@@ -119,14 +120,28 @@ class GPGDB(object):
     def register(self, keyid, fingerprint, bitcoinaddress, timestamp, nick):
         cursor = self.db.cursor()
         cursor.execute("""INSERT INTO users VALUES
-                        (NULL, ?, ?, ?, ?, ?, ?)""",
-                        (keyid, fingerprint, bitcoinaddress, timestamp, nick, timestamp))
+                        (NULL, ?, ?, ?, ?, ?, ?, ?)""",
+                        (keyid, fingerprint, bitcoinaddress, timestamp, nick, timestamp, 0))
         self._commit()
 
     def update_auth_date(self, id, timestamp):
         cursor = self.db.cursor()
         cursor.execute("""UPDATE users SET last_authed_at = ? WHERE id = ?""", (timestamp, id,))
         self._commit()
+
+    def reset_auth_status(self, authed_nicks):
+        cursor = self.db.cursor()
+        cursor.execute("""UPDATE users SET is_authed = 0 WHERE is_authed = 1""")
+        if len(authed_nicks) > 0:
+            for nick in authed_nicks:
+                nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
+                cursor.execute("""UPDATE users SET is_authed = 1 WHERE nick LIKE ? ESCAPE '|'""", (nick,))
+        self._commit()
+
+    def set_auth_status(self, nick, state):
+        cursor = self.db.cursor()
+        nick = nick.replace('|','||').replace('_','|_').replace('%','|%')
+        cursor.execute("""UPDATE users SET is_authed = ? WHERE nick LIKE ? ESCAPE '|'""", (state, nick,))
 
     def changenick(self, oldnick, newnick):
         cursor = self.db.cursor()
@@ -189,11 +204,14 @@ class GPG(callbacks.Plugin):
         try: #restore auth dicts, if we're reloading the plugin
             self.authed_users = utils.gpg_authed_users
             utils.gpg_authed_users = {}
+            authednicks = [v['nick'] for k,v in self.authed_users.iteritems()]
+            self.db.reset_auth_status(authednicks)
             self.pending_auth = utils.gpg_pending_auth
             utils.gpg_pending_auth = {}
         except AttributeError:
             self.pending_auth = {}
             self.authed_users = {}
+            self.db.reset_auth_status([])
         authlogfilename = os.path.join(conf.supybot.directories.log(), 'gpgauthlog.log')
         authlog = logging.getLogger('GPGauth')
         authlog.setLevel(-1)
@@ -504,6 +522,7 @@ class GPG(callbacks.Plugin):
         try:
             logmsg = "Terminating session for hostmask %s, authenticated to user %s, keyid %s, bitcoinaddress %s" % (hostmask, self.authed_users[hostmask]['nick'], self.authed_users[hostmask]['keyid'],self.authed_users[hostmask]['bitcoinaddress'],)
             self.authlog.info(logmsg)
+            self.db.set_auth_status(self.authed_users[hostmask]['nick'], 0)
             del self.authed_users[hostmask]
             if not world.testing:
                 irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
@@ -611,6 +630,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response
         self.authlog.info(logmsg)
         self.db.update_auth_date(userdata[0][0], time.time())
+        self.db.set_auth_status(userdata[0][5], 1)
         if not world.testing:
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user '%s' with key %s" %\
@@ -672,6 +692,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, authrequest['nick'], authrequest['keyid'],) + response
         self.authlog.info(logmsg)
         self.db.update_auth_date(userdata[0][0], time.time())
+        self.db.set_auth_status(userdata[0][5], 1)
         if not world.testing:
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user %s with key %s" %\
@@ -738,6 +759,7 @@ class GPG(callbacks.Plugin):
                 (msg.prefix, authrequest['nick'], authrequest['bitcoinaddress'],) + response
         self.authlog.info(logmsg)
         self.db.update_auth_date(userdata[0][0], time.time())
+        self.db.set_auth_status(userdata[0][5], 1)
         if not world.testing:
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
         irc.reply(response + "You are now authenticated for user '%s' with address %s" %\
@@ -1011,6 +1033,7 @@ class GPG(callbacks.Plugin):
                 if ircutils.strEqual(msg.nick, irc.nick): #we're parting
                     self.authlog.info("***** clearing authed_users due to self-part. *****")
                     self.authed_users.clear()
+                    self.db.reset_auth_status([])
                 else:
                     self._unauth(irc, msg.prefix)
 
@@ -1019,6 +1042,7 @@ class GPG(callbacks.Plugin):
         if irc.network == self.registryValue('network'):
             self.authlog.info("***** clearing authed_users due to network error. *****")
             self.authed_users.clear()
+            self.db.reset_auth_status([])
 
     def doKick(self, irc, msg):
         """Kill the authentication when user gets kicked."""
@@ -1028,6 +1052,7 @@ class GPG(callbacks.Plugin):
             if ircutils.toLower(irc.nick) in ircutils.toLower(nick):
                 self.authlog.info("***** clearing authed_users due to self-kick. *****")
                 self.authed_users.clear()
+                self.db.reset_auth_status([])
             else:
                 try:
                     hostmask = irc.state.nickToHostmask(nick)
@@ -1045,6 +1070,7 @@ class GPG(callbacks.Plugin):
                 irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-auth", logmsg))
             self.authed_users[newprefix] = self.authed_users[msg.prefix]
             self._unauth(irc, msg.prefix)
+            self.db.set_auth_status(self.authed_users[newprefix]['nick'], 1)
 
 Class = GPG
 
