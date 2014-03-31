@@ -5,7 +5,7 @@
 	}
 
 	$sortby = "nick";
-	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress', 'last_authed_at');
+	$validkeys = array('id', 'nick', 'registered_at', 'keyid', 'fingerprint', 'bitcoinaddress', 'last_authed_at', 'is_authed');
 
 	$sortorder = "ASC";
 	
@@ -102,6 +102,7 @@ else {
 	<td><a href ="http://pool.sks-keyservers.net:11371/pks/lookup?op=vindex&search=0x<?php echo $entry['fingerprint']; ?>"><?php echo $entry['fingerprint']; ?></a></td>
 	<td><?php echo $entry['bitcoinaddress']; ?></td>
 	<td class="nowrap"><?php echo gmdate('Y-m-d H:i:s', $entry['last_authed_at']); ?></td>
+	<td class="nowrap"><?php echo $entry['is_authed'] ? 'true' : 'false'; ?></td>
    </tr>
 <?
 		}

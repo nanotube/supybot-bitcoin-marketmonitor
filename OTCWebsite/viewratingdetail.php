@@ -123,7 +123,7 @@ if ($is_authed == 0){
 	if ($sec_since_auth > 2592000){ // 30 days
 		echo 'This user has not authenticated for more than ' . intval($sec_since_auth/86400) . ' days. ';
 	}
-	echo 'If you are currently talking to someone who claims to be this person, you are probably talking to an impostor and scammer.</font></P>';
+	echo 'If you are currently talking to someone who claims to be this person, you may be talking to an impostor and scammer.</font></P>';
 }
 ?>
 
