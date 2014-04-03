@@ -19,11 +19,11 @@ A webapp and set of plugins for supybot that power a rich alternative currency m
         cd gribble-code
         python setup.py install
 
-6. Create a directory to be the bot’s home and `cd` to it.
+6. Create a directory to be the bot's home and `cd` to it.
 7. Run `supybot-wizard` to create the bot's directory structure and initial configuration.
-  * Have the bot auto-join #bitcoin-otc, #bitcoin-otc-auth, and #bitcoin-otc-ticker
+  * Some plugins expect the bot to be present in #bitcoin-otc, #bitcoin-otc-auth, and #bitcoin-otc-ticker
 
-8. Symlink or copy supybot-bitcoin-marketmaker's directories over to the bot's new plugins directory.
+8. Symlink or copy desired supybot-bitcoin-marketmonitor's directories over to the bot's new plugins directory.
 
 9. Launch the bot:
 
@@ -31,9 +31,11 @@ A webapp and set of plugins for supybot that power a rich alternative currency m
 
 10. On IRC, identify with the bot using the owner login name and password you set up during `supybot-wizard`.
 
-11. On IRC, use supybot's `load` command to load each of supybot-bitcoin-marketmaker's plugins.
+11. On IRC, use supybot's `load` command to load desired plugins.
  * `OTCWebsite` is not a plugin, so don't worry about that one.
 
+For more details on supybot installation, see http://sourceforge.net/apps/mediawiki/gribble/index.php?title=Supybot_Install_Guide
+
 ## Testing
-1. `cd` to your gribble bot's home directory.
-2. `supybot-test plugins/PluginName` for whatever plugin you wish to run the tests for.
+1. create an empty directory to be used as your test environment, and `cd` to it.
+2. `supybot-test path/to/your/plugins/PluginName` for whatever plugin you wish to run the tests for.
