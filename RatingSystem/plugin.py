@@ -30,6 +30,7 @@ from supybot import ircmsgs
 import sqlite3
 import time
 import os.path
+import re
 
 class RatingSystemDB(object):
     def __init__(self, filename):
@@ -484,6 +485,11 @@ class RatingSystem(callbacks.Plugin):
         If <sourcenick> is not supplied, your own nick is used as the source.
         See http://wiki.bitcoin-otc.com/wiki/OTC_Rating_System#Notes_about_gettrust
         """
+        if sourcenick == '' or destnick == '':
+			cmd = str(msg).rstrip('\r\n')
+			cmd = re.sub(r':.*?:', '', cmd)
+			irc.error("You provided an empty string as argument. Your command: %s." % (cmd,))
+			return
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is not None:
             sn = gpgauth['nick']
@@ -516,7 +522,7 @@ class RatingSystem(callbacks.Plugin):
                         trust[0][0], trust[1][0], trust[1][1],
                         utils.web.urlquote(sourcenick), utils.web.urlquote(destnick),
                         utils.web.urlquote(destnick), rs))
-    gettrust = wrap(gettrust, ['something', optional('something')])
+    gettrust = wrap(gettrust, ['anything', optional('anything')])
 
     def deleteuser(self, irc, msg, args, nick):
         """<nick>

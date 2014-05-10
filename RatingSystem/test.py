@@ -98,7 +98,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertNotError('rate registeredGUY 5')
             self.assertRegexp('getrating registeredguy', 'Cumulative rating 14')
             self.assertRegexp('rated nobody', 'not yet rated')
-            self.assertRegexp('rated registeredguy', 'You rated user registeredguy .* giving him a rating of 5')
+            self.assertRegexp('rated registeredguy', 'You rated user registeredguy .* with a rating of 5')
         finally:
             self.prefix = origuser
 
