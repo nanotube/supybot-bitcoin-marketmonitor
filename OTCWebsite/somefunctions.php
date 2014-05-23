@@ -3,10 +3,10 @@
 error_reporting(E_ALL & ~ E_NOTICE & ~E_WARNING);
 
 try {
-	$f = fopen("mtgox.json", "r");
-	$goxtic = fread($f, 2048);
+	$f = fopen("kraken.json", "r");
+	$krktic = fread($f, 2048);
 	fclose($f);
-	$goxtic = json_decode($goxtic, true);
+	$krktic = json_decode($krktic, true);
 	$f = fopen("bitstamp.json", "r");
 	$btsptic = fread($f, 2048);
 	fclose($f);
@@ -50,17 +50,17 @@ function query_google_rate($cur1, $cur2){
 function doNothing() { return(true); }
 
 function index_prices($rawprice){
-	global $goxtic;
+	global $krktic;
 	global $btsptic;
 	$indexedprice = $rawprice;
 	try {
-		if ( preg_match("/mtgox/", $rawprice) ){
-			$indexedprice = preg_replace("/{mtgoxask}/", $goxtic['ask'], $indexedprice);
-			$indexedprice = preg_replace("/{mtgoxbid}/", $goxtic['bid'], $indexedprice);
-			$indexedprice = preg_replace("/{mtgoxlast}/", $goxtic['last'], $indexedprice);
-			$indexedprice = preg_replace("/{mtgoxhigh}/", $goxtic['high'], $indexedprice);
-			$indexedprice = preg_replace("/{mtgoxlow}/", $goxtic['low'], $indexedprice);
-			$indexedprice = preg_replace("/{mtgoxavg}/", $goxtic['avg'], $indexedprice);
+		if ( preg_match("/kraken/", $rawprice) ){
+			$indexedprice = preg_replace("/{krakenask}/", $krktic['ask'], $indexedprice);
+			$indexedprice = preg_replace("/{krakenbid}/", $krktic['bid'], $indexedprice);
+			$indexedprice = preg_replace("/{krakenlast}/", $krktic['last'], $indexedprice);
+			$indexedprice = preg_replace("/{krakenhigh}/", $krktic['high'], $indexedprice);
+			$indexedprice = preg_replace("/{krakenlow}/", $krktic['low'], $indexedprice);
+			$indexedprice = preg_replace("/{krakenavg}/", $krktic['avg'], $indexedprice);
 		}
 		if (preg_match("/bitstamp/", $rawprice) ){
 			$indexedprice = preg_replace("/{bitstampask}/", $btsptic['ask'], $indexedprice);
