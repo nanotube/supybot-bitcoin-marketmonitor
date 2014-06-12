@@ -103,7 +103,8 @@ class Market(callbacks.Plugin):
                 'krk':'Kraken', 'bitmynt':'bitmynt.no', 'bcent':'Bitcoin-Central',
                 'okc':'OKCoin'}
         self.depth_supported_markets = {'btsp':'Bitstamp', 'krk':'Kraken',
-                'btcn':'BTCChina', 'bcent':'Bitcoin-Central', 'bfx':'Bitfinex'}
+                'btcn':'BTCChina', 'bcent':'Bitcoin-Central', 'bfx':'Bitfinex',
+                'btce':'BTC-E'}
 
     def _queryYahooRate(self, cur1, cur2):
         try:
@@ -245,6 +246,45 @@ class Market(callbacks.Plugin):
             print 'moo'
         except:
             traceback.print_exc()
+            pass # oh well, try again later.
+
+    def _getBtceDepth(self, currency='USD'):
+        if world.testing: # avoid hammering api when testing.
+            depth = json.load(open('/tmp/btce.depth.json'))
+            depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
+            self.depth_cache['btce'+currency] = {'time':time.time(), 'depth':depth}
+            return
+        try:
+            cachedvalue = self.depth_cache['btce'+currency]
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+        yahoorate = 1
+        try:
+            stddepth = {}
+            data = urlopen('https://btc-e.com/api/2/btc_%s/depth' % (currency.lower(),)).read()
+            depth = json.loads(data)
+            vintage = time.time()
+            if depth.has_key('error'):
+                if "invalid pair" in depth['error']:
+                    # looks like we have unsupported currency, default to EUR
+                    depth = json.loads(urlopen("https://btc-e.com/api/2/btc_usd/depth").read())
+                    if depth.has_key('error'):
+                        return # oh well try again later
+                    try:
+                        stddepth = {'warning':'using yahoo currency conversion'}
+                        yahoorate = float(self._queryYahooRate('USD', currency))
+                    except:
+                        return # oh well try again later
+                else:
+                    return
+            # make consistent format with mtgox
+            stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
+                    'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
+            self.depth_cache['btce'+currency] = {'time':vintage, 'depth':stddepth}
+        except:
             pass # oh well, try again later.
 
     def _getBcentDepth(self, currency='EUR'):
