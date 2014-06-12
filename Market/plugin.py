@@ -100,7 +100,8 @@ class Market(callbacks.Plugin):
         self.ticker_supported_markets = {'btce':'BTC-E', 'btsp':'Bitstamp',
                 'bfx':'Bitfinex', 'btcde':'Bitcoin.de', 'cbx':'CampBX',
                 'btcn':'BTCChina', 'btcavg':'BitcoinAverage', 'coinbase':'Coinbase',
-                'krk':'Kraken', 'bitmynt':'bitmynt.no', 'bcent':'Bitcoin-Central'}
+                'krk':'Kraken', 'bitmynt':'bitmynt.no', 'bcent':'Bitcoin-Central',
+                'okc':'OKCoin'}
         self.depth_supported_markets = {'btsp':'Bitstamp', 'krk':'Kraken',
                 'btcn':'BTCChina', 'bcent':'Bitcoin-Central', 'bfx':'Bitfinex'}
 
@@ -503,6 +504,34 @@ class Market(callbacks.Plugin):
                             'high': float(ticker['high'])*yahoorate,
                             'avg': float(ticker['vwap'])*yahoorate})
         self.ticker_cache['bcent'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
+    def _getOkcTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['okc'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        stdticker = {}
+        json_data = urlopen("https://www.okcoin.cn/api/ticker.do?symbol=btc_cny").read()
+        ticker = json.loads(json_data)['ticker']
+        yahoorate = 1
+        if currency != 'CNY':
+            try:
+                stdticker = {'warning':'using yahoo currency conversion'}
+                yahoorate = float(self._queryYahooRate('CNY', currency))
+            except:
+                stdticker = {'error':'failed to get currency conversion from yahoo.'}
+                return stdticker
+        stdticker.update({'bid': float(ticker['buy'])*yahoorate,
+                            'ask': float(ticker['sell'])*yahoorate,
+                            'last': float(ticker['last'])*yahoorate,
+                            'vol': float(ticker['vol']),
+                            'low': float(ticker['low'])*yahoorate,
+                            'high': float(ticker['high'])*yahoorate,
+                            'avg': None})
+        self.ticker_cache['okc'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBfxTicker(self, currency):
