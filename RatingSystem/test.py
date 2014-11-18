@@ -88,6 +88,7 @@ class RatingSystemTestCase(PluginTestCase):
             self.assertNotError('rate registeredguy 9')
             self.assertRegexp('getrating registeredguy', 'Cumulative rating -1')
             self.prefix = 'registeredguy!stuff@stuff/somecloak'
+            self.assertRegexp('ratedby authedguy', 'rated by user authedguy')
             self.assertError('rate nanotube 2') # unauthed, can't rate
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertError('rate nanotube 2') # rated -1, can't rate

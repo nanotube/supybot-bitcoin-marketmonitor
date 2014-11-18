@@ -386,6 +386,30 @@ class RatingSystem(callbacks.Plugin):
                    data[2]))
     rated = wrap(rated, ['something'])
 
+    def ratedby(self, irc, msg, args, nick):
+        """<nick>
+
+        Get the details about the rating you received from <nick>, if any.
+        """
+        gpgauth = self._checkGPGAuth(irc, msg.prefix)
+        if gpgauth is not None:
+            targetnick = gpgauth['nick']
+        else:
+            targetnick = msg.nick
+        data = self.db.getRatingDetail(nick, targetnick)
+        if len(data) == 0:
+            irc.reply("You have not yet been rated by user %s" % (nick,))
+            return
+        data = data[0]
+        irc.reply("You were rated by user %s on %s, with a rating of %s, with "
+                  "these additional notes: %s." % \
+                  (nick,
+                   time.ctime(data[0]),
+                   data[1],
+                   data[2]))
+    ratedby = wrap(ratedby, ['something'])
+
+
     def unrate(self, irc, msg, args, nick):
         """<nick>
 
