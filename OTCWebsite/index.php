@@ -101,13 +101,13 @@
 <div class="sponsors">
     <h4>Support our Sponsors</h4>
     <a href="https://www.privateinternetaccess.com/pages/buy-vpn/OTC001">
-        <img src="http://bitcoin-otc.com/pia.png" title="Private Internet Access VPN" alt="Private Internet Access graphic">
+        <img src="pia.png" title="Private Internet Access VPN" alt="Private Internet Access graphic">
     </a>
     <a href="http://coinabul.com/?a=247">
-        <img src="http://bitcoin-otc.com/coinabul.jpg" title="Coinabul Bitcoin-to-Gold Dealer" alt="Coinabul Graphic">
+        <img src="coinabul.jpg" title="Coinabul Bitcoin-to-Gold Dealer" alt="Coinabul Graphic">
     </a>
     <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc">
-        <img src="http://bitcoin-otc.com/dragonstale.jpg" title="Dragon's Tale MMO" alt="Dragon's Tale Graphic">
+        <img src="dragonstale.jpg" title="Dragon's Tale MMO" alt="Dragon's Tale Graphic">
     </a>
 </div>
 <?php
