@@ -289,7 +289,7 @@ class RatingSystem(callbacks.Plugin):
             return True
         return False
 
-    def rate(self, irc, msg, args, nick, rating, notes):
+    def rate(self, irc, msg, args, nicktorate, rating, notes):
         """<nick> <rating> [<notes>]
 
         Enters a rating for <nick> in the amount of <rating>. Use optional
@@ -297,44 +297,45 @@ class RatingSystem(callbacks.Plugin):
         must be the user's GPG-registered username, Your previously existing rating,
         if any, will be overwritten.
         """
-        if nick.upper() in self.registryValue('blockedNicks'):
+        if nicktorate.upper() in self.registryValue('blockedNicks'):
             irc.noReply()
             return
+
         if irc.nested:
             irc.error("This command cannot be used in a nested context.")
             return
+
         gpgauth = self._checkGPGAuth(irc, msg.prefix)
         if gpgauth is None:
-            irc.error("For identification purposes, you must be authenticated "
-                      "to use the rating system.")
+            irc.error("For identification purposes, you must be authenticated to use the rating system.")
             return
-        userrating = self.db.get(gpgauth['nick'])
+        gpgnick = gpgauth['nick']
+
+        userrating = self.db.get(gpgnick)
         if len(userrating) == 0:
-            irc.error("You have to have received some ratings in order to rate "
-                      "other users.")
+            irc.error("You have to have received some ratings in order to rate other users.")
             return
-        trust = self._gettrust('nanotube', gpgauth['nick'])
+        trust = self._gettrust('nanotube', gpgnick)
         sumtrust = sum([t for t,n in trust])
         if self.registryValue('requirePositiveRating') and sumtrust < 0:
             irc.error("You do not meet qualifications for entering ratings.")
             return
-        if gpgauth['nick'].lower() == nick.lower():
+        if gpgnick.lower() == nicktorate.lower():
             irc.error("You cannot rate yourself.")
             return
-        validratings = range(self.registryValue('ratingMin'),
-                             self.registryValue('ratingMax')+1)
+        validratings = range(self.registryValue('ratingMin'), self.registryValue('ratingMax') + 1)
         validratings.remove(0)
         if rating not in validratings:
-            irc.error("Rating must be in the interval [%s, %s] and cannot be zero." % \
+            irc.error("Rating must be in the interval [%s, %s] and cannot be zero." %
                       (min(validratings), max(validratings)))
             return
 
-        result = "Your rating of %s for user %s has been recorded." % (rating, nick,)
+        result = "Your rating of %s for user %s has been recorded." % (rating, nicktorate,)
 
         sourceid = userrating[0][0]
-        targetuserdata = self.db.get(nick)
+        targetuserdata = self.db.get(nicktorate)
         if len(targetuserdata) == 0:
-            targetgpgdata = irc.getCallback('GPG').db.getByNick(nick)
+            targetgpgdata = irc.getCallback('GPG').db.getByNick(nicktorate)
             if len(targetgpgdata) == 0:
                 irc.error("User doesn't exist in the Rating or GPG databases. User must be "
                                 "GPG-registered to receive ratings.")
@@ -349,18 +350,33 @@ class RatingSystem(callbacks.Plugin):
             else:
                 replacementflag = True
                 result = "Your rating for user %s has changed from %s to %s." % \
-                        (nick, priorrating[0][4], rating,)
-        self.db.rate(gpgauth['nick'], sourceid, nick, targetid, rating,
+                        (nicktorate, priorrating[0][4], rating,)
+
+        self.db.rate(gpgnick, sourceid, nicktorate, targetid, rating,
                      replacementflag, notes)
+
         if not world.testing:
             if not replacementflag:
-                logmsg = "New rating | %s > %s > %s | %s" % (gpgauth['nick'],
-                        rating, nick, notes)
+                logmsg = "New rating | %s > %s > %s | %s" % (gpgnick,
+                        rating, nicktorate, notes)
             else:
                 logmsg = "Rating change | Old rating %s | New rating: %s > %s > %s | %s" % \
-                        (priorrating[0][4], gpgauth['nick'], rating, nick, notes,)
+                        (priorrating[0][4], gpgnick, rating, nicktorate, notes,)
             irc.queueMsg(ircmsgs.privmsg("#bitcoin-otc-ratings", logmsg))
+
         irc.reply("Rating entry successful. %s" % (result,))
+
+        # Notify the rated user if they would not have otherwise seen the rating.
+        if not world.testing:
+            # The test harness isn't great in multi-user scenarios.
+            ratedhostmask = self._checkGPGAuthByNick(irc, nicktorate)
+
+            if ratedhostmask is not None:
+                ratedircnick = ircutils.nickFromHostmask(ratedhostmask)
+                if not irc.isChannel(msg.args[0]) or ratedircnick not in irc.state.channels[msg.args[0]].users:
+                    # Rated user is authed and wasn't in the rated-in channel at the time or it was done privately.
+                    irc.queueMsg(ircmsgs.privmsg(ratedircnick, "%s rated you with a rating of %s, and supplied these"
+                                                                 " additional notes: %s" % (gpgnick, rating, notes)))
     rate = wrap(rate, ['something', 'int', optional('text')])
 
     def rated(self, irc, msg, args, nick):
