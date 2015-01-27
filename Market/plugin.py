@@ -110,6 +110,7 @@ class Market(callbacks.Plugin):
             'cbx': 'CampBX',
             'coinbase': 'Coinbase',
             'krk': 'Kraken',
+            'lunar': 'Coinbase Exchange',
             'okc': 'OKCoin'
         }
         self.depth_supported_markets = {
@@ -118,7 +119,8 @@ class Market(callbacks.Plugin):
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
             'bfx': 'Bitfinex',
-            'krk': 'Kraken'
+            'krk': 'Kraken',
+            'lunar': 'Coinbase Exchange'
         }
 
     def _queryYahooRate(self, cur1, cur2):
@@ -224,6 +226,34 @@ class Market(callbacks.Plugin):
             stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
             self.depth_cache['krk'+currency] = {'time':vintage, 'depth':stddepth}
+        except:
+            pass # oh well, try again later.
+
+    def _getLunarDepth(self, currency='USD'):
+        if world.testing: # avoid hammering api when testing.
+            depth = json.load(open('/tmp/lunar.depth.json'))
+            depth['bids'] = [{'price': float(b[0]), 'amount': float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price': float(b[0]), 'amount': float(b[1])} for b in depth['asks']]
+            self.depth_cache['lunar'+currency] = {'time': time.time(), 'depth': depth}
+            return
+        try:
+            cachedvalue = self.depth_cache['lunar'+currency]
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+        yahoorate = 1
+        if currency != 'USD':
+            yahoorate = float(self._queryYahooRate('USD', currency))
+        try:
+            stddepth = {}
+            response = urlopen('https://api.exchange.coinbase.com/products/BTC-USD/book?level=2')
+            vintage = time.time()
+            depth = json.load(response)
+            # make consistent format with mtgox
+            depth['bids'] = [{'price': float(b[0])*yahoorate, 'amount': float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price': float(b[0])*yahoorate, 'amount': float(b[1])} for b in depth['asks']]
+            self.depth_cache['lunar'+currency] = {'time': vintage, 'depth': depth}
         except:
             pass # oh well, try again later.
 
@@ -783,6 +813,40 @@ class Market(callbacks.Plugin):
                             'high': None,
                             'avg': None})
         self.ticker_cache['coinbase'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
+    def _getLunarTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['lunar'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        stdticker = {}
+        try:
+            ticker = json.load(urlopen('https://api.exchange.coinbase.com/products/BTC-USD/ticker'))
+            top_of_book = json.load(urlopen('https://api.exchange.coinbase.com/products/BTC-USD/book'))
+            aggregates = json.load(urlopen('https://api.exchange.coinbase.com/products/BTC-USD/stats'))
+        except:
+            raise  # will get caught later
+        if currency != "USD":
+            stdticker = {'warning': 'using yahoo currency conversion'}
+            try:
+                yahoo_rate = float(self._queryYahooRate("USD", currency))
+            except:
+                stdticker = {'error': 'failed to get currency conversion from yahoo.'}
+                return stdticker
+        else:
+            yahoo_rate = 1
+        stdticker.update({'bid': float(top_of_book['bids'][0][0]) * yahoo_rate,
+                            'ask': float(top_of_book['asks'][0][0]) * yahoo_rate,
+                            'last': float(ticker['price']) * yahoo_rate,
+                            'vol': float(aggregates['volume']),
+                            'low': float(aggregates['low']),
+                            'high': float(aggregates['high']),
+                            'avg': None
+        })
+        self.ticker_cache['lunar'+currency] = {'time': time.time(), 'ticker': stdticker}
         return stdticker
 
     def _getBitmyntTicker(self, currency):
