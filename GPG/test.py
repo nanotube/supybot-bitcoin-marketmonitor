@@ -48,6 +48,7 @@ class GPGTestCase(PluginTestCase):
     def setUp(self):
         PluginTestCase.setUp(self)
         self.testkeyid = "21E2EF9EF2197A66" # set this to a testing key that we have pregenerated
+        self.testsubkeyid = "37FE625CDA2B5F4B"
         self.testkeyfingerprint = "0A969AE0B143927F9D473F3E21E2EF9EF2197A66"
         self.secringlocation = '/tmp/secring.gpg' #where we store our testing secring (normal location gets wiped by test env)
         self.cb = self.irc.getCallback('GPG')
@@ -122,6 +123,7 @@ class GPGTestCase(PluginTestCase):
         #duplicate nick/key registrations
         self.assertError('register someone BBBBBBBBCCCCDDDD') # dupe username
         self.assertError('register newguy %s' % (self.testkeyid,)) #dupe keyid
+        self.assertError('register newguy %s' % (self.testsubkeyid,)) #dupe primary print
 
     def testEregister(self):
         # default test user hostmask: test!user@host.domain.tld
@@ -143,6 +145,7 @@ class GPGTestCase(PluginTestCase):
         #duplicate nick/key registrations
         self.assertError('eregister someone BBBBBBBBCCCCDDDD') # dupe username
         self.assertError('eregister newguy %s' % (self.testkeyid,)) #dupe keyid
+        self.assertError('eregister newguy %s' % (self.testsubkeyid,)) #dupe primary print
 
     def testBcregister(self):
         # create the test ecdsa keypair and resulting bitcoin address

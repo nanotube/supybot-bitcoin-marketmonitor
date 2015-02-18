@@ -107,6 +107,11 @@ class GPGDB(object):
         cursor.execute("""SELECT * FROM users WHERE keyid = ?""", (keyid,))
         return cursor.fetchall()
 
+    def getByFingerprint(self, fingerprint):
+        cursor = self.db.cursor()
+        cursor.execute("""SELECT * FROM users WHERE fingerprint = ?""", (fingerprint,))
+        return cursor.fetchall()
+
     def getByAddr(self, address):
         cursor = self.db.cursor()
         cursor.execute("""SELECT * FROM users WHERE bitcoinaddress = ?""", (address,))
@@ -303,6 +308,9 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG register: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, e,))
             return
+        if self.db.getByFingerprint(fingerprint):
+            irc.error("This key already registered in the database.")
+            return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
@@ -347,6 +355,9 @@ class GPG(callbacks.Plugin):
                     "Either it isn't there, or it is invalid.")
             self.log.info("GPG eregister: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, e,))
+            return
+        if self.db.getByFingerprint(fingerprint):
+            irc.error("This key already registered in the database.")
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
@@ -816,6 +827,9 @@ class GPG(callbacks.Plugin):
             self.log.info("GPG changekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, e,))
             return
+        if self.db.getByFingerprint(fingerprint):
+            irc.error("This key already registered in the database.")
+            return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         request = {msg.prefix: {'keyid':keyid,
                             'nick':gpgauth['nick'], 'expiry':time.time(),
@@ -855,6 +869,9 @@ class GPG(callbacks.Plugin):
                     "Either it isn't there, or it is invalid.")
             self.log.info("GPG echangekey: failed to retrieve key %s from keyservers %s. Details: %s" % \
                     (keyid, keyservers, e,))
+            return
+        if self.db.getByFingerprint(fingerprint):
+            irc.error("This key already registered in the database.")
             return
         challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
         try:
