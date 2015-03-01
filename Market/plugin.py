@@ -890,7 +890,7 @@ class Market(callbacks.Plugin):
         If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
         od = dict(optlist)
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
@@ -983,7 +983,7 @@ class Market(callbacks.Plugin):
         If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
         od = dict(optlist)
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
@@ -1040,7 +1040,7 @@ class Market(callbacks.Plugin):
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
@@ -1082,7 +1082,7 @@ class Market(callbacks.Plugin):
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
@@ -1124,7 +1124,7 @@ class Market(callbacks.Plugin):
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         currency = od.pop('currency','USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
@@ -1158,7 +1158,7 @@ class Market(callbacks.Plugin):
         If market is supplied, uses that exchange. Default is Bitstamp.
         """
         od = dict(optlist)
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         currency = od.pop('currency', 'USD')
         m = self._getMarketInfo(market, 'depth')
         if m is None:
@@ -1238,7 +1238,7 @@ class Market(callbacks.Plugin):
         """
         od = dict(optlist)
         currency = od.pop('currency', 'USD')
-        market = od.pop('market','btsp')
+        market = od.pop('market','bfx')
         r = self._getMarketInfo(market)
         if r is None and market.lower() != 'all':
             irc.error("This is not one of the supported markets. Please choose one of %s or 'all'" % (self.ticker_supported_markets.keys(),))
