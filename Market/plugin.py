@@ -600,28 +600,26 @@ class Market(callbacks.Plugin):
             pair = 'ltcbtc'
         else:
             pair = 'btc%s' % (currency.lower(),)
-        json_data = urlopen("https://api.bitfinex.com/v1/ticker/%s" % (pair,)).read()
-        spotticker = json.loads(json_data)
-        json_data = urlopen("https://api.bitfinex.com/v1/today/%s" % (pair,)).read()
-        dayticker = json.loads(json_data)
-        if spotticker.has_key('message') or dayticker.has_key('message'):
-            stdticker = {'error':spotticker.get('message') or dayticker.get('message')}
+        json_data = urlopen("https://api.bitfinex.com/v1/pubticker/%s" % (pair,)).read()
+        ticker = json.loads(json_data)
+        if ticker.has_key('message'):
+            stdticker = {'error':ticker.get('message')}
         else:
             if currency.lower() == 'ltc':
-                stdticker = {'bid': round(1.0/float(spotticker['ask']),6),
-                                'ask': round(1.0/float(spotticker['bid']),6),
-                                'last': round(1.0/float(spotticker['last_price']),6),
-                                'vol': dayticker['volume'],
-                                'low': round(1.0/float(dayticker['high']),6),
-                                'high': round(1.0/float(dayticker['low']),6),
+                stdticker = {'bid': round(1.0/float(ticker['ask']),6),
+                                'ask': round(1.0/float(ticker['bid']),6),
+                                'last': round(1.0/float(ticker['last_price']),6),
+                                'vol': ticker['volume'],
+                                'low': round(1.0/float(ticker['high']),6),
+                                'high': round(1.0/float(ticker['low']),6),
                                 'avg': None}
             else:
-                stdticker = {'bid': spotticker['bid'],
-                                'ask': spotticker['ask'],
-                                'last': spotticker['last_price'],
-                                'vol': dayticker['volume'],
-                                'low': dayticker['low'],
-                                'high': dayticker['high'],
+                stdticker = {'bid': ticker['bid'],
+                                'ask': ticker['ask'],
+                                'last': ticker['last_price'],
+                                'vol': ticker['volume'],
+                                'low': ticker['low'],
+                                'high': ticker['high'],
                                 'avg': None}
         self.ticker_cache['bitfinex'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
