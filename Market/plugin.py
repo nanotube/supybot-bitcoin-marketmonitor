@@ -885,7 +885,7 @@ class Market(callbacks.Plugin):
         
         Calculate the effect on the market depth of a market sell order of
         <value> bitcoins. 
-        If <market> is provided, uses that exchange. Default is Bitstamp.
+        If <market> is provided, uses that exchange. Default is Bitfinex.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
@@ -978,7 +978,7 @@ class Market(callbacks.Plugin):
         
         Calculate the effect on the market depth of a market buy order of
         <value> bitcoins. 
-        If <market> is provided, uses that exchange. Default is Bitstamp.
+        If <market> is provided, uses that exchange. Default is Bitfinex.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
@@ -1036,7 +1036,7 @@ class Market(callbacks.Plugin):
         
         Calculate the amount of bitcoins for sale at or under <pricetarget>.
         If '--over' option is given, find coins or at or over <pricetarget>.
-        If market is supplied, uses that exchange. Default is Bitstamp.
+        If market is supplied, uses that exchange. Default is Bitfinex.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
@@ -1078,7 +1078,7 @@ class Market(callbacks.Plugin):
         
         Calculate the amount of bitcoin demanded at or over <pricetarget>.
         If '--under' option is given, find coins or at or under <pricetarget>.
-        If market is supplied, uses that exchange. Default is Bitstamp.
+        If market is supplied, uses that exchange. Default is Bitfinex.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
@@ -1120,7 +1120,7 @@ class Market(callbacks.Plugin):
         
         Calculate the "order book implied price", by finding the weighted
         average price of coins <width> BTC up and down from the spread.
-        If market is supplied, uses that exchange. Default is Bitstamp.
+        If market is supplied, uses that exchange. Default is Bitfinex.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
@@ -1155,7 +1155,7 @@ class Market(callbacks.Plugin):
         
         Calculate the ratio of total volume of bids in currency, to total btc volume of asks.
         If '--currency XXX' option is given, converts to currency denoted by given three-letter currency code. Default is USD.
-        If market is supplied, uses that exchange. Default is Bitstamp.
+        If market is supplied, uses that exchange. Default is Bitfinex.
         """
         od = dict(optlist)
         market = od.pop('market','bfx')
@@ -1228,7 +1228,7 @@ class Market(callbacks.Plugin):
     def ticker(self, irc, msg, args, optlist):
         """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market <market>|all]
         
-        Return pretty-printed ticker. Default market is Bitstamp. 
+        Return pretty-printed ticker. Default market is Bitfinex. 
         If one of the result options is given, returns only that numeric result
         (useful for nesting in calculations).
         
