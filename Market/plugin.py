@@ -114,10 +114,11 @@ class Market(callbacks.Plugin):
         }
         self.depth_supported_markets = {
             'bcent': 'Bitcoin-Central',
+            'bfx': 'Bitfinex',
             'btce': 'BTC-E',
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
-            'bfx': 'Bitfinex',
+            'butter': 'Buttercoin',
             'krk': 'Kraken'
         }
 
@@ -299,6 +300,44 @@ class Market(callbacks.Plugin):
             stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
             self.depth_cache['btce'+currency] = {'time':vintage, 'depth':stddepth}
+        except:
+            pass # oh well, try again later.
+
+    def _getButterDepth(self, currency='USD'):
+        if world.testing:  # avoid hammering api when testing.
+            depth = json.load(open('/tmp/buttercoin.depth.json'))
+            depth['bids'] = [{'price': float(b[0]), 'quantity': float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price': float(b[0]), 'quantity': float(b[1])} for b in depth['asks']]
+            self.depth_cache['butter'+currency] = {'time': time.time(), 'depth': depth}
+            return
+
+        try:
+            cachedvalue = self.depth_cache['butter'+currency]
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+
+        yahoorate = 1
+        try:
+            stddepth = {}
+            response = urlopen('https://api.buttercoin.com/v1/orderbook')
+            vintage = time.time()
+            depth = json.load(response)
+
+            buttercoin_currency = depth['priceCurrency']
+            if currency.lower() != buttercoin_currency.lower():
+                try:
+                    yahoorate = float(self._queryYahooRate(buttercoin_currency, currency))
+                    stddepth = {'warning': 'using yahoo currency conversion'}
+                except:
+                    return  # Yahoo is failing.
+
+            stddepth.update({
+                'bids': [{'price': float(b['price'])*yahoorate, 'amount': float(b['quantity'])} for b in depth['bid']],
+                'asks': [{'price': float(b['price'])*yahoorate, 'amount': float(b['quantity'])} for b in depth['ask']]
+            })
+            self.depth_cache['butter'+currency] = {'time': vintage, 'depth': stddepth}
         except:
             pass # oh well, try again later.
 
@@ -827,7 +866,7 @@ class Market(callbacks.Plugin):
         except:
             raise  # will get caught later
         buttercoin_currency = ticker['currency']
-        if currency != buttercoin_currency:
+        if currency.lower() != buttercoin_currency.lower():
             stdticker = {'warning': 'using yahoo currency conversion'}
             try:
                 yahoo_rate = float(self._queryYahooRate(buttercoin_currency, currency))
