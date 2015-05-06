@@ -106,7 +106,6 @@ class Market(callbacks.Plugin):
             'btce': 'BTC-E',
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
-            'butter': 'Buttercoin',
             'cbx': 'CampBX',
             'coinbase': 'Coinbase',
             'krk': 'Kraken',
@@ -812,38 +811,6 @@ class Market(callbacks.Plugin):
                             'high': None,
                             'avg': None})
         self.ticker_cache['bitmynt'+currency] = {'time':time.time(), 'ticker':stdticker}
-        return stdticker
-
-    def _getButterTicker(self, currency):
-        try:
-            cachedvalue = self.ticker_cache['butter'+currency]
-            if time.time() - cachedvalue['time'] < 3:
-                return cachedvalue['ticker']
-        except KeyError:
-            pass
-        stdticker = {}
-        try:
-            ticker = json.loads(urlopen('https://api.buttercoin.com/v1/ticker').read())
-        except:
-            raise  # will get caught later
-        buttercoin_currency = ticker['currency']
-        if currency != buttercoin_currency:
-            stdticker = {'warning': 'using yahoo currency conversion'}
-            try:
-                yahoo_rate = float(self._queryYahooRate(buttercoin_currency, currency))
-            except:
-                stdticker = {'error': 'failed to get currency conversion from yahoo.'}
-                return stdticker
-        else:
-            yahoo_rate = 1
-        stdticker.update({'bid': float(ticker['bid'])*yahoo_rate,
-                            'ask': float(ticker['ask'])*yahoo_rate,
-                            'last': float(ticker['last'])*yahoo_rate,
-                            'vol': None,
-                            'low': None,
-                            'high': None,
-                            'avg': None})
-        self.ticker_cache['butter'+currency] = {'time': time.time(), 'ticker': stdticker}
         return stdticker
 
     def _sellbtc(self, bids, value):
