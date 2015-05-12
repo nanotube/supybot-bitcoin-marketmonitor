@@ -231,7 +231,7 @@ class MarketMonitor(callbacks.Plugin):
         """
         irc.reply("Starting market monitoring.")
         self._start(irc)
-    start = wrap(start, ['owner'])
+    start = wrap(start, [('checkCapability', 'monitor')])
 
     def stop(self, irc, msg, args):
         """takes no arguments
@@ -240,7 +240,7 @@ class MarketMonitor(callbacks.Plugin):
         """
         irc.reply("Stopping market monitoring.")
         self.e.set()
-    stop = wrap(stop, ['owner'])
+    stop = wrap(stop, [('checkCapability', 'monitor')])
 
     def _moneyfmt(self, value, places=2, curr='', sep=',', dp='.', pos='', neg='-',
         trailneg=''):
