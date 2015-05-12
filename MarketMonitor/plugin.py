@@ -64,7 +64,7 @@ class MarketMonitor(callbacks.Plugin):
         # Example: {("mtgox", "USD"): [(volume, price, timestamp),(volume, price, timestamp)], ("th", "USD"): [(volume, price, timestamp)]}
         
         self.raw = []
-        self.nextsend = 0 # Timestamp for when we can send next. Handling this manually allows better collapsing.
+        self.nextsend = time.time() # Timestamp for when we can send next. Handling this manually allows better collapsing.
 
     def __call__(self, irc, msg):
         self.__parent.__call__(irc, msg)
@@ -111,6 +111,8 @@ class MarketMonitor(callbacks.Plugin):
                             for chan in self.registryValue('channels'):
                                 irc.queueMsg(ircmsgs.privmsg(chan, output))
                         self.nextsend = time.time()+(conf.supybot.protocols.irc.throttleTime() * len(outputs))
+                    if time.time() - self.nextsend > 300: # 5 minutes no data
+                        self._reconnect() # must mean feed is quietly dead, as sometimes happens.
                     self.marketdata = {}
                     self.raw = []
             except Exception, e:
