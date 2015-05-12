@@ -145,6 +145,10 @@ class MarketMonitor(callbacks.Plugin):
                 for needed in "timestamp", "price", "volume", "symbol":
                     assert needed in d
                 market, currency = re.match(r"^([a-z0-9]+)([A-Z]+)$", d["symbol"]).groups()
+                if market in self.registryValue('marketsBlacklist'):
+                    continue
+                if len(self.registryValue('marketsWhitelist')) != 0 and market not in self.registryValue('marketsWhitelist'):
+                    continue
                 volume = decimal.Decimal(str(d["volume"]))
                 price = decimal.Decimal(str(d["price"]))
                 stamp = decimal.Decimal(str(d["timestamp"]))
