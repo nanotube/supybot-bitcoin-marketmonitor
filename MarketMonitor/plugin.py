@@ -77,6 +77,7 @@ class MarketMonitor(callbacks.Plugin):
                 self.conn.close()
                 self.conn.open(self.registryValue('server'),
                                     self.registryValue('port'))
+                self.nextsend = time.time()
                 return True
             except Exception, e:
                 # this may get verbose, but let's leave this in for now.
@@ -112,6 +113,7 @@ class MarketMonitor(callbacks.Plugin):
                                 irc.queueMsg(ircmsgs.privmsg(chan, output))
                         self.nextsend = time.time()+(conf.supybot.protocols.irc.throttleTime() * len(outputs))
                     if time.time() - self.nextsend > 300: # 5 minutes no data
+                        self.log.info("MarketMonitor reconnecting due to silent feed.")
                         self._reconnect() # must mean feed is quietly dead, as sometimes happens.
                     self.marketdata = {}
                     self.raw = []
