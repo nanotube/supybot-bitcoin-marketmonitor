@@ -16,7 +16,7 @@ time.sleep(5)
 import requests
 r = requests.get('http://bitcoin-otc.com/otps/YOUR16DIGITGPGKEYIDGOESHERE')
 
-# i can't easily figure out how to pass OTP to gpg for decrypt and copy to clipboard, not having linux, hexchat, or programmed Py before
+# I can't easily figure out how to pass OTP to gpg for decrypt and copy/paste to/from clipboard, not having Linux, Hexchat, or programmed Py before.
 
 time.sleep(30)
 hexchat.command("MSG /msg gribble everify (# decrypted OTP paste here)")
