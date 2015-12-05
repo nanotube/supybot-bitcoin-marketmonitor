@@ -2,7 +2,7 @@ __module_name__ = "bitcoin-otc-gpg-eauth-hexchat"
 __module_version__ = "0.0"
 __module_description__ = "bitcoin-otc GPG eauth for Hexchat"
 
-# Thanks to TheButterZone (191R9RaC4mUsc4mKAQPY1TBZc5JGRt13zp) & ______ () for this script!
+# Thanks to TheButterZone (191R9RaC4mUsc4mKAQPY1TBZc5JGRt13zp) & especially ______ () for this script!
 # This will eventually work under Hexchat Linux
 # There are 2 fields you need to replace: 
 # YOURNICKGOESHERE, YOUR16DIGITGPGKEYIDGOESHERE
