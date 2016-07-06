@@ -1,5 +1,5 @@
 # Thanks to TheButterZone (191R9RaC4mUsc4mKAQPY1TBZc5JGRt13zp) for this script!
-# This works under OSX 10.6.8-10.10.3, Adium 1.5.*, MacGPG2 2.0.*
+# This works under OSX 10.6.8-10.11.5, Adium 1.5.*, MacGPG2 2.0.*
 # There are 2 fields you need to replace: 
 # YOURNICKGOESHERE, YOUR16DIGITGPGKEYIDGOESHERE
 # "delay 30" is there to allow you time to type your GPG passphrase at the prompt and hit return. Hands off keyboard & mouse after you do that.
