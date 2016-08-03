@@ -47,5 +47,7 @@ Market = conf.registerPlugin('Market')
 conf.registerGlobalValue(Market, 'fullDepthCachePeriod',
      registry.PositiveInteger(245, """Number of seconds to cache the
      full depth data from mtgox, to avoid getting banned."""))
+conf.registerGlobalValue(Market, 'defaultExchange',
+     registry.String('btsp', """Default exchange to query for market data."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
