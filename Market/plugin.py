@@ -1195,7 +1195,7 @@ class Market(callbacks.Plugin):
     def ticker(self, irc, msg, args, optlist):
         """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market <market>|all]
         
-        Return pretty-printed ticker. Default market is Bitfinex. 
+        Return pretty-printed ticker. Default market is Bitstamp. 
         If one of the result options is given, returns only that numeric result
         (useful for nesting in calculations).
         
