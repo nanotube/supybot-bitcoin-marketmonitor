@@ -241,8 +241,9 @@ class GPG(callbacks.Plugin):
         for ks in keyservers:
             try:
                 result = self.gpg.recv_keys(ks, keyid)
-                if result.results[0].has_key('ok'):
-                    return result.results[0]['fingerprint']
+                for r in result.results:
+                    if r.has_key('ok'):
+                        return r['fingerprint']
             except:
                continue
         else:
