@@ -42,6 +42,7 @@ import json
 import urllib2
 import time
 import traceback
+import inspect
 
 opener = urllib2.build_opener()
 opener.addheaders = [('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
@@ -119,6 +120,16 @@ class Market(callbacks.Plugin):
             'bfx': 'Bitfinex',
             'krk': 'Kraken'
         }
+        
+        self._parseMarketDocstrings()
+        
+    def _parseMarketDocstrings(self):
+        attrs = inspect.getmembers(self, predicate=inspect.ismethod)
+        attrs = filter(lambda x: x[0][0] != '_' and x[1].__func__.__doc__ is not None, attrs)
+        attrs = filter(lambda x: re.search('%market%', x[1].__func__.__doc__), attrs)
+        def _changedoc(x):
+            x[1].__func__.__doc__ = re.sub("%market%", self.ticker_supported_markets[self.registryValue('defaultExchange')], x[1].__func__.__doc__)
+        map(_changedoc, attrs)
 
     def _queryYahooRate(self, cur1, cur2):
         try:
@@ -852,7 +863,7 @@ class Market(callbacks.Plugin):
         
         Calculate the effect on the market depth of a market sell order of
         <value> bitcoins. 
-        If <market> is provided, uses that exchange. Default is Bitfinex.
+        If <market> is provided, uses that exchange. Default is %market%.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
@@ -945,7 +956,7 @@ class Market(callbacks.Plugin):
         
         Calculate the effect on the market depth of a market buy order of
         <value> bitcoins. 
-        If <market> is provided, uses that exchange. Default is Bitfinex.
+        If <market> is provided, uses that exchange. Default is %market%.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         If '--fiat' option is given, <value> denotes the size of the order in fiat.
         """
@@ -1003,7 +1014,7 @@ class Market(callbacks.Plugin):
         
         Calculate the amount of bitcoins for sale at or under <pricetarget>.
         If '--over' option is given, find coins or at or over <pricetarget>.
-        If market is supplied, uses that exchange. Default is Bitfinex.
+        If market is supplied, uses that exchange. Default is %market%.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
@@ -1045,7 +1056,7 @@ class Market(callbacks.Plugin):
         
         Calculate the amount of bitcoin demanded at or over <pricetarget>.
         If '--under' option is given, find coins or at or under <pricetarget>.
-        If market is supplied, uses that exchange. Default is Bitfinex.
+        If market is supplied, uses that exchange. Default is %market%.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
@@ -1087,7 +1098,7 @@ class Market(callbacks.Plugin):
         
         Calculate the "order book implied price", by finding the weighted
         average price of coins <width> BTC up and down from the spread.
-        If market is supplied, uses that exchange. Default is Bitfinex.
+        If market is supplied, uses that exchange. Default is %market%.
         If --currency XXX is provided, converts to that fiat currency. Default is USD.
         """
         od = dict(optlist)
@@ -1122,7 +1133,7 @@ class Market(callbacks.Plugin):
         
         Calculate the ratio of total volume of bids in currency, to total btc volume of asks.
         If '--currency XXX' option is given, converts to currency denoted by given three-letter currency code. Default is USD.
-        If market is supplied, uses that exchange. Default is Bitfinex.
+        If market is supplied, uses that exchange. Default is %market%.
         """
         od = dict(optlist)
         market = od.pop('market',self.registryValue('defaultExchange'))
@@ -1195,7 +1206,8 @@ class Market(callbacks.Plugin):
     def ticker(self, irc, msg, args, optlist):
         """[--bid|--ask|--last|--high|--low|--avg|--vol] [--currency XXX] [--market <market>|all]
         
-        Return pretty-printed ticker. Default market is Bitfinex. 
+        Return pretty-printed ticker. 
+        If <market> is provided, uses that exchange. Default is %market%.
         If one of the result options is given, returns only that numeric result
         (useful for nesting in calculations).
         
