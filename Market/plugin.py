@@ -30,10 +30,8 @@
 
 import supybot.utils as utils
 from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
-from supybot import conf
+from datetime import datetime
 from supybot import world
 from supybot.utils.seq import dameraulevenshtein
 
@@ -47,6 +45,8 @@ import inspect
 opener = urllib2.build_opener()
 opener.addheaders = [('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
 urlopen = opener.open
+
+epoch = datetime.utcfromtimestamp(0)
 
 def getNonNegativeFloat(irc, msg, args, state, type='non-negative floating point number'):
     try:
@@ -109,6 +109,7 @@ class Market(callbacks.Plugin):
             'btsp': 'Bitstamp',
             'cbx': 'CampBX',
             'coinbase': 'Coinbase',
+            'gem': 'Gemini',
             'krk': 'Kraken',
             'okc': 'OKCoin'
         }
@@ -118,6 +119,7 @@ class Market(callbacks.Plugin):
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
             'bfx': 'Bitfinex',
+            'gem': 'Gemini',
             'krk': 'Kraken'
         }
         
@@ -371,6 +373,43 @@ class Market(callbacks.Plugin):
             depth['asks'].reverse() # asks should be listed in ascending order
             self.depth_cache['btcn'+currency] = {'time':vintage, 'depth':depth}
         except:
+            pass # oh well, try again later.
+
+    def _getGemDepth(self, currency='USD'):
+        if world.testing: # avoid hammering api when testing.
+            depth = json.load(open('/tmp/gem.depth.json'))
+            depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
+            self.depth_cache['gem'+currency] = {'time':time.time(), 'depth':depth}
+            return
+        try:
+            cachedvalue = self.depth_cache['gem'+currency]
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+        yahoorate = 1
+        try:
+            stddepth = {}
+            depth = json.load(urlopen('https://api.gemini.com/v1/book/BTCUSD'))
+            vintage = time.time()
+            if 'message' in depth:
+                return # looks like an error, try again later
+            if currency != 'USD':
+                try:
+                    stddepth['warning'] = "using yahoo currency conversion"
+                    yahoorate = float(self._queryYahooRate('USD', currency))
+                except:
+                    return # guess yahoo is failing
+            # make consistent format with mtgox
+            stddepth.update({
+                'bids': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['bids']],
+                'asks': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['asks']]
+            })
+            self.depth_cache['gem'+currency] = {'time':vintage, 'depth':stddepth}
+            print 'moo'
+        except:
+            traceback.print_exc()
             pass # oh well, try again later.
 
     def _getMtgoxTicker(self, currency):
@@ -791,6 +830,61 @@ class Market(callbacks.Plugin):
                             'high': None,
                             'avg': None})
         self.ticker_cache['coinbase'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
+    def _getGemTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['gemini'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        stdticker = {}
+
+        if currency.lower() == 'usd':
+            yahoorate = 1
+        else:
+            stdticker['warning'] = {'using yahoo currency conversion'}
+            try:
+                yahoorate = float(self._queryYahooRate('USD', currency))
+            except:
+                return {'error':'failed to get currency conversion from yahoo.'}
+
+        yesterday_seconds_from_epoch = int((datetime.utcnow() - epoch).total_seconds() - 86400.0)
+        auction = json.load(urlopen("https://api.gemini.com/v1/book/BTCUSD?limit_bids=1&limit_asks=1"))
+        trades = json.load(urlopen(
+            "https://api.gemini.com/v1/trades/BTCUSD?limit_trades=500&since={}".format(yesterday_seconds_from_epoch)
+        ))
+
+        if len(trades) == 500:
+            stdticker['warning'] = "Too many trades for accurate aggregates."
+            trades = json.load(urlopen("https://api.gemini.com/v1/trades/BTCUSD?limit_trades=1"))
+            got_24_hours_of_trades = False
+        else:
+            got_24_hours_of_trades = True
+
+        if 'message' in auction or 'message' in trades or not trades:
+            stdticker['error'] = auction.get('message', trades.get('message', "No trades found for past 24 hours."))
+        else:
+            stdticker['bid'] = float(auction['bids'][0]['price']) * yahoorate
+            stdticker['ask'] = float(auction['asks'][0]['price']) * yahoorate
+            last_trade = trades[0]
+            stdticker['last'] = float(last_trade['price']) * yahoorate
+            if got_24_hours_of_trades and trades:
+                prices = [float(trade['price'])*yahoorate for trade in trades]
+                volume = sum(float(trade['amount']) for trade in trades)
+                stdticker['vol'] = volume
+                stdticker['low'] = min(prices)
+                stdticker['high'] = max(prices)
+                vwap_sums = sum(float(trade['price'])*float(trade['amount'])*yahoorate for trade in trades)
+                stdticker['avg'] = vwap_sums / volume
+            else:
+                stdticker['vol'] = None
+                stdticker['low'] = None
+                stdticker['high'] = None
+                stdticker['avg'] = None
+
+        self.ticker_cache['gemini'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBitmyntTicker(self, currency):
