@@ -174,18 +174,17 @@ def getAt(irc, msg, args, state):
 #        args.pop(0)
 
 def getIndexedPrice(irc, msg, args, state, type='price input'):
-    """Indexed price can contain one or more of {mtgoxask}, {mtgoxbid},
-    {mtgoxlast}, {mtgoxhigh}, {mtgoxlow}, {mtgoxavg}, included in 
-    an arithmetical expression.
+    """Indexed price can contain one or more of {bitstampask},
+    {bitstampbid}, {bitstamplast}, {bitstamphigh}, {bitstamplow},
+    {bitstampavg}, included in an arithmetical expression.
     It can also contain one expression of the form {XXX in YYY} which
     queries google for currency conversion rate from XXX to YYY."""
     try:
         v = args[0]
-        v = re.sub(r'{mtgox(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{bitstamp(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{... in ...}', '1', v, 1)
         if not set(v).issubset(set('1234567890*-+./() ')) or '**' in v:
-            raise ValueError, "only {mtgox(ask|bid|last|high|low|avg)}, {bitstamp(ask|bid|last|high|low|avg)}, one {... in ...}, and arithmetic allowed."
+            raise ValueError, "only {bitstamp(ask|bid|last|high|low|avg)}, one {... in ...}, and arithmetic allowed."
         eval(v)
         state.args.append(args[0])
         del args[0]
@@ -245,14 +244,6 @@ class OTCOrderBook(callbacks.Plugin):
     def _getTrust(self, irc, sourcenick, destnick):
         return irc.getCallback('RatingSystem')._gettrust(sourcenick, destnick)
 
-    def _getMtgoxQuote(self):
-        try:
-            ticker = utils.web.getUrl('https://data.mtgox.com/api/2/BTCUSD/money/ticker')
-            self.ticker = json.loads(ticker, parse_float=str, parse_int=str)
-            self.ticker = self.ticker['data']
-        except:
-            pass # don't want to die on failure of mtgox
-
     def _getCurrencyConversion(self, rawprice):
         conv = re.search(r'{(...) in (...)}', rawprice)
         if conv is None:
@@ -279,16 +270,8 @@ class OTCOrderBook(callbacks.Plugin):
 
     def _getIndexedValue(self, rawprice):
         try:
-            goxtic = self.irc.getCallback('Market')._getMtgoxTicker('USD')
             btsptic = self.irc.getCallback('Market')._getBtspTicker('USD')
             indexedprice = rawprice
-            if re.search('mtgox', rawprice):
-                indexedprice = re.sub(r'{mtgoxask}', str(goxtic['ask']), indexedprice)
-                indexedprice = re.sub(r'{mtgoxbid}', str(goxtic['bid']), indexedprice)
-                indexedprice = re.sub(r'{mtgoxlast}', str(goxtic['last']), indexedprice)
-                indexedprice = re.sub(r'{mtgoxhigh}', str(goxtic['high']), indexedprice)
-                indexedprice = re.sub(r'{mtgoxlow}', str(goxtic['low']), indexedprice)
-                indexedprice = re.sub(r'{mtgoxavg}', str(goxtic['avg']), indexedprice)
             if re.search('bitstamp', rawprice):
                 indexedprice = re.sub(r'{bitstampask}', str(btsptic['ask']), indexedprice)
                 indexedprice = re.sub(r'{bitstampbid}', str(btsptic['bid']), indexedprice)
@@ -307,8 +290,8 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a buy order for <amount> units of <thing>, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {(mtgox|bitstamp)(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
-        high, low, or avg price.
+        and {bitstamp(ask|bid|last|high|low|avg)} to index price to bitstamp ask, bid,
+        last, high, low, or avg price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
         If '--long' option is given, puts in a longer-duration order, but this is only
@@ -355,8 +338,8 @@ class OTCOrderBook(callbacks.Plugin):
         Logs a sell order for <amount> units of <thing, at a price of <price>
         per unit, in units of <otherthing>. Use the optional <notes> field to
         put in any special notes. <price> may include an arithmetical expression,
-        and {(mtgox|bitstamp)(ask|bid|last|high|low|avg)} to index price to mtgox ask, bid, last,
-        high, low, or avg price.
+        and {bitstamp(ask|bid|last|high|low|avg)} to index price to bitstamp ask, bid,
+        last, high, low, or avg price.
         May also include expression of the form {... in ...} which queries google
         for a currency conversion rate between two currencies.
         If '--long' option is given, puts in a longer-duration order, but this is only

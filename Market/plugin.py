@@ -147,27 +147,6 @@ class Market(callbacks.Plugin):
         self.currency_cache[cur1 + cur2] = {'time':time.time(), 'rate':rate}
         return rate
 
-    def _getMtgoxDepth(self, currency='USD'):
-        if world.testing: # avoid hammering api when testing.
-            self.depth_cache['mtgox'] = {'time':time.time(), 
-                    'depth':json.load(open('/tmp/mtgox.depth.json'))['return']}
-            self.depth_cache['mtgox']['depth']['bids'].reverse()
-            return
-        try:
-            cachedvalue = self.depth_cache['mtgox']
-            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
-                return
-        except KeyError:
-            pass
-        try:
-            data = urlopen('http://data.mtgox.com/api/1/BTCUSD/depth/full').read()
-            vintage = time.time()
-            depth = json.loads(data)['return']
-            depth['bids'].reverse() # bids should be listed in descending order
-            self.depth_cache['mtgox'] = {'time':vintage, 'depth':depth}
-        except:
-            pass # oh well, try again later.
-
     def _getBtspDepth(self, currency='USD'):
         if world.testing: # avoid hammering api when testing.
             depth = json.load(open('/tmp/bitstamp.depth.json'))
@@ -189,7 +168,7 @@ class Market(callbacks.Plugin):
             data = urlopen('https://www.bitstamp.net/api/order_book/').read()
             vintage = time.time()
             depth = json.loads(data)
-            # make consistent format with mtgox
+            # make consistent format with mtgox original format
             depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
             self.depth_cache['btsp'+currency] = {'time':vintage, 'depth':depth}
@@ -230,7 +209,7 @@ class Market(callbacks.Plugin):
                 else:
                     return
             depth = depth['result'][depth['result'].keys()[0]]
-            # make consistent format with mtgox
+            # make consistent format with mtgox original format
             stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
             self.depth_cache['krk'+currency] = {'time':vintage, 'depth':stddepth}
@@ -264,7 +243,7 @@ class Market(callbacks.Plugin):
                     yahoorate = float(self._queryYahooRate('USD', currency))
                 except:
                     return # guess yahoo is failing
-            # make consistent format with mtgox
+            # make consistent format with mtgox original format
             stddepth.update({'bids': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['bids']],
                     'asks': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['asks']]})
             self.depth_cache['bfx'+currency] = {'time':vintage, 'depth':stddepth}
@@ -305,7 +284,7 @@ class Market(callbacks.Plugin):
                         return # oh well try again later
                 else:
                     return
-            # make consistent format with mtgox
+            # make consistent format with mtgox original format
             stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
             self.depth_cache['btce'+currency] = {'time':vintage, 'depth':stddepth}
@@ -336,7 +315,7 @@ class Market(callbacks.Plugin):
                 yahoorate = float(self._queryYahooRate('EUR', currency))
             if depth.has_key('errors'):
                 return
-            # make consistent format with mtgox
+            # make consistent format with mtgox original format
             stddepth.update({'bids': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['bids']],
                     'asks': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['asks']]})
             stddepth['bids'].reverse()
@@ -365,61 +344,13 @@ class Market(callbacks.Plugin):
             data = urlopen('https://data.btcchina.com/data/orderbook').read()
             vintage = time.time()
             depth = json.loads(data)
-            # make consistent format with mtgox
+            # make consistent format with mtgox original format
             depth['bids'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
             depth['asks'].reverse() # asks should be listed in ascending order
             self.depth_cache['btcn'+currency] = {'time':vintage, 'depth':depth}
         except:
             pass # oh well, try again later.
-
-    def _getMtgoxTicker(self, currency):
-        stdticker = {}
-        yahoorate = 1
-        if world.testing and currency == 'USD':
-            ticker = json.load(open('/tmp/mtgox.ticker.json'))
-        else:
-            try:
-                cachedvalue = self.ticker_cache['mtgox'+currency]
-                if time.time() - cachedvalue['time'] < 3:
-                    return cachedvalue['ticker']
-            except KeyError:
-                pass
-            try:
-                json_data = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker" % (currency.upper(),)).read()
-                ticker = json.loads(json_data)
-            except Exception, e:
-                ticker = {"result":"error", "error":e}
-            try:
-                ftj = urlopen("https://data.mtgox.com/api/2/BTC%s/money/ticker_fast" % (currency.upper(),)).read()
-                tf = json.loads(ftj)
-            except Exception, e:
-                tf = {"result":"error", "error":e}
-            if ticker['result'] == 'error' and currency != 'USD':
-                # maybe currency just doesn't exist, so try USD and convert.
-                ticker = json.loads(urlopen("https://data.mtgox.com/api/2/BTCUSD/money/ticker").read())
-                try:
-                    stdticker = {'warning':'using yahoo currency conversion'}
-                    yahoorate = float(self._queryYahooRate('USD', currency))
-                except:
-                    stdticker = {'error':'failed to get currency conversion from yahoo.'}
-                    return stdticker
-            if ticker['result'] != 'error' and tf['result'] != 'error': # use fast ticker where available
-                ticker['data']['buy']['value'] = tf['data']['buy']['value']
-                ticker['data']['sell']['value'] = tf['data']['sell']['value']
-                ticker['data']['last']['value'] = tf['data']['last']['value']
-        if ticker['result'] == 'error':
-             stdticker = {'error':ticker['error']}
-        else:
-            stdticker.update({'bid': float(ticker['data']['buy']['value'])*yahoorate,
-                                'ask': float(ticker['data']['sell']['value'])*yahoorate,
-                                'last': float(ticker['data']['last']['value'])*yahoorate,
-                                'vol': ticker['data']['vol']['value'],
-                                'low': float(ticker['data']['low']['value'])*yahoorate,
-                                'high': float(ticker['data']['high']['value'])*yahoorate,
-                                'avg': float(ticker['data']['vwap']['value'])*yahoorate})
-        self.ticker_cache['mtgox'+currency] = {'time':time.time(), 'ticker':stdticker}
-        return stdticker
 
     def _getBtceTicker(self, currency):
         try:
@@ -1266,6 +1197,7 @@ class Market(callbacks.Plugin):
     ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
             'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode', 'market': 'something'})])
 
+#    Keep this for nostalgia reasons, possibly repurpose later
 #    def goxlag(self, irc, msg, args, optlist):
 #        """[--raw]
 #        
