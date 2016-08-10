@@ -329,7 +329,7 @@ class Market(callbacks.Plugin):
         yahoorate = 1
         try:
             stddepth = {}
-            data = urlopen('https://bitcoin-central.net/api/v1/data/eur/depth').read()
+            data = urlopen('https://paymium.com/api/v1/data/eur/depth').read()
             depth = json.loads(data)
             vintage = time.time()
             if currency != 'EUR':
@@ -620,7 +620,7 @@ class Market(callbacks.Plugin):
         except KeyError:
             pass
         stdticker = {}
-        json_data = urlopen("https://bitcoin-central.net/api/v1/data/eur/ticker").read()
+        json_data = urlopen("https://paymium.com/api/v1/data/eur/ticker").read()
         ticker = json.loads(json_data)
         if ticker.has_key('errors'):
             stdticker = {'error':ticker['errors']}
