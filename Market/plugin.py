@@ -106,6 +106,7 @@ class Market(callbacks.Plugin):
             'btsp': 'Bitstamp',
             'cbx': 'CampBX',
             'coinbase': 'Coinbase',
+            'gdax': 'GDAX',
             'gem': 'Gemini',
             'krk': 'Kraken',
             'okc': 'OKCoin'
@@ -116,6 +117,7 @@ class Market(callbacks.Plugin):
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
             'bfx': 'Bitfinex',
+            'gdax': 'GDAX',
             'gem': 'Gemini',
             'krk': 'Kraken'
         }
@@ -403,6 +405,42 @@ class Market(callbacks.Plugin):
                 'asks': [{'price':float(b['price'])*yahoorate, 'amount':float(b['amount'])} for b in depth['asks']]
             })
             self.depth_cache['gem'+currency] = {'time':vintage, 'depth':stddepth}
+        except:
+            traceback.print_exc()
+            pass # oh well, try again later.
+
+    def _getGdaxDepth(self, currency='USD'):
+        if world.testing: # avoid hammering api when testing.
+            depth = json.load(open('/tmp/gdax.depth.json'))
+            depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
+            depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
+            self.depth_cache['gdax'+currency] = {'time':time.time(), 'depth':depth}
+            return
+        try:
+            cachedvalue = self.depth_cache['gdax'+currency]
+            if time.time() - cachedvalue['time'] < self.registryValue('fullDepthCachePeriod'):
+                return
+        except KeyError:
+            pass
+        yahoorate = 1
+        try:
+            stddepth = {}
+            depth = json.load(urlopen('https://api.gdax.com//products/BTC-USD/book?level=3'))
+            vintage = time.time()
+            if 'message' in depth:
+                return # looks like an error, try again later
+            if currency != 'USD':
+                try:
+                    stddepth['warning'] = "using yahoo currency conversion"
+                    yahoorate = float(self._queryYahooRate('USD', currency))
+                except:
+                    return # guess yahoo is failing
+            # make consistent format with mtgox original format
+            stddepth.update({
+                'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
+                'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]
+            })
+            self.depth_cache['gdax'+currency] = {'time':vintage, 'depth':stddepth}
         except:
             traceback.print_exc()
             pass # oh well, try again later.
@@ -829,7 +867,7 @@ class Market(callbacks.Plugin):
 
     def _getGemTicker(self, currency):
         try:
-            cachedvalue = self.ticker_cache['gemini'+currency]
+            cachedvalue = self.ticker_cache['gem'+currency]
             if time.time() - cachedvalue['time'] < 3:
                 return cachedvalue['ticker']
         except KeyError:
@@ -858,7 +896,42 @@ class Market(callbacks.Plugin):
             stdticker['low'] = None
             stdticker['high'] = None
 
-        self.ticker_cache['gemini'+currency] = {'time':time.time(), 'ticker':stdticker}
+        self.ticker_cache['gem'+currency] = {'time':time.time(), 'ticker':stdticker}
+        return stdticker
+
+    def _getGdaxTicker(self, currency):
+        try:
+            cachedvalue = self.ticker_cache['gdax'+currency]
+            if time.time() - cachedvalue['time'] < 3:
+                return cachedvalue['ticker']
+        except KeyError:
+            pass
+        stdticker = {}
+
+        if currency.lower() == 'usd':
+            yahoorate = 1
+        else:
+            stdticker['warning'] = {'using yahoo currency conversion'}
+            try:
+                yahoorate = float(self._queryYahooRate('USD', currency))
+            except:
+                return {'error':'failed to get currency conversion from yahoo.'}
+        
+        ticker = json.loads(urlopen('https://api.gdax.com/products/BTC-USD/ticker').read())
+        stats = json.loads(urlopen('https://api.gdax.com/products/BTC-USD/stats').read())
+        
+        if 'message' in ticker or 'message' in stats:
+            stdticker['error'] = ticker.get('message', 'no ticker error') + stats.get('message' + 'no stats error')
+        else:
+            stdticker['bid'] = float(ticker['bid']) * yahoorate
+            stdticker['ask'] = float(ticker['ask']) * yahoorate
+            stdticker['last'] = float(ticker['price']) * yahoorate
+            stdticker['vol'] = float(ticker['volume'])
+            stdticker['avg'] = None
+            stdticker['low'] = float(stats['low']) * yahoorate
+            stdticker['high'] = float(stats['high']) * yahoorate
+
+        self.ticker_cache['gdax'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
     def _getBitmyntTicker(self, currency):
