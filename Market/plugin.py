@@ -1392,10 +1392,12 @@ class Market(callbacks.Plugin):
             response = ""
             sumvol = 0
             sumprc = 0
-            for mkt in ['btsp','btce','bfx','cbx','btcn', 'krk', 'bcent']:
+            for mkt in ['btsp','btce','bfx','gdax','btcn', 'krk', 'gem', 'okc']:
                 try:
                     r = self._getMarketInfo(mkt)
                     tck = r[2](currency)
+                    if float(tck['vol']) < 100:
+                        continue
                     response += "%s BTC%s last: %s, vol: %s | " % \
                             (r[1], currency, tck['last'], tck['vol'])
                 except:
