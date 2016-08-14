@@ -282,8 +282,11 @@ class ReadBitfinexTrades(BaseTradeReader):
         while not self.e.is_set():
             if self.timestamp is None: # so we don't glom together a day's worth of trades at startup.
                 self.timestamp = time.time() - 600
-            data = json.loads(urllib2.urlopen(self.trades_api_url + \
-                    '?timestamp=' + str(self.timestamp)).read())
+            try:
+                data = json.loads(urllib2.urlopen(self.trades_api_url + \
+                        '?timestamp=' + str(self.timestamp)).read())
+            except:
+                continue
             if 'message' in data:
                 continue # some error... oh well.
             self.timestamp = data[0]['timestamp']
@@ -333,14 +336,31 @@ class ReadBitstampTrades(BaseTradeReader):
             
             time.sleep(10)
 
-class ReadGDAXTrades(threading.Thread):
+class ReadGDAXTrades(BaseTradeReader):
     def __init__(self, q, market):
-        threading.Thread.__init__(self)
-        self.q = q
-        self.market = market
-        self.trades_api_url = ''
+        BaseTradeReader.__init__(self, q, market)
+        self.trades_api_url = 'https://api.gdax.com/products/BTC-USD/trades'
+        self.prev_tids = []
+
     def run(self):
-        pass # will read data from trades api here
+        while not self.e.is_set():
+            try:
+                data = json.loads(urllib2.urlopen(self.trades_api_url).read())
+            except:
+                continue
+            tids = [t['trade_id'] for t in data]
+            data = filter(lambda x: x['trade_id'] not in self.prev_tids, data)
+            self.prev_tids = tids
+            def make_unixtime(s):
+                t = datetime.datetime.strptime(s.replace('Z','UTC'), '%Y-%m-%dT%H:%M:%S.%f%Z')
+                return time.mktime(t.timetuple())
+            trades = [(decimal.Decimal(str(t['size'])),
+                    decimal.Decimal(str(t['price'])),
+                    decimal.Decimal(str(make_unixtime(t['time'])))) for t in reversed(data)]
+                    
+            self.q.put({(self.market, 'USD'): trades})
+            
+            time.sleep(10)
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
