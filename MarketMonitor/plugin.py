@@ -37,6 +37,9 @@ import time
 import re
 import json
 import datetime
+import Queue
+import sys
+import urllib2
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -55,7 +58,7 @@ class MarketMonitor(callbacks.Plugin):
     def __init__(self, irc):
         self.__parent = super(MarketMonitor, self)
         self.__parent.__init__(irc)
-        self.conn = telnetlib.Telnet()
+        #self.conn = telnetlib.Telnet()
         self.e = threading.Event()
         self.started = threading.Event()
         self.data = ""
@@ -65,43 +68,69 @@ class MarketMonitor(callbacks.Plugin):
         
         self.raw = []
         self.nextsend = time.time() # Timestamp for when we can send next. Handling this manually allows better collapsing.
+        
+        self.q = Queue.Queue()
+
+    def _start_data_pullers(self):
+        self.data_threads = {}
+        self.markets = self.registryValue('supportedMarkets') # ['Bitstamp', 'GDAX', 'Bitfinex']
+        current_module = sys.modules[__name__]
+        for market in self.markets:
+            self.data_threads[market] = getattr(current_module, 'Read'+market+'Trades')(self.q, market)
+            self.data_threads[market].start()
 
     def __call__(self, irc, msg):
         self.__parent.__call__(irc, msg)
         if not self.started.isSet() and irc.network == self.registryValue('network') and self.registryValue('autostart'):
             self._start(irc)
 
-    def _reconnect(self, repeat=True):
-        while not self.e.isSet():
-            try:
-                self.conn.close()
-                self.conn.open(self.registryValue('server'),
-                                    self.registryValue('port'))
-                self.nextsend = time.time()
-                return True
-            except Exception, e:
-                # this may get verbose, but let's leave this in for now.
-                self.log.error('MarketMonitor: reconnect error: %s: %s' % \
-                            (e.__class__.__name__, str(e)))
-                if not repeat:
-                    return False
-                time.sleep(5)
+    #def _reconnect(self, repeat=True):
+        #while not self.e.isSet():
+            #try:
+                #self.conn.close()
+                #self.conn.open(self.registryValue('server'),
+                                    #self.registryValue('port'))
+                #self.nextsend = time.time()
+                #return True
+            #except Exception, e:
+                ## this may get verbose, but let's leave this in for now.
+                #self.log.error('MarketMonitor: reconnect error: %s: %s' % \
+                            #(e.__class__.__name__, str(e)))
+                #if not repeat:
+                    #return False
+                #time.sleep(5)
 
     def _monitor(self, irc):
         while not self.e.isSet():
+            #try:
+                #lines = self.conn.read_very_eager()
+            #except Exception, e:
+                #self.log.error('Error in MarketMonitor reading telnet: %s: %s' % \
+                            #(e.__class__.__name__, str(e)))
+                #self._reconnect()
+                #continue
+            #try:
+                #if irc.getCallback('Services').identified and lines: #Make sure you're running the Services plugin, and are identified!
+                    #lines = lines.split("\n")
+                    #self._parse(lines)
+            #except Exception, e:
+                #self.log.error('Error in MarketMonitor parsing: %s: %s' % \
+                            #(e.__class__.__name__, str(e)))
+                #continue # keep going no matter what
+            #try:
+                #self._parse() # TODO grab a chunk of lines from queue and send it over
+            #except Exception, e:
+                #self.log.error('Error in MarketMonitor parsing: %s: %s' % \
+                            #(e.__class__.__name__, str(e)))
+                #continue # keep going no matter what
             try:
-                lines = self.conn.read_very_eager()
-            except Exception, e:
-                self.log.error('Error in MarketMonitor reading telnet: %s: %s' % \
-                            (e.__class__.__name__, str(e)))
-                self._reconnect()
+                chunk = self.q.get(True, 10)
+                k,v = chunk.items()[0]
+                self.marketdata[k] = v
+            except Queue.Empty:
                 continue
-            try:
-                if irc.getCallback('Services').identified and lines: #Make sure you're running the Services plugin, and are identified!
-                    lines = lines.split("\n")
-                    self._parse(lines)
             except Exception, e:
-                self.log.error('Error in MarketMonitor parsing: %s: %s' % \
+                self.log.error('Error in MarketMonitor queue: %s: %s' % \
                             (e.__class__.__name__, str(e)))
                 continue # keep going no matter what
             try:
@@ -112,9 +141,9 @@ class MarketMonitor(callbacks.Plugin):
                             for chan in self.registryValue('channels'):
                                 irc.queueMsg(ircmsgs.privmsg(chan, output))
                         self.nextsend = time.time()+(conf.supybot.protocols.irc.throttleTime() * len(outputs))
-                    if time.time() - self.nextsend > 300: # 5 minutes no data
-                        self.log.info("MarketMonitor reconnecting due to silent feed.")
-                        self._reconnect() # must mean feed is quietly dead, as sometimes happens.
+                    #if time.time() - self.nextsend > 300: # 5 minutes no data
+                        #self.log.info("MarketMonitor reconnecting due to silent feed.")
+                        #self._reconnect() # must mean feed is quietly dead, as sometimes happens.
                     self.marketdata = {}
                     self.raw = []
             except Exception, e:
@@ -123,7 +152,6 @@ class MarketMonitor(callbacks.Plugin):
                 continue # keep going no matter what
             time.sleep(0.01)
         self.started.clear()
-        self.conn.close()
 
     def _parse(self, msgs):
         # Stitching of messages
@@ -206,23 +234,26 @@ class MarketMonitor(callbacks.Plugin):
 
     def die(self):
         self.e.set()
-        self.conn.close()
+        #self.conn.close()
         self.__parent.die()
 
     def _start(self, irc):
         if not self.started.isSet():
             self.e.clear()
+            
+            #success = self._reconnect(repeat=False)
+            #if success:
+            t = threading.Thread(target=self._monitor, name='MarketMonitor',
+                                 kwargs={'irc':irc})
+            t.start()
+            if hasattr(irc, 'reply'):
+                irc.reply("Monitoring start successful. Now monitoring market data.")
+            self._start_data_pullers()
             self.started.set()
-            success = self._reconnect(repeat=False)
-            if success:
-                t = threading.Thread(target=self._monitor, name='MarketMonitor',
-                                     kwargs={'irc':irc})
-                t.start()
-                if hasattr(irc, 'reply'):
-                    irc.reply("Monitoring start successful. Now monitoring market data.")
-            else:
-                if hasattr(irc, 'error'):
-                     irc.error("Error connecting to server. See log for details.")
+            
+            #else:
+                #if hasattr(irc, 'error'):
+                     #irc.error("Error connecting to server. See log for details.")
         else:
             irc.error("Monitoring already started.")
 
@@ -242,6 +273,9 @@ class MarketMonitor(callbacks.Plugin):
         """
         irc.reply("Stopping market monitoring.")
         self.e.set()
+        for k,v in self.data_threads.iteritems():
+            v.stop()
+        
     stop = wrap(stop, [('checkCapability', 'monitor')])
 
     def _moneyfmt(self, value, places=2, curr='', sep=',', dp='.', pos='', neg='-',
@@ -294,6 +328,113 @@ class MarketMonitor(callbacks.Plugin):
         return ''.join(reversed(result))
 
 Class = MarketMonitor
+
+class BaseTradeReader(threading.Thread):
+    def __init__(self, q, market):
+        threading.Thread.__init__(self, name=market+'Monitor')
+        self.q = q
+        self.e = threading.Event()
+        self.market = market
+        self.trades_api_url = ''
+    
+    def run(self):
+        pass
+        
+    def stop(self):
+        self.e.set()
+    
+        
+class ReadBitfinexTrades(threading.Thread):
+    def __init__(self, q, market):
+        threading.Thread.__init__(self, name=market+'Monitor')
+        self.q = q
+        self.e = threading.Event()
+        self.market = market
+        self.trades_api_url = 'https://api.bitfinex.com/v1/trades/BTCUSD'
+        self.timestamp = None
+        self.prev_timestamp_tids = []
+        # ?timestamp=epoch
+        #~ [{
+          #~ "timestamp":1444266681,
+          #~ "tid":11988919,
+          #~ "price":"244.8",
+          #~ "amount":"0.03297384",
+          #~ "exchange":"bitfinex",
+          #~ "type":"sell"
+        #~ }]
+        # most recent trade first
+    
+    def run(self):
+        while not self.e.is_set():
+            if self.timestamp is None: # so we don't glom together a day's worth of trades at startup.
+                self.timestamp = time.time() - 600
+            data = json.loads(urllib2.urlopen(self.trades_api_url + \
+                    '?timestamp=' + str(self.timestamp)).read())
+            if 'message' in data:
+                continue # some error... oh well.
+            self.timestamp = data[0]['timestamp']
+            
+            timestamp_tids = filter(lambda x: x['timestamp'] == self.timestamp, data)
+            data = filter(lambda x: x['tid'] not in self.prev_timestamp_tids, data)
+            self.prev_timestamp_tids = [t['tid'] for t in timestamp_tids]
+            
+            trades = [(decimal.Decimal(str(t['amount'])),
+                    decimal.Decimal(str(t['price'])),
+                    decimal.Decimal(str(t['timestamp']))) for t in reversed(data)]
+            
+            #for t in reversed(trades):
+                #self.q.put(json.dumps(t))
+            self.q.put({(self.market, 'USD'): trades})
+            
+            time.sleep(10)
+
+    def stop(self):
+        self.e.set()
+
+class ReadBitstampTrades(threading.Thread):
+    def __init__(self, q, market):
+        threading.Thread.__init__(self, name=market+'Monitor')
+        self.q = q
+        self.market = market
+        self.trades_api_url = 'https://www.bitstamp.net/api/v2/transactions/btcusd/?time=minute'
+        self.prev_tids = []
+        self.e = threading.Event()
+        #~ date	Unix timestamp date and time.
+        #~ tid	Transaction ID.
+        #~ price	BTC price.
+        #~ amount	BTC amount.
+        #~ type	0 (buy) or 1 (sell).
+        # most recent first
+    def run(self):
+        while not self.e.is_set():
+            try:
+                data = json.loads(urllib2.urlopen(self.trades_api_url).read())
+            except:
+                continue
+            
+            tids = [t['tid'] for t in data]
+            data = filter(lambda x: x['tid'] not in self.prev_tids, data)
+            self.prev_tids = tids
+            
+            trades = [(decimal.Decimal(str(t['amount'])),
+                    decimal.Decimal(str(t['price'])),
+                    decimal.Decimal(str(t['date']))) for t in reversed(data)]
+
+            self.q.put({(self.market, 'USD'): trades})
+            
+            time.sleep(10)
+    
+    def stop(self):
+        self.e.set()
+
+class ReadGDAXTrades(threading.Thread):
+    def __init__(self, q, market):
+        threading.Thread.__init__(self)
+        self.q = q
+        self.market = market
+        self.trades_api_url = ''
+    def run(self):
+        pass # will read data from trades api here
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

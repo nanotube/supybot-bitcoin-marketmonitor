@@ -50,6 +50,10 @@ conf.registerGlobalValue(MarketMonitor, 'marketsBlacklist',
 conf.registerGlobalValue(MarketMonitor, 'collapseThreshold',
     registry.Integer(3, """Minimum number of transactions the bot will
     collapse together"""))
+conf.registerGlobalValue(MarketMonitor, 'supportedMarkets',
+    registry.SpaceSeparatedListOfStrings("Bitfinex Bitstamp", """List 
+    of markets supported and enabled on this plugin."""))
+
 
 class Formats(registry.OnlySomeStrings):
     validStrings = ('raw', 'pretty')
