@@ -344,12 +344,9 @@ class BaseTradeReader(threading.Thread):
         self.e.set()
     
         
-class ReadBitfinexTrades(threading.Thread):
+class ReadBitfinexTrades(BaseTradeReader):
     def __init__(self, q, market):
-        threading.Thread.__init__(self, name=market+'Monitor')
-        self.q = q
-        self.e = threading.Event()
-        self.market = market
+        BaseTradeReader.__init__(self, q, market)
         self.trades_api_url = 'https://api.bitfinex.com/v1/trades/BTCUSD'
         self.timestamp = None
         self.prev_timestamp_tids = []
@@ -388,23 +385,18 @@ class ReadBitfinexTrades(threading.Thread):
             
             time.sleep(10)
 
-    def stop(self):
-        self.e.set()
-
-class ReadBitstampTrades(threading.Thread):
+class ReadBitstampTrades(BaseTradeReader):
     def __init__(self, q, market):
-        threading.Thread.__init__(self, name=market+'Monitor')
-        self.q = q
-        self.market = market
+        BaseTradeReader.__init__(self, q, market)
         self.trades_api_url = 'https://www.bitstamp.net/api/v2/transactions/btcusd/?time=minute'
         self.prev_tids = []
-        self.e = threading.Event()
         #~ date	Unix timestamp date and time.
         #~ tid	Transaction ID.
         #~ price	BTC price.
         #~ amount	BTC amount.
         #~ type	0 (buy) or 1 (sell).
         # most recent first
+    
     def run(self):
         while not self.e.is_set():
             try:
@@ -423,9 +415,6 @@ class ReadBitstampTrades(threading.Thread):
             self.q.put({(self.market, 'USD'): trades})
             
             time.sleep(10)
-    
-    def stop(self):
-        self.e.set()
 
 class ReadGDAXTrades(threading.Thread):
     def __init__(self, q, market):
