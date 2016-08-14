@@ -148,10 +148,6 @@ class MarketMonitor(callbacks.Plugin):
             return False
         return [out for (_,out) in outputs]
 
-    def die(self):
-        self.e.set()
-        self.__parent.die()
-
     def _start(self, irc):
         if not self.started.isSet():
             self.e.clear()
@@ -181,16 +177,22 @@ class MarketMonitor(callbacks.Plugin):
         self._start(irc)
     start = wrap(start, [('checkCapability', 'monitor')])
 
+    def die(self):
+        self._stop()
+        self.__parent.die()
+
+    def _stop(self):
+        self.e.set()
+        for k,v in self.data_threads.iteritems():
+            v.stop()
+
     def stop(self, irc, msg, args):
         """takes no arguments
 
         Stops monitoring market data
         """
         irc.reply("Stopping market monitoring.")
-        self.e.set()
-        for k,v in self.data_threads.iteritems():
-            v.stop()
-        
+        self._stop()
     stop = wrap(stop, [('checkCapability', 'monitor')])
 
     def _moneyfmt(self, value, places=2, curr='', sep=',', dp='.', pos='', neg='-',
