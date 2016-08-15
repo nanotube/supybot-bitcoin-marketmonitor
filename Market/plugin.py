@@ -170,6 +170,8 @@ class Market(callbacks.Plugin):
             pass # oh well, try again later.
 
     def _getBtspDepth(self, currency='USD'):
+        apiurl = 'https://www.bitstamp.net/api/v2/order_book/btc{currency}/'
+        urlcurrency = currency.lower()
         if world.testing: # avoid hammering api when testing.
             depth = json.load(open('/tmp/bitstamp.depth.json'))
             depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
@@ -183,11 +185,12 @@ class Market(callbacks.Plugin):
         except KeyError:
             pass
         yahoorate = 1
-        if currency != 'USD':
+        if currency not in ['USD','EUR']:
             yahoorate = float(self._queryYahooRate('USD', currency))
+            urlcurrency = 'usd'
         try:
             stddepth = {}
-            data = urlopen('https://www.bitstamp.net/api/order_book/').read()
+            data = urlopen(apiurl.format(currency=urlcurrency)).read()
             vintage = time.time()
             depth = json.loads(data)
             # make consistent format with mtgox
