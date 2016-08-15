@@ -541,6 +541,7 @@ class Market(callbacks.Plugin):
         return stdticker
 
     def _getBtspTicker(self, currency):
+        apiurl = 'https://www.bitstamp.net/api/v2/ticker/btc{currency}/'
         try:
             cachedvalue = self.ticker_cache['bitstamp'+currency]
             if time.time() - cachedvalue['time'] < 3:
@@ -548,16 +549,13 @@ class Market(callbacks.Plugin):
         except KeyError:
             pass
         stdticker = {}
-        json_data = urlopen("https://www.bitstamp.net/api/ticker/").read()
+        if currency in ['USD','EUR']:
+            json_data = urlopen(apiurl.format(currency=currency.lower())).read()
+        else:
+            json_data = urlopen(apiurl.format(currency='usd')).read()
         ticker = json.loads(json_data)
-        try:
-            bcharts = json.loads(urlopen("http://api.bitcoincharts.com/v1/markets.json").read())
-            bcharts = filter(lambda x: x['symbol'] == 'bitstampUSD', bcharts)[0]
-            avg = float(bcharts['avg'])
-        except:
-            avg = 0
         yahoorate = 1
-        if currency != 'USD':
+        if currency not in ['USD','EUR']:
             try:
                 stdticker = {'warning':'using yahoo currency conversion'}
                 yahoorate = float(self._queryYahooRate('USD', currency))
@@ -570,7 +568,7 @@ class Market(callbacks.Plugin):
                             'vol': ticker['volume'],
                             'low': float(ticker['low'])*yahoorate,
                             'high': float(ticker['high'])*yahoorate,
-                            'avg': avg*yahoorate})
+                            'avg': float(ticker['vwap'])*yahoorate})
         self.ticker_cache['bitstamp'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
