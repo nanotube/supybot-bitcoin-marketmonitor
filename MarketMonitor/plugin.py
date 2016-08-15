@@ -65,7 +65,6 @@ class MarketMonitor(callbacks.Plugin):
         self.marketdata = {}
         # Example: {("mtgox", "USD"): [(volume, price, timestamp),(volume, price, timestamp)], ("th", "USD"): [(volume, price, timestamp)]}
         
-        self.raw = []
         self.nextsend = time.time() # Timestamp for when we can send next. Handling this manually allows better collapsing.
         
         self.q = Queue.Queue()
@@ -104,7 +103,6 @@ class MarketMonitor(callbacks.Plugin):
                                 irc.queueMsg(ircmsgs.privmsg(chan, output))
                         self.nextsend = time.time()+(conf.supybot.protocols.irc.throttleTime() * len(outputs))
                     self.marketdata = {}
-                    self.raw = []
             except Exception, e:
                 self.log.error('Error in MarketMonitor sending: %s: %s' % \
                             (e.__class__.__name__, str(e)))
@@ -113,10 +111,6 @@ class MarketMonitor(callbacks.Plugin):
         self.started.clear()
 
     def _format(self):
-        if self.registryValue('format') == 'raw':
-            return [x.rstrip() for x in self.raw]
-
-        # Making a pretty output
         outputs = []
         try:
             for (market, currency), txs in self.marketdata.iteritems():

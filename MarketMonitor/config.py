@@ -50,12 +50,4 @@ conf.registerGlobalValue(MarketMonitor, 'supportedMarkets',
     registry.SpaceSeparatedListOfStrings("Bitfinex Bitstamp", """List 
     of markets supported and enabled on this plugin."""))
 
-
-class Formats(registry.OnlySomeStrings):
-    validStrings = ('raw', 'pretty')
-
-conf.registerGlobalValue(MarketMonitor, 'format',
-    Formats('raw', """Format of the output. Choose between 'raw', to
-    output messages as-is, and 'pretty', for prettified and aligned output."""))
-
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
