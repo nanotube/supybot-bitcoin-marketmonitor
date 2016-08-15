@@ -39,6 +39,7 @@ import datetime
 import Queue
 import sys
 import urllib2
+import calendar
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -341,7 +342,7 @@ class ReadGDAXTrades(BaseTradeReader):
         BaseTradeReader.__init__(self, q, market)
         self.trades_api_url = 'https://api.gdax.com/products/BTC-USD/trades'
         self.prev_tids = []
-
+        self.firstrun = True
     def run(self):
         while not self.e.is_set():
             try:
@@ -350,14 +351,18 @@ class ReadGDAXTrades(BaseTradeReader):
                 continue
             tids = [t['trade_id'] for t in data]
             data = filter(lambda x: x['trade_id'] not in self.prev_tids, data)
-            self.prev_tids = tids
+            self.prev_tids = tids                
             def make_unixtime(s):
                 t = datetime.datetime.strptime(s.replace('Z','UTC'), '%Y-%m-%dT%H:%M:%S.%f%Z')
-                return time.mktime(t.timetuple())
+                return calendar.timegm(t.timetuple())
             trades = [(decimal.Decimal(str(t['size'])),
                     decimal.Decimal(str(t['price'])),
                     decimal.Decimal(str(make_unixtime(t['time'])))) for t in reversed(data)]
-                    
+            
+            if self.firstrun:
+                t = time.time()
+                trades = filter(lambda x: t - float(x[2]) < 600, trades)
+                self.firstrun = False
             self.q.put({(self.market, 'USD'): trades})
             
             time.sleep(10)
