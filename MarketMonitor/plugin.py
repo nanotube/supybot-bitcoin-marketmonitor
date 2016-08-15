@@ -309,8 +309,12 @@ class ReadBitfinexTrades(BaseTradeReader):
 class ReadBitstampTrades(BaseTradeReader):
     def __init__(self, q, market):
         BaseTradeReader.__init__(self, q, market)
-        self.trades_api_url = 'https://www.bitstamp.net/api/v2/transactions/btcusd/?time=minute'
-        self.prev_tids = []
+        self.trades_api_url = 'https://www.bitstamp.net/api/v2/transactions/btc{currency}/?time=minute'
+        self.currencies = ['USD','EUR']
+        self.prev_tids = {}
+        for cur in self.currencies:
+            self.prev_tids[cur] = []
+
         #~ date	Unix timestamp date and time.
         #~ tid	Transaction ID.
         #~ price	BTC price.
@@ -320,50 +324,131 @@ class ReadBitstampTrades(BaseTradeReader):
     
     def run(self):
         while not self.e.is_set():
-            try:
-                data = json.loads(urllib2.urlopen(self.trades_api_url).read())
-            except:
-                continue
-            
-            tids = [t['tid'] for t in data]
-            data = filter(lambda x: x['tid'] not in self.prev_tids, data)
-            self.prev_tids = tids
-            
-            trades = [(decimal.Decimal(str(t['amount'])),
-                    decimal.Decimal(str(t['price'])),
-                    decimal.Decimal(str(t['date']))) for t in reversed(data)]
+            for cur in self.currencies:
+                try:
+                    data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur.lower())).read())
+                except:
+                    continue
+                
+                tids = [t['tid'] for t in data]
+                data = filter(lambda x: x['tid'] not in self.prev_tids, data)
+                self.prev_tids[cur] = tids
+                
+                trades = [(decimal.Decimal(str(t['amount'])),
+                        decimal.Decimal(str(t['price'])),
+                        decimal.Decimal(str(t['date']))) for t in reversed(data)]
 
-            self.q.put({(self.market, 'USD'): trades})
-            
+                self.q.put({(self.market, cur): trades})
+                time.sleep(1)
+                
             time.sleep(10)
 
 class ReadGDAXTrades(BaseTradeReader):
     def __init__(self, q, market):
         BaseTradeReader.__init__(self, q, market)
-        self.trades_api_url = 'https://api.gdax.com/products/BTC-USD/trades'
-        self.prev_tids = []
-        self.firstrun = True
+        self.trades_api_url = 'https://api.gdax.com/products/BTC-{currency}/trades'
+        self.currencies = ['USD','EUR','GBP']
+        self.prev_tids = {}
+        self.firstrun = {}
+        for cur in self.currencies:
+            self.firstrun[cur] = True
+            self.prev_tids[cur] = []
     def run(self):
         while not self.e.is_set():
-            try:
-                data = json.loads(urllib2.urlopen(self.trades_api_url).read())
-            except:
-                continue
-            tids = [t['trade_id'] for t in data]
-            data = filter(lambda x: x['trade_id'] not in self.prev_tids, data)
-            self.prev_tids = tids                
-            def make_unixtime(s):
-                t = datetime.datetime.strptime(s.replace('Z','UTC'), '%Y-%m-%dT%H:%M:%S.%f%Z')
-                return calendar.timegm(t.timetuple())
-            trades = [(decimal.Decimal(str(t['size'])),
-                    decimal.Decimal(str(t['price'])),
-                    decimal.Decimal(str(make_unixtime(t['time'])))) for t in reversed(data)]
+            for cur in self.currencies:
+                try:
+                    data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur)).read())
+                except:
+                    continue
+                tids = [t['trade_id'] for t in data]
+                data = filter(lambda x: x['trade_id'] not in self.prev_tids[cur], data)
+                self.prev_tids[cur] = tids
+                def make_unixtime(s):
+                    t = datetime.datetime.strptime(s.replace('Z','UTC'), '%Y-%m-%dT%H:%M:%S.%f%Z')
+                    return calendar.timegm(t.timetuple())
+                trades = [(decimal.Decimal(str(t['size'])),
+                        decimal.Decimal(str(t['price'])),
+                        decimal.Decimal(str(make_unixtime(t['time'])))) for t in reversed(data)]
+                
+                if self.firstrun[cur]:
+                    t = time.time()
+                    trades = filter(lambda x: t - float(x[2]) < 600, trades)
+                    self.firstrun[cur] = False
+                self.q.put({(self.market, cur): trades})
+                
+                time.sleep(1)
             
-            if self.firstrun:
-                t = time.time()
-                trades = filter(lambda x: t - float(x[2]) < 600, trades)
-                self.firstrun = False
-            self.q.put({(self.market, 'USD'): trades})
+            time.sleep(10)
+
+class ReadKrakenTrades(BaseTradeReader):
+    def __init__(self, q, market):
+        BaseTradeReader.__init__(self, q, market)
+        self.trades_api_url = 'https://api.kraken.com/0/public/Trades?pair=XBT{currency}&since={prevlast}'
+        self.currencies = ['USD','EUR','GBP','CAD','JPY']
+        self.prev_last = {}
+        self.firstrun = {}
+        for cur in self.currencies:
+            self.firstrun[cur] = True
+            self.prev_last[cur] = ''
+    def run(self):
+        while not self.e.is_set():
+            for cur in self.currencies:
+                try:
+                    data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur, prevlast=self.prev_last[cur])).read())
+                except:
+                    continue
+                if len(data['error']) > 0:
+                    continue
+                data = data['result']
+                self.prev_last[cur] = data['last']
+                data = data['XXBTZ' + cur]
+                if self.firstrun[cur]:
+                    t = time.time()
+                    data = filter(lambda x: t - float(x[2]) < 600, data)
+                    self.firstrun[cur] = False
+                trades = [(decimal.Decimal(str(t[1])),
+                        decimal.Decimal(str(t[0])),
+                        decimal.Decimal(str(t[2]))) for t in data] # in chrono order!
+                
+                self.q.put({(self.market, cur): trades})
+                
+                time.sleep(1)
+            
+            time.sleep(10)
+
+class ReadBtceTrades(BaseTradeReader):
+    def __init__(self, q, market):
+        BaseTradeReader.__init__(self, q, market)
+        self.trades_api_url = 'https://btc-e.com/api/2/btc_{currency}/trades'
+        self.currencies = ['USD','RUR','EUR']
+        self.prev_tids = {}
+        self.firstrun = {}
+        for cur in self.currencies:
+            self.firstrun[cur] = True
+            self.prev_tids[cur] = []
+    def run(self):
+        while not self.e.is_set():
+            for cur in self.currencies:
+                try:
+                    data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur.lower())).read())
+                except:
+                    continue
+                if 'error' in data:
+                    continue
+                tids = [t['tid'] for t in data]
+                data = filter(lambda x: x['tid'] not in self.prev_tids[cur], data)
+                self.prev_tids[cur] = tids
+                trades = [(decimal.Decimal(str(t['amount'])),
+                        decimal.Decimal(str(t['price'])),
+                        decimal.Decimal(str(t['date']))) for t in reversed(data)]
+                
+                if self.firstrun[cur]:
+                    t = time.time()
+                    trades = filter(lambda x: t - float(x[2]) < 600, trades)
+                    self.firstrun[cur] = False
+                self.q.put({(self.market, cur): trades})
+                
+                time.sleep(1)
             
             time.sleep(10)
 
