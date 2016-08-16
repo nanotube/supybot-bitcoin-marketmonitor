@@ -283,9 +283,9 @@ class ReadBitfinexTrades(BaseTradeReader):
             except:
                 time.sleep(1)
                 continue
-            if 'message' in data:
+            if 'message' in data or len(data) == 0: # some error, or no data
                 time.sleep(1)
-                continue # some error... oh well.
+                continue
             self.timestamp = data[0]['timestamp']
             
             timestamp_tids = filter(lambda x: x['timestamp'] == self.timestamp, data)
@@ -469,9 +469,9 @@ class ReadGeminiTrades(BaseTradeReader):
             except:
                 time.sleep(1)
                 continue
-            if 'message' in data:
+            if 'message' in data or len(data) == 0: # some error, or no data
                 time.sleep(1)
-                continue # some error... oh well.
+                continue 
             self.timestamp = data[0]['timestamp']
             
             timestamp_tids = filter(lambda x: x['timestamp'] == self.timestamp, data)
