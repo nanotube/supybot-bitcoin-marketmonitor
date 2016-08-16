@@ -281,8 +281,10 @@ class ReadBitfinexTrades(BaseTradeReader):
                 data = json.loads(urllib2.urlopen(self.trades_api_url + \
                         '?timestamp=' + str(self.timestamp)).read())
             except:
+                time.sleep(1)
                 continue
             if 'message' in data:
+                time.sleep(1)
                 continue # some error... oh well.
             self.timestamp = data[0]['timestamp']
             
@@ -294,8 +296,6 @@ class ReadBitfinexTrades(BaseTradeReader):
                     decimal.Decimal(str(t['price'])),
                     decimal.Decimal(str(t['timestamp']))) for t in reversed(data)]
             
-            #for t in reversed(trades):
-                #self.q.put(json.dumps(t))
             self.q.put({(self.market, 'USD'): trades})
             
             time.sleep(10)
@@ -322,10 +322,11 @@ class ReadBitstampTrades(BaseTradeReader):
                 try:
                     data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur.lower())).read())
                 except:
+                    time.sleep(1)
                     continue
                 
                 tids = [t['tid'] for t in data]
-                data = filter(lambda x: x['tid'] not in self.prev_tids, data)
+                data = filter(lambda x: x['tid'] not in self.prev_tids[cur], data)
                 self.prev_tids[cur] = tids
                 
                 trades = [(decimal.Decimal(str(t['amount'])),
@@ -353,6 +354,7 @@ class ReadGDAXTrades(BaseTradeReader):
                 try:
                     data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur)).read())
                 except:
+                    time.sleep(1)
                     continue
                 tids = [t['trade_id'] for t in data]
                 data = filter(lambda x: x['trade_id'] not in self.prev_tids[cur], data)
@@ -390,8 +392,10 @@ class ReadKrakenTrades(BaseTradeReader):
                 try:
                     data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur, prevlast=self.prev_last[cur])).read())
                 except:
+                    time.sleep(1)
                     continue
                 if len(data['error']) > 0:
+                    time.sleep(1)
                     continue
                 data = data['result']
                 self.prev_last[cur] = data['last']
@@ -426,8 +430,10 @@ class ReadBtceTrades(BaseTradeReader):
                 try:
                     data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur.lower())).read())
                 except:
+                    time.sleep(1)
                     continue
                 if 'error' in data:
+                    time.sleep(1)
                     continue
                 tids = [t['tid'] for t in data]
                 data = filter(lambda x: x['tid'] not in self.prev_tids[cur], data)
@@ -443,6 +449,40 @@ class ReadBtceTrades(BaseTradeReader):
                 self.q.put({(self.market, cur): trades})
                 
                 time.sleep(1)
+            
+            time.sleep(10)
+
+class ReadGeminiTrades(BaseTradeReader):
+    def __init__(self, q, market):
+        BaseTradeReader.__init__(self, q, market)
+        self.trades_api_url = 'https://api.gemini.com/v1/trades/btcusd?limit_trades=500'
+        self.timestamp = None
+        self.prev_timestamp_tids = []
+    
+    def run(self):
+        while not self.e.is_set():
+            if self.timestamp is None: # so we don't glom together old trades at startup.
+                self.timestamp = int(time.time() - 600) # gemini wants integer
+            try:
+                data = json.loads(urllib2.urlopen(self.trades_api_url + \
+                        '&since=' + str(self.timestamp)).read())
+            except:
+                time.sleep(1)
+                continue
+            if 'message' in data:
+                time.sleep(1)
+                continue # some error... oh well.
+            self.timestamp = data[0]['timestamp']
+            
+            timestamp_tids = filter(lambda x: x['timestamp'] == self.timestamp, data)
+            data = filter(lambda x: x['tid'] not in self.prev_timestamp_tids, data)
+            self.prev_timestamp_tids = [t['tid'] for t in timestamp_tids]
+            
+            trades = [(decimal.Decimal(str(t['amount'])),
+                    decimal.Decimal(str(t['price'])),
+                    decimal.Decimal(str(t['timestamp']))) for t in reversed(data)]
+            
+            self.q.put({(self.market, 'USD'): trades})
             
             time.sleep(10)
 
