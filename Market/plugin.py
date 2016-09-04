@@ -44,18 +44,14 @@ import inspect
 if sys.version_info[0] >= 3:
     from urllib.request import build_opener
     from urllib.error import HTTPError
-    def get_json(url, *args, geturl_args={}, json_args={}):
-        if args != ():
-            raise ValueError('get_json takes only one positional argument.')
+    def get_json(url, geturl_args={}, json_args={}):
         json_data = utils.web.getUrl(url, **geturl_args)
         json_data = json_data.decode()
         return json.loads(json_data, **json_args)
 else:
     from urllib2 import build_opener
     from urllib2 import HTTPError
-    def get_json(url, *args, geturl_args={}, json_args={}):
-        if args != ():
-            raise ValueError('get_json takes only one positional argument.')
+    def get_json(url, geturl_args={}, json_args={}):
         json_data = utils.web.getUrl(url, **geturl_args)
         return json.loads(json_data, **json_args)
 
