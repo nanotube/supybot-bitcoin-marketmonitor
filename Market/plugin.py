@@ -816,7 +816,7 @@ class Market(callbacks.Plugin):
         except KeyError:
             pass
         try:
-            ticker = json.loads(urlopen('https://api.bitcoinaverage.com/ticker/%s' % (currency,)).read())
+            ticker = json.loads(urlopen('https://apiv2.bitcoinaverage.com/indices/global/ticker/BTC%s' % (currency,)).read())
         except urllib2.HTTPError:
             stdticker = {'error':'Unsupported currency.'}
             return stdticker
@@ -826,10 +826,10 @@ class Market(callbacks.Plugin):
         stdticker = {'bid': float(ticker['bid']),
                             'ask': float(ticker['ask']),
                             'last': float(ticker['last']),
-                            'vol': ticker['total_vol'],
-                            'low': None,
-                            'high': None,
-                            'avg': float(ticker['24h_avg'])}
+                            'vol': ticker['volume'],
+                            'low': float(ticker['low']),
+                            'high': float(ticker['high']),
+                            'avg': float(ticker['averages']['day'])}
         self.ticker_cache['bitcoinaverage'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
 
