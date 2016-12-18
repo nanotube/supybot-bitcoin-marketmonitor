@@ -5,18 +5,16 @@
 # YOURNICKGOESHERE, YOUR16DIGITGPGKEYIDGOESHERE
 # "delay 30" is there to allow you time to type your GPG passphrase at the prompt and hit return. Hands off keyboard & mouse after you do that.
 # Once you edit this script to your unique specs, save it as a run-only application.
-# This will not work if gribble is lagging and doesn't generate a new OTP before the event that decrypts it. Increase delay '5' (seconds) if you don't mind waiting longer.
+# This will not work if altgribble is lagging and doesn't generate a new OTP before the event that decrypts it. Increase delay '5' (seconds) if you don't mind waiting longer.
 # If Terminal prompts because of running processes on quit, change Terminal Shell settings to Prompt before closing: *Never
-# This can be run regardless of whether Adium is already running or not. "delay 60" provides time for Adium's boot sequence, if necessary
+# Only run this when Adium is already logged into Freenode.
 
-do shell script "open /Applications/Adium.app"
-delay 60
 tell application "Adium"
-	send the chat "#bitcoin-otc" message "/msg gribble eauth YOURNICKGOESHERE"
+  send the chat "#bitcoin-otc" message "/msg altgribble eauth YOURNICKGOESHERE"
 end tell
 delay 5
 tell application "Terminal"
-	do script "curl http://bitcoin-otc.com/otps/YOUR16DIGITGPGKEYIDGOESHERE | gpg -d | pbcopy"
+	do script "curl http://eauth.thetechgeek.org/YOUR16DIGITGPGKEYIDGOESHERE | gpg -d | pbcopy"
 	delay 30
 	quit
 end tell
@@ -24,7 +22,7 @@ tell application "Adium"
 	activate
 	tell application "System Events"
 		tell process "Adium"
-			keystroke "/msg gribble everify "
+			keystroke "/msg altgribble everify "
 			delay 0.1
 			key down {command}
 			delay 0.2
@@ -33,7 +31,7 @@ tell application "Adium"
 			delay 0.1
 			keystroke return
 			delay 1
-			keystroke "/msg gribble voiceme"
+			keystroke "/msg altgribble voiceme"
 			keystroke return
 		end tell
 	end tell
