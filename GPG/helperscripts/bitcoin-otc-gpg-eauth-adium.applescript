@@ -1,5 +1,5 @@
-# Thanks to TheButterZone (1TBZYXjrGjXCEN1SprpF66Jzy5uN3GiLS) for this script!
-# This works under OSX 10.6.8, Adium 1.5.*, MacGPG2 2.0.*
+# Thanks to TheButterZone (1BUTRZ85L1JuoX5y2XRjxJaYcjcMLhPJcY) for this script!
+# This works under OSX 10.6.8-10.9.5, Adium 1.5.*, MacGPG2 2.0.*
 # In Adium, you need to set your Freenode account options to run at least this command on connect: /join #bitcoin-otc
 # There are 2 fields you need to replace: 
 # YOURNICKGOESHERE, YOUR16DIGITGPGKEYIDGOESHERE
