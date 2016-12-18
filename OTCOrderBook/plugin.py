@@ -116,8 +116,8 @@ class OTCOrderDB(object):
 
     def getCurrencyBook(self, thing):
         cursor = self.db.cursor()
-        cursor.execute("""SELECT * FROM orders WHERE thing LIKE ?
-                       OR otherthing LIKE ?
+        cursor.execute("""SELECT * FROM orders WHERE lower(thing) LIKE lower(?)
+                       OR lower(otherthing) LIKE lower(?)
                        ORDER BY price""",
                        (thing, thing))
         return cursor.fetchall()
