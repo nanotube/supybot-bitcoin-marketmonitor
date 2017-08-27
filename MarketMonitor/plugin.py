@@ -353,14 +353,18 @@ class ReadGDAXTrades(BaseTradeReader):
             for cur in self.currencies:
                 try:
                     data = json.loads(urllib2.urlopen(self.trades_api_url.format(currency=cur)).read())
-                except:
+                except Exception, e:
+                    #self.log.error('Error in MarketMonitor sending: %s: %s' % \
+                    #        (e.__class__.__name__, str(e)))
+                    print "GDAX error", e.__class__.__name__, str(e)
                     time.sleep(1)
                     continue
                 tids = [t['trade_id'] for t in data]
                 data = filter(lambda x: x['trade_id'] not in self.prev_tids[cur], data)
                 self.prev_tids[cur] = tids
                 def make_unixtime(s):
-                    t = datetime.datetime.strptime(s.replace('Z','UTC'), '%Y-%m-%dT%H:%M:%S.%f%Z')
+                    s = re.sub("\.\d+", "", s) # remove microsecs, don't need them and they are not always there
+                    t = datetime.datetime.strptime(s.replace('Z','UTC'), '%Y-%m-%dT%H:%M:%S%Z')
                     return calendar.timegm(t.timetuple())
                 trades = [(decimal.Decimal(str(t['size'])),
                         decimal.Decimal(str(t['price'])),
