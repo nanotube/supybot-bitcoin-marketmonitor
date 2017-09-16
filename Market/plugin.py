@@ -1400,12 +1400,12 @@ class Market(callbacks.Plugin):
                     if float(tck['vol']) < 100:
                         continue
                     response += "%s BTC%s last: %s, vol: %s | " % \
-                            (r[1], currency, tck['last'], tck['vol'])
+                            (r[1], currency, round(tck['last'],2), round(tck['vol'],2))
                 except:
                     continue # we'll just skip this one then
                 sumvol += float(tck['vol'])
                 sumprc += float(tck['vol']) * float(tck['last'])
-            response += "Volume-weighted last average: %s" % (sumprc/sumvol,)
+            response += "Volume-weighted last average: %s" % (round(sumprc/sumvol,2),)
             irc.reply(response)
     ticker = wrap(ticker, [getopts({'bid': '','ask': '','last': '','high': '',
             'low': '', 'avg': '', 'vol': '', 'currency': 'currencyCode', 'market': 'something'})])
