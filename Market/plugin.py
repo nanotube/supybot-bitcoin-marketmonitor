@@ -102,6 +102,7 @@ class Market(callbacks.Plugin):
             'btcavg': 'BitcoinAverage',
             'btcde': 'Bitcoin.de',
             'btce': 'BTC-E',
+            'wex': 'WEX',
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
             'cbx': 'CampBX',
@@ -114,6 +115,7 @@ class Market(callbacks.Plugin):
         self.depth_supported_markets = {
             'bcent': 'Bitcoin-Central',
             'btce': 'BTC-E',
+            'wex': 'WEX',
             'btcn': 'BTCChina',
             'btsp': 'Bitstamp',
             'bfx': 'Bitfinex',
@@ -279,6 +281,7 @@ class Market(callbacks.Plugin):
     def _getBtceDepth(self, currency='USD'):
         if world.testing: # avoid hammering api when testing.
             depth = json.load(open('/tmp/btce.depth.json'))
+            depth = depth['btc_%s' % (currency.lower(),)]
             depth['bids'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['bids']]
             depth['asks'] = [{'price':float(b[0]), 'amount':float(b[1])} for b in depth['asks']]
             self.depth_cache['btce'+currency] = {'time':time.time(), 'depth':depth}
@@ -292,13 +295,14 @@ class Market(callbacks.Plugin):
         yahoorate = 1
         try:
             stddepth = {}
-            data = urlopen('https://btc-e.com/api/2/btc_%s/depth' % (currency.lower(),)).read()
+            data = urlopen('https://wex.nz/api/3/depth/btc_%s' % (currency.lower(),)).read()
             depth = json.loads(data)
+            depth = depth['btc_%s' % (currency.lower(),)]
             vintage = time.time()
             if depth.has_key('error'):
                 if "invalid pair" in depth['error']:
                     # looks like we have unsupported currency, default to EUR
-                    depth = json.loads(urlopen("https://btc-e.com/api/2/btc_usd/depth").read())
+                    depth = json.loads(urlopen("https://wex.nz/api/3/depth/btc_usd").read())
                     if depth.has_key('error'):
                         return # oh well try again later
                     try:
@@ -312,8 +316,10 @@ class Market(callbacks.Plugin):
             stddepth.update({'bids': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['bids']],
                     'asks': [{'price':float(b[0])*yahoorate, 'amount':float(b[1])} for b in depth['asks']]})
             self.depth_cache['btce'+currency] = {'time':vintage, 'depth':stddepth}
+            self.depth_cache['wex'+currency] = {'time':vintage, 'depth':stddepth}
         except:
             pass # oh well, try again later.
+    _getWexDepth = _getBtceDepth
 
     def _getBcentDepth(self, currency='EUR'):
         if world.testing: # avoid hammering api when testing.
@@ -508,12 +514,12 @@ class Market(callbacks.Plugin):
             pair = '%s_btc' % (currency.lower(),)
         else:
             pair = 'btc_%s' % (currency.lower(),)
-        json_data = urlopen("https://btc-e.com/api/2/%s/ticker" % (pair,)).read()
+        json_data = urlopen("https://wex.nz/api/3/ticker/%s" % (pair,)).read()
         ticker = json.loads(json_data)
         yahoorate = 1
         if ticker.has_key('error'):
             # maybe we have unsupported currency
-            ticker = json.loads(urlopen("https://btc-e.com/api/2/btc_usd/ticker").read())
+            ticker = json.loads(urlopen("https://wex.nz/api/3/ticker/btc_usd").read())
             if ticker.has_key('error'):
                 stdticker = {'error':ticker['error']}
                 return stdticker
@@ -523,7 +529,7 @@ class Market(callbacks.Plugin):
             except:
                 stdticker = {'error':'failed to get currency conversion from yahoo.'}
                 return stdticker
-        ticker = ticker['ticker']
+        ticker = ticker[pair]
         if currency.lower() in ['ltc', 'nmc']:
             stdticker = {'bid': round(1.0/ticker['buy'],6),
                             'ask': round(1.0/ticker['sell'],6),
@@ -542,6 +548,7 @@ class Market(callbacks.Plugin):
                             'avg': float(ticker['avg'])*yahoorate})
         self.ticker_cache['btce'+currency] = {'time':time.time(), 'ticker':stdticker}
         return stdticker
+    _getWexTicker = _getBtceTicker
 
     def _getBtspTicker(self, currency):
         apiurl = 'https://www.bitstamp.net/api/v2/ticker/btc{currency}/'
@@ -1374,6 +1381,7 @@ class Market(callbacks.Plugin):
                 irc.error("Failure to retrieve ticker. Try again later.")
                 self.log.info("Problem retrieving ticker. Market %s, Error: %s" %\
                             (market, e,))
+                traceback.print_exc()
                 return
             if ticker.has_key('error'):
                 irc.error('Error retrieving ticker. Details: %s' % (ticker['error'],))
