@@ -1400,8 +1400,10 @@ class Market(callbacks.Plugin):
                     if float(tck['vol']) < 100:
                         continue
                     response += "%s BTC%s last: %s, vol: %s | " % \
-                            (r[1], currency, round(tck['last'],2), round(tck['vol'],2))
-                except:
+                            (r[1], currency, round(float(tck['last']),2), round(float(tck['vol']),2))
+                except Exception, e:
+                    self.log.info("Problem retrieving ticker. Market %s, Error: %s" %\
+                            (mkt, e,))
                     continue # we'll just skip this one then
                 sumvol += float(tck['vol'])
                 sumprc += float(tck['vol']) * float(tck['last'])
