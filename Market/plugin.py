@@ -259,7 +259,7 @@ class Market(callbacks.Plugin):
         yahoorate = 1
         try:
             stddepth = {}
-            data = urlopen('https://api.bitfinex.com/v1/book/BTCUSD').read()
+            data = urlopen('https://api.bitfinex.com/v1/book/BTCUSD?limit_asks=10000&limit_bids=10000').read()
             depth = json.loads(data)
             vintage = time.time()
             if depth.has_key('message'):
