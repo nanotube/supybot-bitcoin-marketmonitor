@@ -1,6 +1,12 @@
-# the code below is 'borrowed' almost verbatim from electrum,
-# https://gitorious.org/electrum/electrum
-# and is under the GPLv3.
+# Code below is 'borrowed' almost verbatim from Electrum and BIP 173
+#
+# Electrum:
+# https://github.com/spesmilo/electrum
+# Under the MIT License - https://opensource.org/licenses/MIT
+#
+# Bitcoin Improvement Proposal 173
+# https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+# Under the 2-Clause BSD License - https://opensource.org/licenses/BSD-2-Clause
 
 import ecdsa
 import base64
@@ -20,6 +26,7 @@ oid_secp256k1 = (1,3,132,0,10)
 SECP256k1 = ecdsa.curves.Curve("SECP256k1", curve_secp256k1, generator_secp256k1, oid_secp256k1 ) 
 
 addrtype = 0
+segwit_addrtype = "bc"
 
 # from http://eli.thegreenplace.net/2009/03/07/computing-modular-square-roots-in-python/
 
@@ -116,8 +123,12 @@ def legendre_symbol(a, p):
     ls = pow(a, (p - 1) / 2, p)
     return -1 if ls == p - 1 else ls
 
+
 __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 __b58base = len(__b58chars)
+__bech32chars = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+__bech32chksumgen = (0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
+
 
 def b58encode(v):
     """ encode v, which is a string of bytes, to base58.		
@@ -143,26 +154,97 @@ def b58encode(v):
 
     return (__b58chars[0]*nPad) + result
 
+
+def bech32_polymod(values):
+    """Internal function that computes the Bech32 checksum."""
+    chk = 1
+    for value in values:
+        top = chk >> 25
+        chk = (chk & 0x1ffffff) << 5 ^ value
+        for i in range(5):
+            chk ^= __bech32chksumgen[i] if ((top >> i) & 1) else 0
+    return chk
+
+
+def bech32_hrp_expand(hrp):
+    """Expand the HRP into values for checksum computation."""
+    return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+
+
+def bech32_create_checksum(hrp, data):
+    """Compute the checksum values given HRP and data."""
+    values = bech32_hrp_expand(hrp) + data
+    polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ 1
+    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
+
+def bech32_encode(hrp, data):
+    """Compute a Bech32 string given HRP and data values."""
+    combined = data + bech32_create_checksum(hrp, data)
+    return hrp + '1' + ''.join([__bech32chars[d] for d in combined])
+
+
+def convertbits(data, frombits, tobits, pad=True):
+    """General power-of-2 base conversion."""
+    acc = 0
+    bits = 0
+    ret = []
+    maxv = (1 << tobits) - 1
+    max_acc = (1 << (frombits + tobits - 1)) - 1
+    for value in data:
+        value = ord(value)
+        if value < 0 or (value >> frombits):
+            return None
+        acc = ((acc << frombits) | value) & max_acc
+        bits += frombits
+        while bits >= tobits:
+            bits -= tobits
+            ret.append((acc >> bits) & maxv)
+    if pad:
+        if bits:
+            ret.append((acc << (tobits - bits)) & maxv)
+    elif bits >= frombits or ((acc << (tobits - bits)) & maxv):
+        return None
+    return ret
+
+
+def segwit_address_encode(hrp, witver, witprog):
+    """Encode a segwit address."""
+    ret = bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5))
+    return ret
+
+
 def msg_magic(message):
     return "\x18Bitcoin Signed Message:\n" + chr( len(message) ) + message
 
+
 def Hash(data):
     return hashlib.sha256(hashlib.sha256(data).digest()).digest()
+
 
 def hash_160(public_key):
     md = hashlib.new('ripemd160')
     md.update(hashlib.sha256(public_key).digest())
     return md.digest()
 
-def hash_160_to_bc_address(h160):
+
+def hash_160_to_p2pkh_address(h160):
     vh160 = chr(addrtype) + h160
     h = Hash(vh160)
     addr = vh160 + h[0:4]
     return b58encode(addr)
 
-def public_key_to_bc_address(public_key):
+
+def hash_160_to_p2wpkh_address(h160):
+    return segwit_address_encode(segwit_addrtype, 0, h160)
+
+
+def public_key_to_bc_addresses(public_key):
     h160 = hash_160(public_key)
-    return hash_160_to_bc_address(h160)
+    p2pkh_addr = hash_160_to_p2pkh_address(h160)
+    p2wpkh_addr = hash_160_to_p2wpkh_address(h160)
+    return p2pkh_addr, p2wpkh_addr
+
 
 def encode_point(pubkey, compressed=False):
     order = generator_secp256k1.order()
@@ -174,10 +256,11 @@ def encode_point(pubkey, compressed=False):
     else:
         return chr(4) + x_str + y_str
 
+
 def sign_message(private_key, message, compressed=False):
     public_key = private_key.get_verifying_key()
     signature = private_key.sign_digest( Hash( msg_magic( message ) ), sigencode = ecdsa.util.sigencode_string )
-    address = public_key_to_bc_address(encode_point(public_key, compressed))
+    addresses = public_key_to_bc_addresses(encode_point(public_key, compressed))
     assert public_key.verify_digest( signature, Hash( msg_magic( message ) ), sigdecode = ecdsa.util.sigdecode_string)
     for i in range(4):
         nV = 27 + i
@@ -185,7 +268,7 @@ def sign_message(private_key, message, compressed=False):
             nV += 4
         sig = base64.b64encode( chr(nV) + signature )
         try:
-            if verify_message( address, sig, message):
+            if all(verify_message(addr, sig, message) for addr in addresses):
                 return sig
         except:
             continue
@@ -230,8 +313,8 @@ def verify_message(address, signature, message):
     # check that Q is the public key
     public_key.verify_digest( sig[1:], h, sigdecode = ecdsa.util.sigdecode_string)
     # check that we get the original signing address
-    addr = public_key_to_bc_address(encode_point(public_key, compressed))
-    if address == addr:
+    sig_addrs = public_key_to_bc_addresses(encode_point(public_key, compressed))
+    if address in sig_addrs:
         return True
     else:
         #print addr
@@ -248,36 +331,38 @@ if __name__ == '__main__':
 
     private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = SECP256k1 )
     public_key = private_key.get_verifying_key()
-    bitcoinaddress = public_key_to_bc_address( encode_point(public_key) )
-    print bitcoinaddress
-    sig = sign_message(private_key, 'test message')
-    print sig
-    print verify_message(bitcoinaddress, sig, 'test message')
-    print verify_message('1GdKjTSg2eMyeVvPV5Nivo6kR8yP2GT7wF',
-            'GyMn9AdYeZIPWLVCiAblOOG18Qqy4fFaqjg5rjH6QT5tNiUXLS6T2o7iuWkV1gc4DbEWvyi8yJ8FvSkmEs3voWE=',
-            'freenode:#bitcoin-otc:b42f7e7ea336db4109df6badc05c6b3ea8bfaa13575b51631c5178a7')
+    addresses = public_key_to_bc_addresses( encode_point(public_key) )
+    for bitcoinaddress in addresses:
+        print bitcoinaddress
+        sig = sign_message(private_key, 'test message')
+        print sig
+        print verify_message(bitcoinaddress, sig, 'test message')
+        print verify_message('1GdKjTSg2eMyeVvPV5Nivo6kR8yP2GT7wF',
+                'GyMn9AdYeZIPWLVCiAblOOG18Qqy4fFaqjg5rjH6QT5tNiUXLS6T2o7iuWkV1gc4DbEWvyi8yJ8FvSkmEs3voWE=',
+                'freenode:#bitcoin-otc:b42f7e7ea336db4109df6badc05c6b3ea8bfaa13575b51631c5178a7')
 
-    print verify_message('1Hpj6xv9AzaaXjPPisQrdAD2tu84cnPv3f',
-            'INEJxQnSu6mwGnLs0E8eirl5g+0cAC9D5M7hALHD9sK0XQ66CH9mas06gNoIX7K1NKTLaj3MzVe8z3pt6apGJ34=',
-            'testtest')
-    print verify_message('18uitB5ARAhyxmkN2Sa9TbEuoGN1he83BX',
-            'IMAtT1SjRyP6bz6vm5tKDTTTNYS6D8w2RQQyKD3VGPq2i2txGd2ar18L8/nvF1+kAMo5tNc4x0xAOGP0HRjKLjc=',
-            'testtest')
+        print verify_message('1Hpj6xv9AzaaXjPPisQrdAD2tu84cnPv3f',
+                'INEJxQnSu6mwGnLs0E8eirl5g+0cAC9D5M7hALHD9sK0XQ66CH9mas06gNoIX7K1NKTLaj3MzVe8z3pt6apGJ34=',
+                'testtest')
+        print verify_message('18uitB5ARAhyxmkN2Sa9TbEuoGN1he83BX',
+                'IMAtT1SjRyP6bz6vm5tKDTTTNYS6D8w2RQQyKD3VGPq2i2txGd2ar18L8/nvF1+kAMo5tNc4x0xAOGP0HRjKLjc=',
+                'testtest')
 
     # sign compressed key
     compressed = True
     secret = 'dea7715ddcf5aba27530d6a1393813fbdd09af3aeb5f4f1616f563833d07babb'.decode('hex')
     private_key = ecdsa.SigningKey.from_string( secret, curve = SECP256k1 )
     public_key = private_key.get_verifying_key()
-    bitcoinaddress = public_key_to_bc_address( encode_point(public_key, compressed) )
-    print bitcoinaddress
+    addresses = public_key_to_bc_addresses( encode_point(public_key, compressed) )
+    for bitcoinaddress in addresses:
+        print bitcoinaddress
 
-    sig = sign_message(private_key, 'test message', compressed)
-    print sig
+        sig = sign_message(private_key, 'test message', compressed)
+        print sig
 
-    print verify_message(bitcoinaddress, sig, 'test message')
+        print verify_message(bitcoinaddress, sig, 'test message')
 
-    print verify_message('1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
-            'H3I37ur48/fn52ZvWQT+Mj2wXL36gyjfaN5qcgfiVRTJb1eP1li/IacCQspYnUntiRv8r6GDfJYsdiQ5VzlG3As=',
-            'testtest')
+        print verify_message('1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv',
+                'H3I37ur48/fn52ZvWQT+Mj2wXL36gyjfaN5qcgfiVRTJb1eP1li/IacCQspYnUntiRv8r6GDfJYsdiQ5VzlG3As=',
+                'testtest')
 
