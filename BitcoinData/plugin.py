@@ -60,6 +60,30 @@ def getPositiveFloat(irc, msg, args, state, type='positiveFloat'):
     
 addConverter('positiveFloat', getPositiveFloat)
 
+def getHashrate(irc, msg, args, state, type='hashrate'):
+    v = args[0].decode('utf8')
+    siPfx = 'KMGTPEZY'
+    tPfx = u'\u1d57\u02e2\u1d50\u1d47'
+    m = re.match(r'([\d.]+)([' + siPfx + tPfx + '])?(h(?:[p/]?s)?)?', v, re.IGNORECASE)
+    if not m:
+        state.errorInvalid(type, args[0])
+        return
+    m = m.groups()
+    v1 = float(m[0])
+    if v1 <= 0:
+        state.errorInvalid(type, args[0])
+        return
+    if m[1]:
+        if m[1] in tPfx:
+            v1 *= 0x10 ** (tPfx.find(m[1]) + 1)
+        else:
+            v1 *= 1e3 ** (siPfx.find(m[1].upper()) + 1)
+    elif not m[2]:
+        v1 *= 1e6
+    state.args.append(v1)
+    del args[0]
+addConverter('hashrate', getHashrate)
+
 class BitcoinData(callbacks.Plugin):
     """Includes a bunch of commands to retrieve or calculate various
     bits of data relating to bitcoin and the blockchain."""
@@ -201,13 +225,13 @@ class BitcoinData(callbacks.Plugin):
     bounty = wrap(bounty)
 
     def _gentime(self, hashrate, difficulty):
-        gentime = 2**48/65535*difficulty/hashrate/1000000
+        gentime = 2**48/65535*difficulty/hashrate
         return gentime
 
     def gentime(self, irc, msg, args, hashrate, difficulty):
         '''<hashrate> [<difficulty>]
         
-        Calculate expected time to generate a block using <hashrate> Mhps,
+        Calculate expected time to generate a block using <hashrate>,
         at current difficulty. If optional <difficulty> argument is provided, expected
         generation time is for supplied difficulty.
         '''
@@ -218,14 +242,14 @@ class BitcoinData(callbacks.Plugin):
                 irc.error("Failed to fetch current difficulty. Try again later or supply difficulty manually.")
                 return
         gentime = self._gentime(hashrate, difficulty)
-        irc.reply("The average time to generate a block at %s Mhps, given difficulty of %s, is %s" % \
+        irc.reply("The average time to generate a block at %.0f h/s, given difficulty of %.0f, is %s" % \
                 (hashrate, difficulty, utils.timeElapsed(gentime)))
-    gentime = wrap(gentime, ['positiveFloat', optional('positiveFloat')])
+    gentime = wrap(gentime, ['hashrate', optional('positiveFloat')])
 
     def genrate(self, irc, msg, args, hashrate, difficulty):
         '''<hashrate> [<difficulty>]
         
-        Calculate expected bitcoin generation rate using <hashrate> Mhps,
+        Calculate expected bitcoin generation rate using <hashrate>,
         at current difficulty. If optional <difficulty> argument is provided, expected
         generation time is for supplied difficulty.
         '''
@@ -241,11 +265,11 @@ class BitcoinData(callbacks.Plugin):
         except:
             irc.error("Failed to retrieve current block bounty. Try again later.")
             return
-        irc.reply("The expected generation output, at %s Mhps, given difficulty of %s, is %s BTC "
+        irc.reply("The expected generation output, at %.0f h/s, given difficulty of %.0f, is %s BTC "
                 "per day and %s BTC per hour." % (hashrate, difficulty,
                             bounty*24*60*60/gentime,
                             bounty * 60*60/gentime))
-    genrate = wrap(genrate, ['positiveFloat', optional('positiveFloat')])
+    genrate = wrap(genrate, ['hashrate', optional('positiveFloat')])
 
     def tslb(self, irc, msg, args):
         """takes no arguments
@@ -477,11 +501,11 @@ class BitcoinData(callbacks.Plugin):
         except:
             timetonext = None        
         
-        irc.reply("Current Blocks: %s | Current Difficulty: %s | "
+        irc.reply("Current Blocks: %s | Current Difficulty: %.0f | "
                 "Next Difficulty At Block: %s | "
                 "Next Difficulty In: %s blocks | "
                 "Next Difficulty In About: %s | "
-                "Next Difficulty Estimate: %s | "
+                "Next Difficulty Estimate: %.0f | "
                 "Estimated Percent Change: %s" % (blocks, diff, 
                         nextretarget, blockstoretarget, timetonext, 
                         estimate, diffchange))
@@ -490,13 +514,13 @@ class BitcoinData(callbacks.Plugin):
 #math calc 1-exp(-$1*1000 * [seconds $*] / (2**32* [bc,diff]))
 
     def _genprob(self, hashrate, interval, difficulty):
-        genprob = 1-math.exp(-hashrate*1000000 * interval / (2**32* difficulty))
+        genprob = 1-math.exp(-hashrate * interval / (2**32* difficulty))
         return genprob
 
     def genprob(self, irc, msg, args, hashrate, interval, difficulty):
         '''<hashrate> <interval> [<difficulty>]
         
-        Calculate probability to generate a block using <hashrate> Mhps,
+        Calculate probability to generate a block using <hashrate>,
         in <interval> seconds, at current difficulty.
         If optional <difficulty> argument is provided, probability is for supplied difficulty.
         To provide the <interval> argument, a nested 'seconds' command may be helpful.
@@ -508,9 +532,9 @@ class BitcoinData(callbacks.Plugin):
                 irc.error("Failed to current difficulty. Try again later or supply difficulty manually.")
                 return
         gp = self._genprob(hashrate, interval, difficulty)
-        irc.reply("The probability to generate a block at %s Mhps within %s, given difficulty of %s, is %s" % \
+        irc.reply("The probability to generate a block at %.0f h/s within %s, given difficulty of %.0f, is %s" % \
                 (hashrate, utils.timeElapsed(interval), difficulty, gp))
-    genprob = wrap(genprob, ['positiveFloat', 'positiveInt', optional('positiveFloat')])
+    genprob = wrap(genprob, ['hashrate', 'positiveInt', optional('positiveFloat')])
 
     def tblb(self, irc, msg, args, interval):
         """<interval>
