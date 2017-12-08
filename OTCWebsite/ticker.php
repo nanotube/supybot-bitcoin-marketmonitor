@@ -50,7 +50,7 @@ catch (PDOException $e) { die($e->getMessage()); }
     if ($color++ % 2) $class="even"; else $class="odd";
 ?>
    <tr class="<?php echo $class; ?>"> 
-    <td><a href = "http://bitcoin-otc.com/vieworderbook.php?sortby=buysell&eitherthing=<?php echo $entry['currency']; ?>"><?php echo $entry['currency']; ?></a></td>
+    <td><a href = "/vieworderbook.php?sortby=buysell&eitherthing=<?php echo $entry['currency']; ?>"><?php echo $entry['currency']; ?></a></td>
     <td><?php echo $entry['bid']; ?></td>
     <td><?php echo $entry['ask']; ?></td>
    </tr>
