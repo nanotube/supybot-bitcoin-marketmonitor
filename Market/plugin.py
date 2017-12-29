@@ -1406,7 +1406,7 @@ class Market(callbacks.Plugin):
                         continue
                     response += "%s BTC%s last: %s, vol: %s | " % \
                             (r[1], currency, round(float(tck['last']),2), round(float(tck['vol']),2))
-                except Exception, e:
+                except Exception as e:
                     self.log.info("Problem retrieving ticker. Market %s, Error: %s" %\
                             (mkt, e,))
                     continue # we'll just skip this one then
