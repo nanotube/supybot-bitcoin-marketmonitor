@@ -515,20 +515,13 @@ class BitcoinData(callbacks.Plugin):
     def tblb(self, irc, msg, args, interval):
         """<interval>
         
-        Calculate the expected time between blocks which take at least
-        <interval> seconds to create.
+        Calculate the expected time until a block is begun that takes at least <interval>
+        seconds to create.
         To provide the <interval> argument, a nested 'seconds' command may be helpful.
         """
-        try:
-            difficulty = float(self._diff())
-            nh = float(self._nethash3d())
-            gp = self._genprob(nh*1000, interval, difficulty)
-        except:
-            irc.error("Problem retrieving data. Try again later.")
-            return
-        sblb = (difficulty * 2**48 / 65535) / (nh * 1e9) / (1 - gp)
-        irc.reply("The expected time between blocks taking %s to generate is %s" % \
-                (utils.timeElapsed(interval), utils.timeElapsed(sblb),))
+        sblb = 600 * (math.exp(interval/600) - 1) - interval
+        irc.reply("The expected time until a block is begun that takes %s to generate is %s" % \
+                (utils.timeElapsed(interval), utils.timeElapsed(sblb)))
     tblb = wrap(tblb, ['positiveInt'])
 
 
