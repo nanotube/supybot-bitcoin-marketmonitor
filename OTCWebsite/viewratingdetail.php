@@ -104,7 +104,7 @@ Rating for <?php echo htmlentities($nick); ?>
 			$is_authed = isset($gpgentry['is_authed']) ? $gpgentry['is_authed'] : "";
 		}
 	}
-	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a> (<a href=" http://nosuchlabs.com/gpgfp/' . $keyprint . '">check GPG key quality</a>)</li>';
+	echo '<li><a href="viewgpg.php?nick=' . htmlentities($nick) . '">GPG identity</a></li>';
 	echo '<li><a href="ratingreciprocity.php?nick=' . htmlentities($nick) . '">Rating reciprocity</a></li>';
 ?>
   </ul>
