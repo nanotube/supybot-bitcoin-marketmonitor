@@ -85,6 +85,18 @@ class BitcoinData(callbacks.Plugin):
         data = self._grabapi(['/api/v2/get_info/BTC'])
         return data
 
+    def _netinfo2(self):
+        try:
+            data = urllib2.urlopen('https://api.blockchair.com/bitcoin/stats').read()
+            data = json.loads(data)
+            return data['data']
+        except:
+            return None
+
+    def _blocks24h(self):
+        data = self._netinfo2()['blocks_24h']
+        return data
+
     def _blocks(self):
         data = self._netinfo()['blocks']
         return data
@@ -212,15 +224,7 @@ class BitcoinData(callbacks.Plugin):
         except:
             irc.error("Problem retrieving latest block data.")
     tslb = wrap(tslb)
-    
-    def _nethash3d(self):
-        try:
-            estimate = urlopen('http://bitcoin.sipa.be/speed-3D.txt').read()
-            estimate = float(estimate)
-        except:
-            estimate = None
-        return estimate
-        
+
     def nethash(self, irc, msg, args):
         '''takes no arguments
         
@@ -238,13 +242,12 @@ class BitcoinData(callbacks.Plugin):
         
         Shows estimated percent difficulty change.
         """
-        currdiff = self._diff()
+        blocks24h = self._blocks24h()
         try:
-            diff3d = self._nethash3d() * 139.696254564
-            diff3d = round(100*(diff3d/float(currdiff) - 1), 5)
+            change = round((float(blocks24h)/144-1)*100, 5)
         except:
-            diff3d = None
-        irc.reply("Estimated percent change in difficulty this period %s %% based on data for last three days" % (diff3d,))
+            change = None
+        irc.reply("Estimated percent change in difficulty this period %s %% given that %d blocks were found in the last 24h" % (change,blocks24h))
     diffchange = wrap(diffchange)
     
     def estimate(self, irc, msg, args):
@@ -253,10 +256,12 @@ class BitcoinData(callbacks.Plugin):
         Shows next difficulty estimate.
         """
         try:
-            diff3d = decimal.Decimal(self._nethash3d() * 139.696254564)
+            diff = self._diff()
+            blocks24h = self._blocks24h()
+            est = decimal.Decimal(float(diff)*float(blocks24h)/144)
         except:
-            diff3d = None
-        irc.reply("Next difficulty estimate %s based on data for last three days" % (diff3d,))
+            est = None
+        irc.reply("Next difficulty estimate %s based on data for last 24h" % (est,))
     estimate = wrap(estimate)
 
     def totalbc(self, irc, msg, args):
@@ -365,12 +370,12 @@ class BitcoinData(callbacks.Plugin):
         """
         try:
             difficulty = float(self._diff())
-            nh = float(self._nethash3d())
-            gp = self._genprob(nh/1000, interval, difficulty)
+            nh = float(self._netinfo()['hashrate'])/1e12
+            gp = self._genprob(nh, interval, difficulty)
         except:
             irc.error("Problem retrieving data. Try again later.")
             return
-        sblb = (difficulty * 2**48 / 65535) / (nh * 1e9) / (1 - gp)
+        sblb = (difficulty * 2**48 / 65535) / (nh * 1e12) / (1 - gp)
         irc.reply("The expected time between blocks taking %s to generate is %s" % \
                 (utils.timeElapsed(interval), utils.timeElapsed(sblb),))
     tblb = wrap(tblb, ['positiveInt'])
