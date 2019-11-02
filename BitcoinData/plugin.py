@@ -67,25 +67,20 @@ class BitcoinData(callbacks.Plugin):
     threaded = True
 
     def _grabapi(self, apipaths):
-        sources = ['https://chain.so', ]
+        sources = ['https://blockstream.info', ]
         urls = [''.join(t) for t in zip(sources, apipaths)]
         for url in urls:
             try:
                 req = urllib2.Request(url, headers={'User-Agent' : "I am a Browser"})
                 data = urlopen(req, timeout=5).read()
-                data = json.loads(data)
-                if data['status'] == 'success':
-                    return data['data']
+                if "endpoint does not exist" not in data:
+                    return data
             except:
                 continue
         else:
             return None
 
     def _netinfo(self):
-        data = self._grabapi(['/api/v2/get_info/BTC'])
-        return data
-
-    def _netinfo2(self):
         try:
             data = urllib2.urlopen('https://api.blockchair.com/bitcoin/stats').read()
             data = json.loads(data)
@@ -94,15 +89,15 @@ class BitcoinData(callbacks.Plugin):
             return None
 
     def _blocks24h(self):
-        data = self._netinfo2()['blocks_24h']
+        data = self._netinfo()['blocks_24h']
         return data
 
     def _blocks(self):
-        data = self._netinfo()['blocks']
+        data = self._grabapi(['/api/blocks/tip/height'])
         return data
 
     def _diff(self):
-        data = self._netinfo()['mining_difficulty']
+        data = self._netinfo()['difficulty']
         return data
 
     def blocks(self, irc, msg, args):
@@ -117,12 +112,32 @@ class BitcoinData(callbacks.Plugin):
     blocks = wrap(blocks)
 
     def _getrawblock(self, blockid):
-        data = self._grabapi(['/api/v2/get_block/BTC/%s' % blockid])
+        # either height or hash
+        if str(blockid)[0:2] != '00': # then not a hash of block
+            try:
+                blockid = int(blockid)
+                bh = self._blockhash(blockid)
+            except ValueError:
+                irc.error("Invalid hash or block number.")
+                return
+        else:
+            bh = blockid
+        
+        data = self._grabapi(['/api/block/%s' % bh])
+        data = json.loads(data)
+        return data
+    
+    def _blockhash(self, height):
+        data = self._grabapi(['/api/block-height/%s' % height])
         return data
         
     def _blockdiff(self, blockid):
         block = self._getrawblock(blockid)
-        return block['mining_difficulty']
+        bits = block['bits']
+        bits = hex(bits)[2:]
+        target = int(bits[2:], base=16) * 2**(8* (int(bits[0:2], base=16)-3))
+        difficulty = float(0xffff0000000000000000000000000000000000000000000000000000 / target)
+        return difficulty
 
     def blockdiff(self, irc, msg, args, blocknum):
         '''<block number | block hash>
@@ -147,7 +162,7 @@ class BitcoinData(callbacks.Plugin):
     diff = wrap(diff)
 
     def _bounty(self):
-        blocks = self._blocks()
+        blocks = int(self._blocks())
         retargets = int(blocks/210000)
         bounty = 50.0 / 2**retargets
         return bounty
@@ -219,7 +234,7 @@ class BitcoinData(callbacks.Plugin):
         blocknum = self._blocks()
         block = self._getrawblock(blocknum)
         try:
-            blocktime = block['time']
+            blocktime = block['timestamp']
             irc.reply("Time since last block: %s" % utils.timeElapsed(time.time() - blocktime))
         except:
             irc.error("Problem retrieving latest block data.")
@@ -230,7 +245,7 @@ class BitcoinData(callbacks.Plugin):
         
         Shows the current estimate for total network hash rate, in Thps.
         '''
-        data = self._netinfo()['hashrate']
+        data = self._netinfo()['hashrate_24h']
         if data is None:
             irc.error("Failed to retrieve data. Try again later.")
             return
@@ -370,7 +385,7 @@ class BitcoinData(callbacks.Plugin):
         """
         try:
             difficulty = float(self._diff())
-            nh = float(self._netinfo()['hashrate'])/1e12
+            nh = float(self._netinfo()['hashrate_24h'])/1e12
             gp = self._genprob(nh, interval, difficulty)
         except:
             irc.error("Problem retrieving data. Try again later.")
