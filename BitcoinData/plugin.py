@@ -111,6 +111,30 @@ class BitcoinData(callbacks.Plugin):
         irc.reply(data)
     blocks = wrap(blocks)
 
+    def _fees(self):
+        data = self._grabapi(['/api/fee-estimates'])
+        return data
+
+    def fees(self, irc, msg, args):
+        '''takes no arguments
+        
+        Get current fee estimates, in satoshis per byte, for desired
+        confirmation within 2,4,6,10 and 20 blocks.
+        Data from blockstream.info api. May be overly generous.
+        Double check by reviewing the mempool.'''
+        data = self._fees()
+        if data is None or data == '':
+            irc.error("Failed to retrieve data. Try again later.")
+            return
+        try:
+            data = json.loads(data)
+            irc.reply("Fee estimates (blocks: fee): (2: %s),"
+                "(4: %s), (6: %s), (10: %s), (20: %s)" % \
+                (data['2'], data['4'], data['6'], data['10'], data['20']))
+        except:
+            irc.error('Data error.')
+    fees = wrap(fees)
+
     def _getrawblock(self, blockid):
         # either height or hash
         if str(blockid)[0:2] != '00': # then not a hash of block
