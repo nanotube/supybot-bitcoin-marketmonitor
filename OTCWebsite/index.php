@@ -11,6 +11,8 @@
     Visit our sponsors:<br>
     <a href="https://www.privateinternetaccess.com/pages/buy-vpn/OTC001"><img src="pia.png" title="Private Internet Access VPN" alt="Private Internet Access graphic" style="border-style: none;"></a>
     <hr style="width: 80%;">
+    <a href="https://bitvps.com/?bitcoinotc"><img src="bitvps.png" title="BitVPS Hosting" alt="BitVPS Graphic" style="border-style: none;"></a>
+    <hr style="width: 80%;">
     <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="dragonstale.jpg" title="Dragon's Tale MMO" alt="Dragon's Tale Graphic" style="border-style: none;"></a>
    </div>
   </div>
