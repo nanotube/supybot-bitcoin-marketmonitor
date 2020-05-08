@@ -129,10 +129,11 @@ class BitcoinData(callbacks.Plugin):
         try:
             data = json.loads(data)
             irc.reply("Fee estimates (blocks: fee): (2: %s),"
-                "(4: %s), (6: %s), (10: %s), (20: %s)" % \
-                (data['2'], data['4'], data['6'], data['10'], data['20']))
+                "(4: %s), (6: %s), (10: %s), (20: %s), (144: %s)" % \
+                (data.get('2','na'), data.get('4', 'na'), data.get('6','na'),
+                data.get('10','na'), data.get('20','na'), data.get('144', 'na')))
         except:
-            irc.error('Data error.')
+            irc.error('Data error. Try again later.')
     fees = wrap(fees)
 
     def _getrawblock(self, blockid):
