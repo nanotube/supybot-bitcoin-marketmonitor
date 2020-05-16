@@ -41,6 +41,9 @@ import time
 import math
 import urllib2
 import decimal
+from StringIO import StringIO
+import gzip
+import traceback
 
 opener = urllib2.build_opener()
 opener.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0')]
@@ -72,10 +75,18 @@ class BitcoinData(callbacks.Plugin):
         for url in urls:
             try:
                 req = urllib2.Request(url, headers={'User-Agent' : "I am a Browser"})
-                data = urlopen(req, timeout=5).read()
+                response = urlopen(req, timeout=5)
+                # some caches ignore Accept-Encoding and send us gzip anyway
+                if response.info().get('Content-Encoding') == 'gzip':
+                    buf = StringIO(response.read())
+                    f = gzip.GzipFile(fileobj=buf)
+                    data = f.read()
+                else:
+                    data = response.read()
                 if "endpoint does not exist" not in data:
                     return data
-            except:
+            except Exception, e:
+                traceback.print_exc()
                 continue
         else:
             return None
