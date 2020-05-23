@@ -130,7 +130,7 @@ class BitcoinData(callbacks.Plugin):
         '''takes no arguments
         
         Get current fee estimates, in satoshis per byte, for desired
-        confirmation within 2,4,6,10 and 20 blocks.
+        confirmation within 2,4,6,10,20, and 144 blocks.
         Data from blockstream.info api. May be overly generous.
         Double check by reviewing the mempool.'''
         data = self._fees()
@@ -146,6 +146,45 @@ class BitcoinData(callbacks.Plugin):
         except:
             irc.error('Data error. Try again later.')
     fees = wrap(fees)
+
+    def _mempool(self):
+        data1 = self._grabapi(['/api/mempool'])
+        try:
+            data2 = urllib2.urlopen('https://mempool.space/api/v1/fees/mempool-blocks').read()
+        except:
+            data2 = None
+        return (data1, data2)
+
+    def mempool(self, irc, msg, args):
+        '''takes no arguments
+        
+        Get current state of mempool. Includes total tx count, 
+        total size in vbytes, total fees in satoshis, and a fee
+        histogram, at breakpoints of 5,10,50,100,200,500 sats per
+        vbyte.'''
+        info = self._mempool()
+        mempoolinfo = nextblock = nextblock1 = 'na'
+        try:
+            data = json.loads(info[0])
+            txcount = data['count']
+            vsize = float(data['vsize'])/1048576
+            totalfee = float(data['total_fee'])/1e8
+            mempoolinfo = "[txcount: %s, vsize (MB): %s, totalfee (BTC): %s]" % \
+                (txcount, vsize, totalfee)
+        except:
+            pass
+        try:
+            data = json.loads(info[1])
+            nextblock = "[max fee: %s, min fee: %s]" % \
+                (max(data[0]['feeRange']), min(data[0]['feeRange']))
+            nextblock1 = "[max fee: %s, min fee: %s]" % \
+                (max(data[1]['feeRange']), min(data[1]['feeRange']))
+        except:
+            pass
+
+        irc.reply("Mempool info: %s | Next block: %s | Next-next block: %s" % \
+            (mempoolinfo, nextblock, nextblock1))
+    mempool = wrap(mempool)
 
     def _getrawblock(self, blockid):
         # either height or hash
