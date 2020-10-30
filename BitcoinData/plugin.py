@@ -148,7 +148,11 @@ class BitcoinData(callbacks.Plugin):
     fees = wrap(fees)
 
     def _mempool(self):
-        data1 = self._grabapi(['/api/mempool'])
+        #data1 = self._grabapi(['/api/mempool'])
+        try:
+            data1 = urllib2.urlopen('https://mempool.space/api/mempool').read()
+        except:
+            data1 = None
         try:
             data2 = urllib2.urlopen('https://mempool.space/api/v1/fees/mempool-blocks').read()
         except:
@@ -163,7 +167,7 @@ class BitcoinData(callbacks.Plugin):
         histogram, at breakpoints of 5,10,50,100,200,500 sats per
         vbyte.'''
         info = self._mempool()
-        mempoolinfo = nextblock = nextblock1 = 'na'
+        mempoolinfo = nextblock = nextblock1 = nextblock2 = 'na'
         try:
             data = json.loads(info[0])
             txcount = data['count']
@@ -179,11 +183,14 @@ class BitcoinData(callbacks.Plugin):
                 (max(data[0]['feeRange']), min(data[0]['feeRange']))
             nextblock1 = "[max fee: %s, min fee: %s]" % \
                 (max(data[1]['feeRange']), min(data[1]['feeRange']))
+            nextblock2 = "[max fee: %s, min fee: %s]" % \
+                (max(data[2]['feeRange']), min(data[2]['feeRange']))
         except:
             pass
 
-        irc.reply("Mempool info: %s | Next block: %s | Next-next block: %s" % \
-            (mempoolinfo, nextblock, nextblock1))
+        irc.reply("Mempool info: %s | Next block 0: %s | Next block 1: %s"
+                " | Next block 2: %s" % \
+            (mempoolinfo, nextblock, nextblock1, nextblock2))
     mempool = wrap(mempool)
 
     def _getrawblock(self, blockid):
