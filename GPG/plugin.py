@@ -275,6 +275,10 @@ class GPG(callbacks.Plugin):
                 passed = True
                 break
         return passed
+    
+    def _gen_challenge(self, irc):
+        challenge = irc.irc.irc.server + ":#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        return challenge
 
     def register(self, irc, msg, args, nick, keyid):
         """<nick> <keyid>
@@ -312,7 +316,7 @@ class GPG(callbacks.Plugin):
         if self.db.getByFingerprint(fingerprint):
             irc.error("This key already registered in the database.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         request = {msg.prefix: {'keyid':keyid,
                             'nick':nick, 'expiry':time.time(),
                             'type':'register', 'fingerprint':fingerprint,
@@ -360,7 +364,7 @@ class GPG(callbacks.Plugin):
         if self.db.getByFingerprint(fingerprint):
             irc.error("This key already registered in the database.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         try:
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
@@ -409,7 +413,7 @@ class GPG(callbacks.Plugin):
                     "Contact otc administrator to reclaim the account, if "
                     "you are an oldtimer since before key auth.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         request = {msg.prefix: {'bitcoinaddress':bitcoinaddress,
                             'nick':nick, 'expiry':time.time(),
                             'type':'bcregister',
@@ -440,7 +444,7 @@ class GPG(callbacks.Plugin):
         if keyid is None:
             irc.error("You have not registered a GPG key. Try using bcauth instead, or register a GPG key first.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         request = {msg.prefix: {'nick':userdata[0][5],
                                 'expiry':time.time(), 'keyid':keyid,
                                 'type':'auth', 'challenge':challenge,
@@ -471,7 +475,7 @@ class GPG(callbacks.Plugin):
         if keyid is None:
             irc.error("You have not registered a GPG key. Try using bcauth instead, or register a GPG key first.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         try:
             data = None
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
@@ -519,7 +523,7 @@ class GPG(callbacks.Plugin):
         if bitcoinaddress is None:
             irc.error("You have not registered a bitcoin address. Try using auth/eauth instead, or register an address first.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         request = {msg.prefix: {'nick':userdata[0][5],
                                 'expiry':time.time(),
                                 'type':'bcauth', 'challenge':challenge,
@@ -831,7 +835,7 @@ class GPG(callbacks.Plugin):
         if self.db.getByFingerprint(fingerprint):
             irc.error("This key already registered in the database.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         request = {msg.prefix: {'keyid':keyid,
                             'nick':gpgauth['nick'], 'expiry':time.time(),
                             'type':'changekey', 'fingerprint':fingerprint,
@@ -874,7 +878,7 @@ class GPG(callbacks.Plugin):
         if self.db.getByFingerprint(fingerprint):
             irc.error("This key already registered in the database.")
             return
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         try:
             data = self.gpg.encrypt(challenge + '\n', keyid, always_trust=True)
             if data.status != "encryption ok":
@@ -916,7 +920,7 @@ class GPG(callbacks.Plugin):
             irc.error("This address is already registered. Try a different one.")
             return
 
-        challenge = "freenode:#bitcoin-otc:" + hashlib.sha256(os.urandom(128)).hexdigest()[:-8]
+        challenge = self._gen_challenge(irc)
         request = {msg.prefix: {'bitcoinaddress':bitcoinaddress,
                             'nick':gpgauth['nick'], 'expiry':time.time(),
                             'type':'bcchangekey',
