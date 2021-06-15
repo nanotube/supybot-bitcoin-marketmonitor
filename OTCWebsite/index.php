@@ -19,7 +19,7 @@
   <div style="padding-left: 200px;">
    <div class="contentbox">
     <h2 style="text-align: center;">#bitcoin-otc marketplace</h2>
-    <p>#bitcoin-otc is an <a href="http://en.wikipedia.org/wiki/Over-the-counter_(finance)">over-the-counter</a> marketplace for trading with <a href="http://bitcoin.org">bitcoin</a>. The marketplace is located in #bitcoin-otc channel on the <a href="http://freenode.net">freenode</a> IRC network. If you don't have an IRC client, <a href="http://webchat.freenode.net/?channels=#bitcoin-otc">click here</a> to visit the channel with your web browser.</p>
+    <p>#bitcoin-otc is an <a href="http://en.wikipedia.org/wiki/Over-the-counter_(finance)">over-the-counter</a> marketplace for trading with <a href="http://bitcoin.org">bitcoin</a>. The marketplace is located in #bitcoin-otc channel on the <a href="https://libera.chat/">Libera Chat</a> IRC network. If you don't have an IRC client, <a href="https://web.libera.chat/">click here</a> to visit wth your web browser.</p>
 
     <h4>resources</h4>
     <ul>

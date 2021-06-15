@@ -12,7 +12,7 @@ Web of Trust
    <a href="http://www.dragons.tl/launchpad.php?referrer=bitcoinotc"><img src="./dragonstale.jpg" style="border-style: none;"></a>
   </div>
   <h2>What is the OTC web of trust?</h2>
-  <p><a href="http://bitcoin-otc.com">#bitcoin-otc</a> is an <a href="http://en.wikipedia.org/wiki/Over-the-counter_(finance)">over-the-counter</a> marketplace for <a href="http://bitcoin.org">bitcoin</a> currency. The marketplace is located in #bitcoin-otc channel on the <a href="http://freenode.net">freenode</a> IRC network.</p>
+  <p><a href="http://bitcoin-otc.com">#bitcoin-otc</a> is an <a href="http://en.wikipedia.org/wiki/Over-the-counter_(finance)">over-the-counter</a> marketplace for <a href="http://bitcoin.org">bitcoin</a> currency. The marketplace is located in #bitcoin-otc channel on the <a href="https://libera.chat/">Libera Chat</a> IRC network.</p>
   <p>Since all transactions carry with them counterparty risk (risk of non-payment by one of the parties), it becomes important to keep track of people's reputations and trade histories, so that you can decrease your probability of getting ripped off. And thus, the OTC web of trust is born.</p>
   <h2>Useful resources</h2>
   <p>The following resources are available for you:</p>
