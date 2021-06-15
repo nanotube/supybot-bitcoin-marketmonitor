@@ -9,7 +9,6 @@
   <div style="float: left; width: 180px; text-align: center;">
    <div style="padding-left: 10px; padding-bottom: 10px; text-align: center; font-family: Helvetica;">
     Visit our sponsors:<br>
-    <a href="https://www.privateinternetaccess.com/pages/buy-vpn/OTC001"><img src="pia.png" title="Private Internet Access VPN" alt="Private Internet Access graphic" style="border-style: none;"></a>
     <hr style="width: 80%;">
     <a href="https://bitvps.com/?bitcoinotc"><img src="bitvps.png" title="BitVPS Hosting" alt="BitVPS Graphic" style="border-style: none;"></a>
     <hr style="width: 80%;">
