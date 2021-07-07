@@ -151,18 +151,20 @@ class GPGTestCase(PluginTestCase):
         # create the test ecdsa keypair and resulting bitcoin address
         private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = bitcoinsig.SECP256k1 )
         public_key = private_key.get_verifying_key()
-        bitcoinaddress = bitcoinsig.public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
-        
+        addresses = bitcoinsig.public_key_to_bc_addresses( '04'.decode('hex') + public_key.to_string() )
+
         # default test user hostmask: test!user@host.domain.tld
         self.assertRegexp('gpg ident', 'not identified')
-        m = self.getMsg('bcregister someone %s' % (bitcoinaddress,))
-        self.failUnless('Request successful' in str(m))
-        challenge = str(m).split('is: ')[1].strip()
-        sig = bitcoinsig.sign_message(private_key, challenge)
-        time.sleep(1)
-        self.assertRegexp('bcverify %s' % (sig,),
-                    'Registration successful. You are now authenticated')
-        self.assertRegexp('gpg ident', 'is identified')
+
+        for i, bitcoinaddress in enumerate(addresses):
+            m = self.getMsg('bcregister someone%s %s' % (i, bitcoinaddress))
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1].strip()
+            sig = bitcoinsig.sign_message(private_key, challenge)
+            time.sleep(0.5)
+            self.assertRegexp('bcverify %s' % (sig,),
+                        'Registration successful. You are now authenticated')
+            self.assertRegexp('gpg ident', 'is identified')
 
     def testIdent(self):
         self.prefix = 'authedguy!stuff@123.345.234.34'
@@ -211,19 +213,19 @@ class GPGTestCase(PluginTestCase):
 
     def testBcauth(self):
         # create the test ecdsa keypair and resulting bitcoin address
-        private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = bitcoinsig.SECP256k1 )
+        private_key = ecdsa.SigningKey.from_string('5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = bitcoinsig.SECP256k1 )
         public_key = private_key.get_verifying_key()
-        bitcoinaddress = bitcoinsig.public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
-        
+        addresses = bitcoinsig.public_key_to_bc_addresses( '04'.decode('hex') + public_key.to_string() )
         gpg = self.irc.getCallback('GPG')
-        gpg.db.register(self.testkeyid, self.testkeyfingerprint, bitcoinaddress,
-                    time.time(), 'someone')
-        m = self.getMsg('bcauth someone')
-        self.failUnless('Request successful' in str(m))
-        challenge = str(m).split('is: ')[1].strip()
-        sig = bitcoinsig.sign_message(private_key, challenge)
-        time.sleep(1)
-        self.assertRegexp('bcverify %s' % (sig,), 'You are now authenticated')
+        for bitcoinaddress in addresses:
+            gpg.db.register(self.testkeyid, self.testkeyfingerprint, bitcoinaddress,
+                        time.time(), 'someone')
+            m = self.getMsg('bcauth someone')
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1].strip()
+            sig = bitcoinsig.sign_message(private_key, challenge)
+            time.sleep(1)
+            self.assertRegexp('bcverify %s' % (sig,), 'You are now authenticated')
 
     #~ def testChangenick(self):
         #~ self.assertError('gpg changenick somethingnew') #not authed
@@ -264,20 +266,22 @@ class GPGTestCase(PluginTestCase):
         # create the test ecdsa keypair and resulting bitcoin address
         private_key = ecdsa.SigningKey.from_string( '5JkuZ6GLsMWBKcDWa5QiD15Uj467phPR', curve = bitcoinsig.SECP256k1 )
         public_key = private_key.get_verifying_key()
-        bitcoinaddress = bitcoinsig.public_key_to_bc_address( '04'.decode('hex') + public_key.to_string() )
+        addresses = bitcoinsig.public_key_to_bc_addresses( '04'.decode('hex') + public_key.to_string() )
 
-        self.assertError('gpg changeaddress 1sntoheu') #not authed
+        self.assertError('gpg changeaddress 1sntoheu')  # not authed
         self.prefix = 'authedguy2!stuff@123.345.234.34'
         self.assertRegexp('gpg ident', 'is identified')
-        m = self.getMsg('gpg changeaddress %s' % (bitcoinaddress,))
-        self.failUnless('Request successful' in str(m))
-        challenge = str(m).split('is: ')[1].strip()
-        sig = bitcoinsig.sign_message(private_key, challenge)
-        time.sleep(1)
-        self.assertRegexp('bcverify %s' % (sig,),
-                    'Successfully changed address.*You are now authenticated')
-        self.assertRegexp('gpg ident', 'is identified.*address %s' % (bitcoinaddress,))
-        self.assertRegexp('gpg info authedguy2', 'address %s' % (bitcoinaddress,))
+
+        for bitcoinaddress in addresses:
+            m = self.getMsg('gpg changeaddress %s' % (bitcoinaddress,))
+            self.failUnless('Request successful' in str(m))
+            challenge = str(m).split('is: ')[1].strip()
+            sig = bitcoinsig.sign_message(private_key, challenge)
+            time.sleep(1)
+            self.assertRegexp('bcverify %s' % (sig,),
+                        'Successfully changed address.*You are now authenticated')
+            self.assertRegexp('gpg ident', 'is identified.*address %s' % (bitcoinaddress,))
+            self.assertRegexp('gpg info authedguy2', 'address %s' % (bitcoinaddress,))
 
     def testNick(self):
         self.prefix = 'authedguy2!stuff@123.345.234.34'
