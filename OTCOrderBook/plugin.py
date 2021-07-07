@@ -177,6 +177,7 @@ def getIndexedPrice(irc, msg, args, state, type='price input'):
     """Indexed price can contain one or more of {mtgoxask}, {mtgoxbid},
     {mtgoxlast}, {mtgoxhigh}, {mtgoxlow}, {mtgoxavg}, included in 
     an arithmetical expression.
+    The min(..., ...) and max(..., ...) functions are allowed.
     It can also contain one expression of the form {XXX in YYY} which
     queries google for currency conversion rate from XXX to YYY."""
     try:
@@ -184,8 +185,10 @@ def getIndexedPrice(irc, msg, args, state, type='price input'):
         v = re.sub(r'{mtgox(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{bitstamp(ask|bid|last|high|low|avg)}', '1', v)
         v = re.sub(r'{... in ...}', '1', v, 1)
+        v = re.sub(r'(min|max)', '(1)+', v)
+        v = v.replace(',', '+')
         if not set(v).issubset(set('1234567890*-+./() ')) or '**' in v:
-            raise ValueError, "only {mtgox(ask|bid|last|high|low|avg)}, {bitstamp(ask|bid|last|high|low|avg)}, one {... in ...}, and arithmetic allowed."
+            raise ValueError, "only {mtgox(ask|bid|last|high|low|avg)}, {bitstamp(ask|bid|last|high|low|avg)}, one {... in ...}, min, max and arithmetic allowed."
         eval(v)
         state.args.append(args[0])
         del args[0]

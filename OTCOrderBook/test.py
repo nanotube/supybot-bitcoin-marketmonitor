@@ -94,6 +94,11 @@ class OTCOrderBookTestCase(PluginTestCase):
             self.prefix = 'authedguy2!stuff@123.345.234.34'
             self.assertNotError('otcorderbook buy --long 5000 btc at 0.06 USD this is a long order') #now we have 20 total trust
             self.assertRegexp('view', '5000')
+            # Test min/max:
+            self.assertNotError('otcorderbook buy 6000 btc at max(10,20) LRUSD some text')
+            self.assertNotError('otcorderbook buy 7000 btc at min(10,20) LRUSD some text')
+            self.assertRegexp('view 6', '20')
+            self.assertRegexp('view 7', '10')
         finally:
             self.prefix = origuser
 
